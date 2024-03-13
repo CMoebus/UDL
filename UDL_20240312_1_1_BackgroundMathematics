@@ -15,7 +15,7 @@ md"
 ====================================================================================
 #### [UDL\_1\_1\_BackgroundMathematics](https://colab.research.google.com/github/udlbook/udlbook/blob/main/Notebooks/Chap01/1_1_BackgroundMathematics.ipynb#scrollTo=WeFK4AvTotd8) 
 ##### file: UDL\_20240312\_1\_1\_BackgroundMathematics
-##### code: Julia 1.10.2/Pluto by *** PCM 2024/03/12 ***
+##### code: Julia 1.10.2/Pluto by *** PCM 2024/03/13 ***
 ====================================================================================
 "
 
@@ -23,32 +23,49 @@ md"
 md"""
 ---
 ###### Linear functions
-"We will be using the term *linear equation* to mean a weighted sum of inputs plus an offset. If there is just one input x, then this is a straight line:
+A *linear equation* is a weighted sum of inputs plus an offset. If there is just one input x, then this is a *straight line*:
 
 $y=β+ωx,$
 
 $$\;$$
 
-where $β$ is the $y$-*intercept* of the linear and $ω$ is the *slope* of the line. When there are two inputs $x_1$ and $x_2$, then this becomes:
+where $β$ is the $y$-*intercept* of the linear and $ω$ is the *slope* of the line. 
+
+For two inputs $x_1$ and $x_2$, this becomes a *straight plane*:
 
 $y=β+ω_1x_1+ω_2x_2.$
 
 $$\;$$
 
-Any (?) other functions are by definition **non-linear**" (Prince, 2023).
+Other functions can be *non-linear* in *parameters*:
+
+$$\;$$
+
+$y=β+ωx_1+ω^2x_2$
+
+$$\;$$
+
+or in *variables*:
+
+$$\;$$
+
+$y=β+ω_1x+ω_2x^3$
+
+$$\;$$
 
 """
 
 # ╔═╡ 54e174a9-2038-409f-9865-e24f84a58099
 md"
 ---
-###### Define a linear function with just one input, $x$:
+###### Define a linear function with just one input $x$:
 "
 
 
 # ╔═╡ a70e1ebb-0272-4916-a666-8b9a6e9663b1
-function linearFunction1D(x, beta, omega)
-  x
+function linearFunction1D(x, β, ω)              # keyword parameters with defaults
+	# exercise: replace the code line below with formula for 1D linear equation
+	β + ω * x
 end # function linearFunction1D
 
 # ╔═╡ 86902242-d179-43fc-aae5-b0aa856aead0
@@ -58,12 +75,12 @@ md"
 
 # ╔═╡ 9c66feaf-d444-4aaf-ad86-779ca3e6de6e
 # Define an array of x values from 0 to 10 with increments of 0.01
-begin
-	xs = [x for x in 0.0:0.01:10.0]
-	beta = 0.0; omega = 1.0
-	# ys = [linearFunction_1D(x, beta, omega) for x in xs]   # ==> long form
-	ys1 = linearFunction1D.(xs, beta, omega)                  # short with 'broadcast' 
-end # begin
+xs, ys1 = 
+	let xs = [x for x in 0.0:0.01:10.0]
+		β = 5.0; ω = 1.0
+		ys1 = linearFunction1D.(xs, β, ω)                    # short with 'broadcast' 
+		xs, ys1
+	end # let
 
 # ╔═╡ 70662d72-49df-4098-a6c7-0355eb60ca98
 ys1
@@ -80,18 +97,18 @@ md"
 
 # ╔═╡ 3bb14327-ff5d-469c-9e8d-fce55b206b9c
 # Define a linear function with two inputs, x1 and x2
-function linearFunction2D(x1, x2, beta, omega1, omega2)
-  x1
+function linearFunction2D(x1, x2, β, ω1, ω2)
+    # x1                                                 # vertical stripes
+	β + ω1*x1 + ω2*x2                                    # tilted stripes
 end # function linearFunction2D
 
 # ╔═╡ 129a5b82-ac29-4276-ad57-990f856ae21a
 # Compute the 2D function for given values of omega1, omega2
-begin 
-	xs1 = [x for x in 0.0:0.01:10.0]
+let xs1 = [x for x in 0.0:0.01:10.0]
 	xs2 = [x for x in 0.0:0.01:10.0]
-	omega1 = 1.0; omega2 = -0.5
-	contour(xs1, xs2, (x, y) -> linearFunction2D(x, y, beta, omega1, omega2), fill=true)
-end # begin
+	β = 0.0; ω1 = 1.0; ω2 = -0.5
+	contour(xs1, xs2, (x, y) -> linearFunction2D(x, y, β, ω1, ω2), fill=true)
+end # let
 
 # ╔═╡ 3c208911-6da9-4935-907c-14a80cbddb9e
 md"""
@@ -109,14 +126,16 @@ However, we can write it more compactly with vectors and matrices:" (Prince, 202
 
 $$\;$$
 
+or
+
 $$
 \begin{bmatrix}
 y_1\\
 y_2\\
 \end{bmatrix} =
 \begin{bmatrix}
-\beta_1\\
-\beta_2\\
+\beta_1 \\
+\beta_2 \\
 \end{bmatrix} +
 \begin{bmatrix}
 ω_{11} & ω_{12} & ω_{13} \\
@@ -140,36 +159,75 @@ $$\;$$
 
 for short. Here, lowercase bold symbols are used for vectors. Upper case bold symbols are used for matrices.
 
+As an alternative we can write more compactly:
+
 $$\;$$
+
+$$
+\begin{bmatrix}
+y_1 \\
+y_2 \\
+\end{bmatrix} =
+\begin{bmatrix}
+\beta_1 & ω_{11} & ω_{12} & ω_{13} \\
+\beta_2 & ω_{21} & ω_{22} & ω_{23} \\
+\end{bmatrix} \cdot
+\begin{bmatrix}
+1.0 \\
+x_1 \\
+x_2 \\
+x_3 \\
+\end{bmatrix}$$
+
+or
+
+$$\;$$
+$$\;$$
+$$\;$$
+$$\;$$
+$$\;$$
+
+$$\mathbf y = \mathbf Ω_ex_e$$
+
+$$\;$$
+$$\;$$
+
 """
 
 # ╔═╡ f0049888-c2b3-433e-bda1-ac0259f19451
 # Define a linear function with three inputs, x1, x2, and x_3
-function linearFunction3D(x1, x2, x3, beta, omega1, omega2, omega3)
-  x1
+function linearFunction3D(x1, x2, x3, β, ω1, ω2, ω3)
+  	# x1
+	β + ω1*x1 + ω2*x2 + ω3*x3
 end # function linearFunction3D
 
 # ╔═╡ 91381756-7bb6-4fdd-a99f-06da43534b1f
-begin
+let
 	# Define the parameters
-	β = [0.5; 0.2]
-	Ω = [-1.0  0.4 -0.3;
-	      0.1  0.1  1.2]
-	# Define the inputs
-	x = [ 4.0; -1.0; 2.0]
-	x1 = x[1]; x2 = x[2]; x3 = x[3]
-	β1 = β[1]; β2 = β[2]
+	β   = [0.5;  0.2]; β1 = β[1]; β2 = β[2]
+	Ω   = [-1.0  0.4 -0.3;
+	        0.1  0.1  1.2]
 	ω11 = Ω[1, 1]; ω12 = Ω[1, 2]; ω13 = Ω[1, 3]
 	ω21 = Ω[2, 1]; ω22 = Ω[2, 2]; ω23 = Ω[2, 3]
+	Ωe  = [0.5 -1.0  0.4 -0.3;
+	       0.2  0.1  0.1  1.2]
+	
+	# Define the inputs
+	x   = [ 4.0; -1.0;  2.0]; x1 = x[1]; x2 = x[2]; x3 = x[3]
+	xe  = [ 1.0;  4.0; -1.0; 2.0]
+	
 	# Compute using the individual equations
-	y = Vector{Float64}(undef, 2)
-	y1 = linearFunction3D(x1, x2, x3, β1, ω11, ω12, ω13)
-	y2 = linearFunction3D(x1, x2, x3, β2, ω21, ω22, ω23)
+	y   = Vector{Float64}(undef, 2)
+	y1  = linearFunction3D(x1, x2, x3, β1, ω11, ω12, ω13)
+	y2  = linearFunction3D(x1, x2, x3, β2, ω21, ω22, ω23)
 	println("individual equations: y1=$y1, y2=$y2")
+	
 	# Compute with vector/matrix form
 	y = β + Ω * x
-	println("matrix equation: y=$y")
-end
+	println("matrix equation y = β + Ω * x: y=$y")
+	y = Ωe * xe
+	println("matrix equation y = Ωe * xe: y=$y")
+end # let
 
 # ╔═╡ f2de5c0b-5aa5-45e7-ba35-1079a9d3c430
 md"
@@ -196,7 +254,8 @@ md"
 ---
 ##### References
 
-- **Prince, S.J.D.**; [Understand Deep Learning](https://udlbook.github.io/udlbook/); MIT Press, 2023
+- **Bishop, C.M. & Bishop, H.**; Deep Learning: Foundations and Concepts, Cham: Springer, 2024
+- **Prince, S.J.D.**; [Understand Deep Learning](https://udlbook.github.io/udlbook/); MIT Press, 2024
 "
 
 # ╔═╡ 5e9d1ee0-4233-4ede-a073-28d327d3332e
