@@ -1,1 +1,3 @@
-This is my personal learning diary when exploring Prince's UDL and reconstructing his colab scripts in Julia/Pluto.
+Learning by de- and reconstruction – this is my motto when reading the book Understanding Deep Learning by Simon J.D. Prince, MIT Press, 2024. In 2012 he published a book titled Computer Vision: Models, Learning, and Inference. While that was based on Bayesian methodology the new book shifts the focus on a nonBayesian approach. I expect that a third book of the same autor will combine both approaches and will be titled Understanding Bayesian Deep Learning.
+
+Learning by de- and reconstruction means that I take Prince’s Python notebooks, analyze and deconstruct the content and reconstruct the meaning in Julia/Pluto notebooks. I prefer the combination Julia/Pluto because of the scientific character of Julia and the declarative character of Pluto.
