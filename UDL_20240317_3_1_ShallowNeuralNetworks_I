@@ -222,7 +222,7 @@ ysTrain = [
 leastSquaresLoss(ysTrain, ysPredict)
 
 # ╔═╡ ef992bd4-de87-4b60-9982-f4968472435b
-function plotTrainData()
+function plotTrainData(ysPredict)
 	sc1 = scatter(xsTrain, ysTrain, label=L"(xTrain, yTrain)")
 	sc2 = scatter(xsTrain, ysPredict, label=L"(xTrain, yPredict)")
 	sc3 = scatter(xsTrain, [ysTrain, ysPredict], label=L"(xTrain, yTrn/yPrd)")
@@ -230,7 +230,7 @@ function plotTrainData()
 end # function plotTrainData
 
 # ╔═╡ 698691ea-da26-46f8-bdf7-50bf3d0b086d
-plotTrainData()
+plotTrainData(ysPredict)
 
 # ╔═╡ 59779c1e-41bf-41b0-89ef-c2a901b0c432
 md"
@@ -243,7 +243,8 @@ fit the data better and try to reduce the loss to as small a number
 as possible.  The best that I could do was $0.181$. Tip... start by manipulating phi_0.
 It's not that easy, so don't spend too much time on this!*
 
-Her we used the *slider*-feature of $PlutoUI$ to meet the task requirement for a fast try-out. What we could realize is a minimum of $0.89$ by adjusting $\phi_0$ to $0.22$. All other $\phi$s were set to $0.0$ ! This seems a bit suspicious that other parameters have no influence. On the other hand is the error loss of our original (not optimized) model with $9.384873891117891$ nearly identical with the [UDL-solution](https://colab.research.google.com/github/udlbook/udlbook/blob/main/Notebooks/Chap03/3_1_Shallow_Networks_I.ipynb#scrollTo=o6GXjtRubZ2U) $\text{ True value } = 9.385$. This equivalence of results seems a strong argument against implementation errors.
+To meet the task requirement for a fast try-out we used the *slider*-feature of $PlutoUI$. We tried two simple manual optimizing strategies. The first is a *top-down strategy*: $\phi_0 \rightarrow \phi_1 \rightarrow ... \theta_{10} \rightarrow \theta_{10} \rightarrow \theta_{11} \rightarrow \theta_{20} \rightarrow ...$. What we could realize is a minimum of $0.89$ by adjusting $\phi_0$ to $0.22$. All other $\phi$s were set to $0.0$ ! This seems a bit suspicious that other parameters have no influence. On the other hand is the error loss of our original (not optimized) model with $9.384873891117891$ nearly identical with the [UDL-solution](https://colab.research.google.com/github/udlbook/udlbook/blob/main/Notebooks/Chap03/3_1_Shallow_Networks_I.ipynb#scrollTo=o6GXjtRubZ2U) $\text{ True value } = 9.385$. This equivalence of results seems a strong argument against implementation errors.
+The other strategy the *bottom-up strategy* resulted in a minimum loss of $0.8862285345450219$. This is just the same result as before.
 "
 
 # ╔═╡ 51731619-ce90-44af-b054-be3116b6e048
@@ -312,6 +313,23 @@ let # Run the neural network on the training data
 		shallow_1_3_1(xsTrain, reLU, myϕ0, myϕ1, myϕ2, myϕ3, myθ10, myθ11, myθ20, myθ21, myθ30, myθ31)
 	leastSquaresLoss(ysTrain, ysPredict)
 end # let
+
+# ╔═╡ d34918cb-d766-422f-bc3f-397ede0945ba
+(ysPredict2, rest2...) = 
+	shallow_1_3_1(xsTrain, reLU, myϕ0, myϕ1, myϕ2, myϕ3, myθ10, myθ11, myθ20, myθ21, myθ30, myθ31)
+
+# ╔═╡ 25c6a7cd-3f64-4f02-805d-f21d0e5ac90a
+leastSquaresLoss(ysTrain, ysPredict2)  # ====> 0.8862285345450219 --->  :)
+
+# ╔═╡ 64b7ec52-cd13-4141-aeab-4edde49a362e
+plotTrainData(ysPredict2)
+
+# ╔═╡ 3b0737ab-7ac7-469b-b8a3-ddd6d8f0f8ce
+md"
+---
+##### Summary
+Plotting the result is rather disappointing, because the model generates for *all* inputs $x$ the *same* output $y$.    :(
+"
 
 # ╔═╡ 4134fee1-5aad-496d-b27e-c7c94a63928d
 md"
@@ -1491,6 +1509,10 @@ version = "1.4.1+1"
 # ╠═b5c4e1f5-b9b4-4265-9d61-b4469e43afd7
 # ╠═7840e5db-30e9-49a1-b277-9d9e26d8808e
 # ╠═beaaded4-2f3b-492a-9911-6a70081decd7
+# ╠═d34918cb-d766-422f-bc3f-397ede0945ba
+# ╠═25c6a7cd-3f64-4f02-805d-f21d0e5ac90a
+# ╠═64b7ec52-cd13-4141-aeab-4edde49a362e
+# ╟─3b0737ab-7ac7-469b-b8a3-ddd6d8f0f8ce
 # ╟─4134fee1-5aad-496d-b27e-c7c94a63928d
 # ╟─6a6a33c8-e235-4312-8f0f-3f0e7ac45014
 # ╟─00000000-0000-0000-0000-000000000001
