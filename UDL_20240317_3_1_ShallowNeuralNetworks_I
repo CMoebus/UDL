@@ -4,6 +4,16 @@
 using Markdown
 using InteractiveUtils
 
+# This Pluto notebook uses @bind for interactivity. When running this notebook outside of Pluto, the following 'mock version' of @bind gives bound variables a default value (instead of an error).
+macro bind(def, element)
+    quote
+        local iv = try Base.loaded_modules[Base.PkgId(Base.UUID("6e696c72-6542-2067-7265-42206c756150"), "AbstractPlutoDingetjes")].Bonds.initial_value catch; b -> missing; end
+        local el = $(esc(element))
+        global $(esc(def)) = Core.applicable(Base.get, el) ? Base.get(el) : iv(el)
+        el
+    end
+end
+
 # ╔═╡ 34569e56-a6ec-4bf9-b57b-81074638fd86
 begin
 	# Plotting library
@@ -12,13 +22,16 @@ begin
 	using LaTeXStrings, Latexify
 end # begin
 
+# ╔═╡ e0e76f87-4632-4913-9ffa-bbd7a7915676
+using PlutoUI
+
 # ╔═╡ 7785b15e-e449-11ee-15e6-0bcd06d976e1
 md"
 ====================================================================================
 
 #### UDL\_3\_1 Shallow Neural Networks I
 ##### file: UDL\_20240317\_3\_1\_ShallowNeuralNetworks\_I
-##### code: Julia 1.10.2/Pluto by *** PCM 2024/03/18 ***
+##### code: Julia 1.10.2/Pluto by *** PCM 2024/03/19 ***
 
 ====================================================================================
 "
@@ -219,6 +232,87 @@ end # function plotTrainData
 # ╔═╡ 698691ea-da26-46f8-bdf7-50bf3d0b086d
 plotTrainData()
 
+# ╔═╡ 59779c1e-41bf-41b0-89ef-c2a901b0c432
+md"
+---
+##### Manual Loss Minimization
+In the UDL-notebook there is the following [instruction](https://colab.research.google.com/github/udlbook/udlbook/blob/main/Notebooks/Chap03/3_1_Shallow_Networks_I.ipynb#scrollTo=o6GXjtRubZ2U): 
+
+*TODO.  Manipulate the parameters (by hand!) to make the function
+fit the data better and try to reduce the loss to as small a number
+as possible.  The best that I could do was $0.181$. Tip... start by manipulating phi_0.
+It's not that easy, so don't spend too much time on this!*
+
+Her we used the *slider*-feature of $PlutoUI$ to meet the task requirement for a fast try-out. What we could realize is a minimum of $0.89$ by adjusting $\phi_0$ to $0.22$. All other $\phi$s were set to $0.0$ ! This seems a bit suspicious that other parameters have no influence. On the other hand is the error loss of our original (not optimized) model with $9.384873891117891$ nearly identical with the [UDL-solution](https://colab.research.google.com/github/udlbook/udlbook/blob/main/Notebooks/Chap03/3_1_Shallow_Networks_I.ipynb#scrollTo=o6GXjtRubZ2U) $\text{ True value } = 9.385$. This equivalence of results seems a strong argument against implementation errors.
+"
+
+# ╔═╡ 51731619-ce90-44af-b054-be3116b6e048
+@bind myϕ0 Slider(-5.0:0.01:+5.0)
+
+# ╔═╡ e8376be5-cf11-4372-b53c-385f1a15c918
+myϕ0
+
+# ╔═╡ 74984bde-6e0d-410d-abbc-9ed56be62dda
+@bind myϕ1 Slider(-5.0:0.01:+5.0)
+
+# ╔═╡ ef2ba17f-73f1-47ae-b1fb-bb10bbe7c6ef
+myϕ1
+
+# ╔═╡ 7bc740a6-7242-4382-9f8b-cc6dd0c83ce7
+@bind myϕ2 Slider(-5.0:0.01:+5.0)
+
+# ╔═╡ d13e0ad5-3306-4129-8c46-08b4cce8cf98
+myϕ2
+
+# ╔═╡ 42981491-cb53-4b30-ba1d-823b354f8698
+@bind myϕ3 Slider(-5.0:0.01:+5.0)
+
+# ╔═╡ cdd6025c-8edc-4b4a-92bf-9a52342ba0dc
+myϕ3
+
+# ╔═╡ 00b19a09-7087-4ba8-be85-19b5dfc5f922
+@bind myθ10 Slider(-5.0:0.1:+5.0)
+
+# ╔═╡ e50ed52a-504b-4558-9340-e257683300d7
+myθ10
+
+# ╔═╡ 08df9cd4-0372-4340-836f-6a3aa3f549c4
+@bind myθ11 Slider(-5.0:0.1:+5.0)
+
+# ╔═╡ 7d4b8930-98b2-427f-8d67-aa80bbfdeea9
+myθ11
+
+# ╔═╡ 45367d31-8ba9-4e30-977f-948efbb36ea8
+@bind myθ20 Slider(-5.0:0.1:+5.0)
+
+# ╔═╡ 71b3bebb-2b95-451c-b8d4-7972752afd7a
+myθ20
+
+# ╔═╡ 67684950-c5c8-4d77-bdf2-65c486a38376
+@bind myθ21 Slider(-5.0:0.1+5.0)
+
+# ╔═╡ df299372-41d6-4260-8de9-f330e0dde1aa
+myθ21 
+
+# ╔═╡ e84c7588-999c-4f46-9210-c8f35039955c
+@bind myθ30 Slider(-5.0:0.1:+5.0)
+
+# ╔═╡ 302983b4-1c04-4adf-a8b8-6c1ae2fe7ccc
+myθ30
+
+# ╔═╡ b5c4e1f5-b9b4-4265-9d61-b4469e43afd7
+@bind myθ31 Slider(-5.0:0.1:+5.0)
+
+# ╔═╡ 7840e5db-30e9-49a1-b277-9d9e26d8808e
+myθ31
+
+# ╔═╡ beaaded4-2f3b-492a-9911-6a70081decd7
+let # Run the neural network on the training data
+	(ysPredict, rest...) = 
+		shallow_1_3_1(xsTrain, reLU, myϕ0, myϕ1, myϕ2, myϕ3, myθ10, myθ11, myθ20, myθ21, myθ30, myθ31)
+	leastSquaresLoss(ysTrain, ysPredict)
+end # let
+
 # ╔═╡ 4134fee1-5aad-496d-b27e-c7c94a63928d
 md"
 ---
@@ -246,11 +340,13 @@ PLUTO_PROJECT_TOML_CONTENTS = """
 LaTeXStrings = "b964fa9f-0449-5b57-a5c2-d3ea65f4040f"
 Latexify = "23fbe1c1-3f47-55db-b15f-69d7ec21a316"
 Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
+PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
 
 [compat]
 LaTeXStrings = "~1.3.1"
 Latexify = "~0.16.1"
 Plots = "~1.40.1"
+PlutoUI = "~0.7.56"
 """
 
 # ╔═╡ 00000000-0000-0000-0000-000000000002
@@ -259,7 +355,13 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.10.2"
 manifest_format = "2.0"
-project_hash = "329d6cfea912269c1ff0f5029f0e504b16f35d0b"
+project_hash = "947cb89fbbc4b0aa6eda9c89837712a2dacdf533"
+
+[[deps.AbstractPlutoDingetjes]]
+deps = ["Pkg"]
+git-tree-sha1 = "c278dfab760520b8bb7e9511b968bf4ba38b7acc"
+uuid = "6e696c72-6542-2067-7265-42206c756150"
+version = "1.2.3"
 
 [[deps.ArgTools]]
 uuid = "0dad84c5-d112-42e6-8d28-ef12dabb789f"
@@ -498,6 +600,24 @@ git-tree-sha1 = "129acf094d168394e80ee1dc4bc06ec835e510a3"
 uuid = "2e76f6c2-a576-52d4-95c1-20adfe4de566"
 version = "2.8.1+1"
 
+[[deps.Hyperscript]]
+deps = ["Test"]
+git-tree-sha1 = "179267cfa5e712760cd43dcae385d7ea90cc25a4"
+uuid = "47d2ed2b-36de-50cf-bf87-49c2cf4b8b91"
+version = "0.0.5"
+
+[[deps.HypertextLiteral]]
+deps = ["Tricks"]
+git-tree-sha1 = "7134810b1afce04bbc1045ca1985fbe81ce17653"
+uuid = "ac1192a8-f4b3-4bfe-ba22-af5b92cd3ab2"
+version = "0.9.5"
+
+[[deps.IOCapture]]
+deps = ["Logging", "Random"]
+git-tree-sha1 = "8b72179abc660bfab5e28472e019392b97d0985c"
+uuid = "b5f81e59-6552-4d32-b1f0-c071b021bf89"
+version = "0.2.4"
+
 [[deps.InteractiveUtils]]
 deps = ["Markdown"]
 uuid = "b77e0a4c-d291-57a0-90e8-8db25a27a240"
@@ -678,6 +798,11 @@ git-tree-sha1 = "c1dd6d7978c12545b4179fb6153b9250c96b0075"
 uuid = "e6f89c97-d47a-5376-807f-9c37f3926c36"
 version = "1.0.3"
 
+[[deps.MIMEs]]
+git-tree-sha1 = "65f28ad4b594aebe22157d6fac869786a255b7eb"
+uuid = "6c6e2e6c-3030-632d-7369-2d6c69616d65"
+version = "0.1.4"
+
 [[deps.MacroTools]]
 deps = ["Markdown", "Random"]
 git-tree-sha1 = "2fa9ee3e63fd3a4f7a9a4f4744a52f4856de82df"
@@ -824,6 +949,12 @@ version = "1.40.1"
     IJulia = "7073ff75-c697-5162-941a-fcdaad2a7d2a"
     ImageInTerminal = "d8c32880-2388-543b-8c61-d9f865259254"
     Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
+
+[[deps.PlutoUI]]
+deps = ["AbstractPlutoDingetjes", "Base64", "ColorTypes", "Dates", "FixedPointNumbers", "Hyperscript", "HypertextLiteral", "IOCapture", "InteractiveUtils", "JSON", "Logging", "MIMEs", "Markdown", "Random", "Reexport", "URIs", "UUIDs"]
+git-tree-sha1 = "211cdf570992b0d977fda3745f72772e0d5423f2"
+uuid = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
+version = "0.7.56"
 
 [[deps.PrecompileTools]]
 deps = ["Preferences"]
@@ -972,6 +1103,11 @@ weakdeps = ["Random", "Test"]
 
     [deps.TranscodingStreams.extensions]
     TestExt = ["Test", "Random"]
+
+[[deps.Tricks]]
+git-tree-sha1 = "eae1bb484cd63b36999ee58be2de6c178105112f"
+uuid = "410a4b4d-49e4-4fbc-ab6d-cb71b17b3775"
+version = "0.1.8"
 
 [[deps.URIs]]
 git-tree-sha1 = "67db6cc7b3821e19ebe75791a9dd19c9b1188f2b"
@@ -1332,6 +1468,29 @@ version = "1.4.1+1"
 # ╠═8efb64a3-5b23-4b06-93fe-5048e3f899e3
 # ╠═ef992bd4-de87-4b60-9982-f4968472435b
 # ╠═698691ea-da26-46f8-bdf7-50bf3d0b086d
+# ╟─59779c1e-41bf-41b0-89ef-c2a901b0c432
+# ╠═e0e76f87-4632-4913-9ffa-bbd7a7915676
+# ╠═51731619-ce90-44af-b054-be3116b6e048
+# ╠═e8376be5-cf11-4372-b53c-385f1a15c918
+# ╠═74984bde-6e0d-410d-abbc-9ed56be62dda
+# ╠═ef2ba17f-73f1-47ae-b1fb-bb10bbe7c6ef
+# ╠═7bc740a6-7242-4382-9f8b-cc6dd0c83ce7
+# ╠═d13e0ad5-3306-4129-8c46-08b4cce8cf98
+# ╠═42981491-cb53-4b30-ba1d-823b354f8698
+# ╠═cdd6025c-8edc-4b4a-92bf-9a52342ba0dc
+# ╠═00b19a09-7087-4ba8-be85-19b5dfc5f922
+# ╠═e50ed52a-504b-4558-9340-e257683300d7
+# ╠═08df9cd4-0372-4340-836f-6a3aa3f549c4
+# ╠═7d4b8930-98b2-427f-8d67-aa80bbfdeea9
+# ╠═45367d31-8ba9-4e30-977f-948efbb36ea8
+# ╠═71b3bebb-2b95-451c-b8d4-7972752afd7a
+# ╠═67684950-c5c8-4d77-bdf2-65c486a38376
+# ╠═df299372-41d6-4260-8de9-f330e0dde1aa
+# ╠═e84c7588-999c-4f46-9210-c8f35039955c
+# ╠═302983b4-1c04-4adf-a8b8-6c1ae2fe7ccc
+# ╠═b5c4e1f5-b9b4-4265-9d61-b4469e43afd7
+# ╠═7840e5db-30e9-49a1-b277-9d9e26d8808e
+# ╠═beaaded4-2f3b-492a-9911-6a70081decd7
 # ╟─4134fee1-5aad-496d-b27e-c7c94a63928d
 # ╟─6a6a33c8-e235-4312-8f0f-3f0e7ac45014
 # ╟─00000000-0000-0000-0000-000000000001
