@@ -31,7 +31,7 @@ md"
 
 #### UDL\_3\_1 Shallow Neural Networks I
 ##### file: UDL\_20240317\_3\_1\_ShallowNeuralNetworks\_I
-##### code: Julia 1.10.2/Pluto by *** PCM 2024/03/19 ***
+##### code: Julia 1.10.2/Pluto by *** PCM 2024/03/20 ***
 
 ====================================================================================
 "
@@ -243,69 +243,68 @@ fit the data better and try to reduce the loss to as small a number
 as possible.  The best that I could do was $0.181$. Tip... start by manipulating phi_0.
 It's not that easy, so don't spend too much time on this!*
 
-To meet the task requirement for a fast try-out we used the *slider*-feature of $PlutoUI$. We tried two simple manual optimizing strategies. The first is a *top-down strategy*: $\phi_0 \rightarrow \phi_1 \rightarrow ... \theta_{10} \rightarrow \theta_{10} \rightarrow \theta_{11} \rightarrow \theta_{20} \rightarrow ...$. What we could realize is a minimum of $0.89$ by adjusting $\phi_0$ to $0.22$. All other $\phi$s were set to $0.0$ ! This seems a bit suspicious that other parameters have no influence. On the other hand is the error loss of our original (not optimized) model with $9.384873891117891$ nearly identical with the [UDL-solution](https://colab.research.google.com/github/udlbook/udlbook/blob/main/Notebooks/Chap03/3_1_Shallow_Networks_I.ipynb#scrollTo=o6GXjtRubZ2U) $\text{ True value } = 9.385$. This equivalence of results seems a strong argument against implementation errors.
-The other strategy the *bottom-up strategy* resulted in a minimum loss of $0.8862285345450219$. This is just the same result as before.
+To meet the task requirement for a fast try-out we used the *slider*-feature of $PlutoUI$. We tried a simple top down strategy $\phi_0 \rightarrow \phi_1 ... \rightarrow \theta_{10} \rightarrow \theta_{11} \rightarrow ... \theta_{31}$ with two passes. We got a *minimum loss* of $1.8272439945092038$. Unfortunately, this is in discrepancy to Peirce's $0.181$.
 "
 
 # ╔═╡ 51731619-ce90-44af-b054-be3116b6e048
-@bind myϕ0 Slider(-5.0:0.01:+5.0)
+# @bind myϕ0 Slider(-5.0:0.01:+5.0)   # ===> myϕ0 = -4.14
 
 # ╔═╡ e8376be5-cf11-4372-b53c-385f1a15c918
-myϕ0
+myϕ0 = -4.14
 
 # ╔═╡ 74984bde-6e0d-410d-abbc-9ed56be62dda
-@bind myϕ1 Slider(-5.0:0.01:+5.0)
+# @bind myϕ1 Slider(-5.0:0.01:+5.0)   # ===> myϕ1 = 0.87
 
 # ╔═╡ ef2ba17f-73f1-47ae-b1fb-bb10bbe7c6ef
-myϕ1
+myϕ1 = 0.87
 
 # ╔═╡ 7bc740a6-7242-4382-9f8b-cc6dd0c83ce7
-@bind myϕ2 Slider(-5.0:0.01:+5.0)
+# @bind myϕ2 Slider(-5.0:0.01:+5.0)   # ===> myϕ2 = 1.04
 
 # ╔═╡ d13e0ad5-3306-4129-8c46-08b4cce8cf98
-myϕ2
+myϕ2 = 1.04
 
 # ╔═╡ 42981491-cb53-4b30-ba1d-823b354f8698
-@bind myϕ3 Slider(-5.0:0.01:+5.0)
+# @bind myϕ3 Slider(-5.0:0.01:+5.0)   # ===> myϕ3 = 1.00
 
 # ╔═╡ cdd6025c-8edc-4b4a-92bf-9a52342ba0dc
-myϕ3
+ myϕ3 = 1.0
 
 # ╔═╡ 00b19a09-7087-4ba8-be85-19b5dfc5f922
-@bind myθ10 Slider(-5.0:0.1:+5.0)
+# @bind myθ10 Slider(-5.0:0.1:+5.0)   # ===> myθ10 = 1.2
 
 # ╔═╡ e50ed52a-504b-4558-9340-e257683300d7
-myθ10
+myθ10 = 1.2
 
 # ╔═╡ 08df9cd4-0372-4340-836f-6a3aa3f549c4
-@bind myθ11 Slider(-5.0:0.1:+5.0)
+# @bind myθ11 Slider(-5.0:0.1:+5.0)   # ===> myθ11 = 0.0
 
 # ╔═╡ 7d4b8930-98b2-427f-8d67-aa80bbfdeea9
-myθ11
+myθ11 = 0.0
 
 # ╔═╡ 45367d31-8ba9-4e30-977f-948efbb36ea8
-@bind myθ20 Slider(-5.0:0.1:+5.0)
+# @bind myθ20 Slider(-5.0:0.1:+5.0)   # ===> myθ20 = 1.5
 
 # ╔═╡ 71b3bebb-2b95-451c-b8d4-7972752afd7a
-myθ20
+myθ20 = 1.5
 
 # ╔═╡ 67684950-c5c8-4d77-bdf2-65c486a38376
-@bind myθ21 Slider(-5.0:0.1+5.0)
+# @bind myθ21 Slider(-5.0:0.1+5.0)    # ===> myθ21 = 1.0
 
 # ╔═╡ df299372-41d6-4260-8de9-f330e0dde1aa
-myθ21 
+myθ21 = 1.0
 
 # ╔═╡ e84c7588-999c-4f46-9210-c8f35039955c
-@bind myθ30 Slider(-5.0:0.1:+5.0)
+# @bind myθ30 Slider(-5.0:0.1:+5.0)   # ===> myθ30 = 1.0
 
 # ╔═╡ 302983b4-1c04-4adf-a8b8-6c1ae2fe7ccc
-myθ30
+myθ30 = 1.0
 
 # ╔═╡ b5c4e1f5-b9b4-4265-9d61-b4469e43afd7
-@bind myθ31 Slider(-5.0:0.1:+5.0)
+# @bind myθ31 Slider(-5.0:0.1:+5.0)   # ===> myθ31 = 0.1
 
 # ╔═╡ 7840e5db-30e9-49a1-b277-9d9e26d8808e
-myθ31
+myθ31 = 0.1
 
 # ╔═╡ beaaded4-2f3b-492a-9911-6a70081decd7
 let # Run the neural network on the training data
@@ -319,16 +318,109 @@ end # let
 	shallow_1_3_1(xsTrain, reLU, myϕ0, myϕ1, myϕ2, myϕ3, myθ10, myθ11, myθ20, myθ21, myθ30, myθ31)
 
 # ╔═╡ 25c6a7cd-3f64-4f02-805d-f21d0e5ac90a
-leastSquaresLoss(ysTrain, ysPredict2)  # ====> 0.8862285345450219 --->  :)
+leastSquaresLoss(ysTrain, ysPredict2)  # ====> 1.8272439945092038 --->  :(
 
 # ╔═╡ 64b7ec52-cd13-4141-aeab-4edde49a362e
 plotTrainData(ysPredict2)
+
+# ╔═╡ 326b1b5a-f3e8-4090-a265-a42474c358f6
+md"
+---
+##### Blockwise Sequential Grid Search
+Because a full grid search in the space of 10 parameters is highly inefficient We conduct a sequence of grid searches with blocks of parameters:
+- first,  with parameters $my\theta_{11},my\theta_{21},my\theta_{31}$ 
+- second, with parameters $my\theta_{10},my\theta_{20},my\theta_{30}$ 
+- third,  with parameters $my\phi_{0},my\phi_{1},my\theta_{2},my\theta_{3}$ 
+"
+
+# ╔═╡ 5d2b065d-c14b-4064-912c-9d5f1f6e6712
+let lSL_Min   = 10.0E1
+	myϕ0_Min  = 10.0E1; myϕ1_Min  = 10.0E1; myϕ2_Min  = 10.0E1; myϕ3_Min  = 10.0E1
+	myθ10_Min = 10.0E1; myθ20_Min = 10.0E1; myθ30_Min = 10.0E1
+	myθ11_Min = 10.0E1; myθ21_Min = 10.0E1; myθ31_Min = 10.0E1
+	#--------------------------------------------------------------------------------
+	for myθ11 in -4.0:0.1:+3.0
+		for myθ21 in -4.0:0.1:+3.0
+			for myθ31 in -4.0:0.1:+3.0
+				(ysPredict, rest...) = 
+					shallow_1_3_1(xsTrain, reLU, myϕ0, myϕ1, myϕ2, myϕ3, myθ10, myθ11, myθ20, myθ21, myθ30, myθ31)
+				lSL = leastSquaresLoss(ysTrain, ysPredict)
+				if 	lSL < lSL_Min
+					lSL_Min   = lSL
+					myθ11_Min = myθ11
+					myθ21_Min = myθ21
+					myθ31_Min = myθ31
+				end # if
+			end # for myθ31
+		end # for myθ21
+	end # for myθ11
+	#--------------------------------------------------------------------------------
+	for myθ10 in -4.0:0.1:+3.0
+		for myθ20 in -4.0:0.1:+3.0
+			for myθ30 in -4.0:0.1:+3.0
+				(ysPredict, rest...) = 
+					shallow_1_3_1(xsTrain, reLU, myϕ0, myϕ1, myϕ2, myϕ3, myθ10, myθ11_Min, myθ20, myθ21_Min, myθ30, myθ31_Min)
+				lSL = leastSquaresLoss(ysTrain, ysPredict)
+				if 	lSL < lSL_Min
+					lSL_Min   = lSL
+					myθ10_Min = myθ10
+					myθ20_Min = myθ20
+					myθ30_Min = myθ30
+				end # if
+			end # for myθ30
+		end # for myθ20
+	end # for myθ10
+	#--------------------------------------------------------------------------------
+	for myϕ0 in -4.0:0.1:+3.0
+		for myϕ1 in -4.0:0.1:+3.0
+			for myϕ2 in -4.0:0.1:+3.0
+				for myϕ3 in -4.0:0.1:+3.0
+					(ysPredict, rest...) = 
+						shallow_1_3_1(xsTrain, reLU, myϕ0, myϕ1, myϕ2, myϕ3, myθ10_Min, myθ11_Min, myθ20_Min, myθ21_Min, myθ30_Min, myθ31_Min)
+					lSL = leastSquaresLoss(ysTrain, ysPredict)
+						if 	lSL < lSL_Min
+							lSL_Min   = lSL
+							myϕ0_Min  = myϕ0
+							myϕ1_Min  = myϕ1
+							myϕ2_Min  = myϕ2
+							myϕ3_Min  = myϕ3
+						end # if
+				end # for myϕ3
+			end # for myϕ2
+		end # for myϕ1
+	end # for myϕ0
+	#--------------------------------------------------------------------------------
+	println((lSL_Min=lSL_Min, myϕ0_Min=myϕ0_Min, myϕ1_Min=myϕ1_Min, myϕ2_Min=myϕ2_Min, myϕ3_Min=myϕ3_Min, myθ10_Min=myθ10_Min, myθ20_Min=myθ20_Min, myθ30_Min=myθ30_Min,myθ11_Min=myθ11_Min, myθ21_Min=myθ21_Min, myθ31_Min=myθ31_Min))
+	#--------------------------------------------------------------------------------
+	(ysPredict3, rest...) = 
+		shallow_1_3_1(xsTrain, reLU, myϕ0_Min, myϕ1_Min, myϕ2_Min, myϕ3_Min, myθ10_Min, myθ11_Min, myθ20_Min, myθ21_Min, myθ30_Min, myθ31_Min)
+	lSL = leastSquaresLoss(ysTrain, ysPredict3)
+	print("lsL = $lSL")
+	#--------------------------------------------------------------------------------
+	plotTrainData(ysPredict3)
+end # let
 
 # ╔═╡ 3b0737ab-7ac7-469b-b8a3-ddd6d8f0f8ce
 md"
 ---
 ##### Summary
-Plotting the result is rather disappointing, because the model generates for *all* inputs $x$ the *same* output $y$.    :(
+
+With blockwise sequence of grid search we can achieve a loss of 
+
+$lSL_{Min} = 0.637043$
+
+with 
+
+$myϕ_{0\_Min} = 0.9, myϕ_{1\_Min} = 0.0, myϕ_{2\_Min} = -0.3, myϕ_{3\_Min} = 0.6$
+
+and
+
+$myθ_{10\_Min} = 1.3, myθ_{20\_Min} = 3.0, myθ_{30\_Min} = -0.8$
+
+and
+
+$myθ_{11\_Min} = 1.3, myθ_{21\_Min} = -1.0, myθ_{31\_Min} = 1.0$.
+
 "
 
 # ╔═╡ 4134fee1-5aad-496d-b27e-c7c94a63928d
@@ -1512,6 +1604,8 @@ version = "1.4.1+1"
 # ╠═d34918cb-d766-422f-bc3f-397ede0945ba
 # ╠═25c6a7cd-3f64-4f02-805d-f21d0e5ac90a
 # ╠═64b7ec52-cd13-4141-aeab-4edde49a362e
+# ╟─326b1b5a-f3e8-4090-a265-a42474c358f6
+# ╠═5d2b065d-c14b-4064-912c-9d5f1f6e6712
 # ╟─3b0737ab-7ac7-469b-b8a3-ddd6d8f0f8ce
 # ╟─4134fee1-5aad-496d-b27e-c7c94a63928d
 # ╟─6a6a33c8-e235-4312-8f0f-3f0e7ac45014
