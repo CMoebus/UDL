@@ -18,14 +18,14 @@ md"
 #### [UDL\_2\_1\_Supervised\_Learning](https://colab.research.google.com/github/udlbook/udlbook/blob/main/Notebooks/Chap02/2_1_Supervised_Learning.ipynb#scrollTo=AkdZdmhHWuVR)
 
 ##### file: UDL\_20240313\_2\_1\_SupervisedLearning
-##### code: Julia 1.10.2/Pluto by *** PCM 2024/03/15 ***
+##### code: Julia 1.10.2/Pluto by *** PCM 2024/03/24 ***
 
 ====================================================================================
 "
 
 # ╔═╡ 21b54f33-24d0-4662-b9ce-d18ad6bf5663
 md"
-##### 2.1 Supervised learning overview
+##### 1 Supervised learning overview
 "
 
 # ╔═╡ 83d9dccc-ea1a-4c93-9709-caeb279418ca
@@ -54,13 +54,12 @@ $$\;$$
 # ╔═╡ a0946077-17c1-45be-869c-0edb247fbf0f
 md"
 ---
-##### 2.2 Linear regression example
-##### 2.2.1 $1D$ Linear Regression Model
+##### 2 Univariate Linear Regression within pure Julia
 "
 
 # ╔═╡ ca07a355-e4e9-43d9-9005-ce18a5b04209
 md"
-###### Straight Line
+###### 2.1 Model: Straight Line
 $$\hat y = f(ϕ; x) = ϕ_0 + ϕ_1x \;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;(2.4)$$
 
 $$\;$$
@@ -68,20 +67,33 @@ $$\;$$
 
 "
 
-# ╔═╡ 51ec837f-dd96-4edc-ac06-a8c54c7fd96f
-md"
-##### 2.2.2 Loss
-"
+# ╔═╡ bfb397cb-3ba2-41db-a886-8ae92758436b
+# Define 1D linear regression model
+function f(xs, ϕ0, ϕ1)
+  ϕ0 .+ ϕ1 .* xs                                # linear regression model (eq 2.4)
+end # function f
+
+# ╔═╡ 68506386-007e-4e2f-be81-401c761164cc
+let xs  = [x for x in 0.0:0.1:2.0]
+	y1s = f(xs, 0.0,  1.0)
+	y2s = f(xs, 1.0, -0.4)
+	y3s = f(xs, 1.2, -0.1)
+	plot(xs, y1s, title="Univariate Linear Regression Models, UDL, Fig 2.1", label=L"y=0.0+1.0x", lw=2)
+	plot!(xs, y2s, label=L"y=1.0-0.4x", lw=2)
+	plot!(xs, y3s, label=L"y=1.2-0.1x", lw=2)
+end # let
 
 # ╔═╡ 1e9fd7b9-597a-4f46-a8db-3a7dddf0fb18
 md"
+---
+###### 2.2 $L^2$-(Sums of Squares)-Loss 
 $$L(ϕ) = ∑_{i=1}^I(\hat y_i − y_i)^2 = ∑_{i=1}^I(f(ϕ; x_i) − y_i)^2 = ∑_{i=1}^I(ϕ_0 + ϕ_1x_i − y_i)^2\;\;\;\;\;\;(2.5)$$
 
 $$\;$$
 $$\;$$
 $$\;$$
 
-###### Parameter Estimation = Loss Minimization
+###### 2.3 Parameter Estimation by Loss Minimization
 
 $$\hat ϕ = arg \underset ϕ min (L (ϕ; y, x)) = arg \underset ϕ min \left(∑_{i=1}^I(\hat y_i − y_i)^2\right)$$
 
@@ -108,24 +120,6 @@ xs
 # ╔═╡ e342b635-1aab-45f0-8bf0-c31bc7ba6c0a
 ys
 
-# ╔═╡ bfb397cb-3ba2-41db-a886-8ae92758436b
-# Define 1D linear regression model
-function f(x, ϕ0, ϕ1)
-  ϕ0 + ϕ1 * x                                # linear regression model (eq 2.4)
-end # function f
-
-# ╔═╡ acde5689-5f3a-4a2d-9f1c-0c8eaed07442
-let # Plot the data as in figure 2.2a
-	scatter(xs, ys, title="Raw Data and Linear Model (UDL, Fig 2.2a)", label="data point", xlabel=L"x", ylabel=L"y")
-end # let
-
-# ╔═╡ 2e201aef-0355-4571-9814-82b41469d227
-begin
-	one = [1, 2, 3]
-	two = [4, 5, 6]
-    sum((one - two).^2)
-end # begin
-
 # ╔═╡ 8a67324e-23e6-4086-afd7-4eac9e28b873
 # Function to calculate the loss (equation 2.5)
 function computeLoss(xs, ys, ϕ0, ϕ1)
@@ -133,52 +127,38 @@ function computeLoss(xs, ys, ϕ0, ϕ1)
 	sum((fxs - ys).^2)
 end # function
 
-# ╔═╡ f28598d8-8eb3-4b11-b65c-05ac03967095
-let # Set the intercept and slope as in figure 2.2b
-	ϕ0 = 0.4 ; ϕ1 = 0.2
-	xss = [x for x in 0.0:0.1:2.0]
-	# linear model
-	fxs = [f(x, ϕ0, ϕ1) for x in xss]
-	# compute loss
-	loss = computeLoss(xs, ys,  ϕ0, ϕ1)
-	# Plot the data and the model
-	scatter(xs, ys, title="Raw Data and Linear Model (UDL, Fig 2.2b)", label="data point", xlabel=L"x", ylabel=L"y")
-	plot!(xss, fxs, label="linear model")
-	annotate!(1.5, 0.9, "loss=$loss")
-end # let
-
-# ╔═╡ 3f9534ad-a82f-415c-95ad-f41038b3d07b
-let # Set the intercept and slope as in figure 2.2c
-	ϕ0 = 1.6 ; ϕ1 = -0.8
-	xss = [x for x in 0.0:0.1:2.0]
-	# linear model
-	fxs = [f(x, ϕ0, ϕ1) for x in xss]
-	# compute loss
-	loss = computeLoss(xs, ys,  ϕ0, ϕ1)
-	# Plot the data and the model
-	scatter(xs, ys, title="Raw Data and Linear Model (UDL, Fig 2.2c)", label="data point", xlabel=L"x", ylabel=L"y")
-	plot!(xss, fxs, label="linear model")
-	annotate!(1.5, 0.9, "loss=$loss")
-end # let
-
-# ╔═╡ a6d0b61b-b738-4e93-ba88-83e71dd79b0b
-let # Set the intercept and slope as in figure 2.2d
-	ϕ0 = 0.85 ; ϕ1 = 0.5
-	xss = [x for x in -0.0:0.1:2.0]
-	# linear model
-	fxs = [f(x, ϕ0, ϕ1) for x in xss]
-	# compute loss
-	loss = computeLoss(xs, ys,  ϕ0, ϕ1)
-	# Plot the data and the model
-	scatter(xs, ys, title="Raw Data and Linear Model (UDL, Fig 2.2d)", label="data point", xlabel=L"x", ylabel=L"y")
-	plot!(xss, fxs, label="linear model")
-	annotate!(1.5, 0.9, "min loss=$loss")
+# ╔═╡ 93813ad2-ac6d-4c37-bcab-2e7da18c563d
+let xss = [x for x in 0.0:0.1:2.0]
+	#--------------------------------------------------------------------------------
+	plot2a = 
+		scatter(xs, ys, label=" data: (y,x) ", color=:cornflowerblue, xlabel=L"x", ylabel=L"y")
+	#--------------------------------------------------------------------------------
+	# Fig 2.2b
+	loss2b = computeLoss(xs, ys, 0.4, 0.2)
+	fxs2b  = [f(x, 0.4, 0.2) for x in xss]
+	plot2b = 
+		plot(xss, fxs2b, label=L"0.4+0.2\cdot x", color=:red); scatter!(xs, ys, label=" data: (y,x), ", color=:cornflowerblue); annotate!(1.5, 0.5,"loss=$loss2b", 10)
+	#--------------------------------------------------------------------------------
+	# Fig 2.2c
+	loss2c = computeLoss(xs, ys, 1.6, -0.8)
+	fxs2c  = [f(x, 1.6, -0.8) for x in xss]
+	plot2c = 
+		plot(xss, fxs2c, label=L"1.6-0.8\cdot x", color=:red); scatter!(xs, ys, label=" data: (y,x) ", color=:cornflowerblue); annotate!(1.5, 0.15,"loss=$loss2c", 10)
+	#--------------------------------------------------------------------------------
+	# Fig 2.2d
+	loss2d = computeLoss(xs, ys, 0.85, 0.5)
+	fxs2d  = [f(x, 0.85, 0.5) for x in xss]
+	plot2d = 
+		plot(xss, fxs2d, label=L"0.85+0.5\cdot x", color=:red); scatter!(xs, ys, label=" data: (y,x) ", color=:cornflowerblue); annotate!(1.5, 0.8,"loss=$loss2d", 10)
+	#--------------------------------------------------------------------------------
+	plot(plot2a, plot2b, plot2c, plot2d, layout=grid(2, 2, heights=[1/2, 1/2]), title=["UDL, Fig 2.2a" "UDL, Fig 2.2b" "UDL, Fig 2.2c" "UDL, Fig 2.2c"])
+	#--------------------------------------------------------------------------------
 end # let
 
 # ╔═╡ 928fb294-1a7d-449a-82fc-2c8f823fcd82
 md"
 ---
-##### Visualizing the loss function
+###### 2.1.2.3 Visualizing the loss function
 "
 
 # ╔═╡ 56140402-833f-4dcd-a1a1-5c53808ca4fa
@@ -203,9 +183,12 @@ let ϕ0s  = [ϕ0 for ϕ0 in -2.0:0.1:2.0]
 			end # if
 		end # for ϕ1
 	end # for ϕ0
-	contour(ϕ0s, ϕ1s, (ϕ0, ϕ1) -> computeLoss(xs, ys, ϕ0, ϕ1), fill=true, xlabel=L"intercept\; ϕ0", ylabel=L"slope\; ϕ1")
-	println("min(Loss) = ($minϕ0, $minϕ1)")
-	scatter!([minϕ0], [minϕ1], color=:white)
+	contour(ϕ0s, ϕ1s, (ϕ0, ϕ1) -> computeLoss(xs, ys, ϕ0, ϕ1), fill=true, xlabel=L"intercept\; ϕ0", ylabel=L"slope\; ϕ1", title=L"loss=f(\phi_0, \phi_1)")
+	println("argmin_{ϕ0,ϕ1}(Loss) = ($minϕ0, $minϕ1)")
+	scatter!([minϕ0], [minϕ1], color=:green, label=L"min\phi_0=0.8, min\phi_1=0.5")
+	scatter!([0.40], [ 0.2], color=:red, label=L"\phi_0=0.40, \phi_1= 0.2")
+	scatter!([1.60], [-0.8], color=:red, label=L"\phi_0=1.60, \phi_1=-0.8")
+	scatter!([0.85], [ 0.5], color=:red, label=L"\phi_0=0.85, \phi_1= 0.5")
  end # let
 
 # ╔═╡ 60a2eddf-612a-480d-b539-7f96e408b2bc
@@ -1301,19 +1284,15 @@ version = "1.4.1+1"
 # ╟─83d9dccc-ea1a-4c93-9709-caeb279418ca
 # ╟─a0946077-17c1-45be-869c-0edb247fbf0f
 # ╟─ca07a355-e4e9-43d9-9005-ce18a5b04209
-# ╟─51ec837f-dd96-4edc-ac06-a8c54c7fd96f
+# ╠═bfb397cb-3ba2-41db-a886-8ae92758436b
+# ╠═68506386-007e-4e2f-be81-401c761164cc
 # ╟─1e9fd7b9-597a-4f46-a8db-3a7dddf0fb18
 # ╠═7e81f408-d482-4312-8852-01c17cab7d28
 # ╠═8e63a9c7-d03a-459b-b816-6cb9b39acb7c
 # ╠═224590d3-6178-4007-9ffb-68cce8a311f2
 # ╠═e342b635-1aab-45f0-8bf0-c31bc7ba6c0a
-# ╠═bfb397cb-3ba2-41db-a886-8ae92758436b
-# ╠═acde5689-5f3a-4a2d-9f1c-0c8eaed07442
-# ╠═2e201aef-0355-4571-9814-82b41469d227
 # ╠═8a67324e-23e6-4086-afd7-4eac9e28b873
-# ╠═f28598d8-8eb3-4b11-b65c-05ac03967095
-# ╠═3f9534ad-a82f-415c-95ad-f41038b3d07b
-# ╠═a6d0b61b-b738-4e93-ba88-83e71dd79b0b
+# ╠═93813ad2-ac6d-4c37-bcab-2e7da18c563d
 # ╟─928fb294-1a7d-449a-82fc-2c8f823fcd82
 # ╠═56140402-833f-4dcd-a1a1-5c53808ca4fa
 # ╠═e2092869-d8f8-41d1-8cd5-52bbc98bb215
