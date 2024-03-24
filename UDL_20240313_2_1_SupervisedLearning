@@ -151,7 +151,7 @@ let xss = [x for x in 0.0:0.1:2.0]
 	plot2d = 
 		plot(xss, fxs2d, label=L"0.85+0.5\cdot x", color=:red); scatter!(xs, ys, label=" data: (y,x) ", color=:cornflowerblue); annotate!(1.5, 0.8,"loss=$loss2d", 10)
 	#--------------------------------------------------------------------------------
-	plot(plot2a, plot2b, plot2c, plot2d, layout=grid(2, 2, heights=[1/2, 1/2]), title=["UDL, Fig 2.2a" "UDL, Fig 2.2b" "UDL, Fig 2.2c" "UDL, Fig 2.2c"])
+	plot(plot2a, plot2b, plot2c, plot2d, layout=grid(2, 2, heights=[1/2, 1/2]), title=["UDL, Fig 2.2a" "UDL, Fig 2.2b" "UDL, Fig 2.2c" "UDL, Fig 2.2d"])
 	#--------------------------------------------------------------------------------
 end # let
 
@@ -184,7 +184,7 @@ let ϕ0s  = [ϕ0 for ϕ0 in -2.0:0.1:2.0]
 		end # for ϕ1
 	end # for ϕ0
 	contour(ϕ0s, ϕ1s, (ϕ0, ϕ1) -> computeLoss(xs, ys, ϕ0, ϕ1), fill=true, xlabel=L"intercept\; ϕ0", ylabel=L"slope\; ϕ1", title=L"loss=f(\phi_0, \phi_1)")
-	println("argmin_{ϕ0,ϕ1}(Loss) = ($minϕ0, $minϕ1)")
+	println(" min(loss)=$minfϕ0ϕ1; ", " argmin_{ϕ0,ϕ1}(Loss) = ($minϕ0, $minϕ1)")
 	scatter!([minϕ0], [minϕ1], color=:green, label=L"min\phi_0=0.8, min\phi_1=0.5")
 	scatter!([0.40], [ 0.2], color=:red, label=L"\phi_0=0.40, \phi_1= 0.2")
 	scatter!([1.60], [-0.8], color=:red, label=L"\phi_0=1.60, \phi_1=-0.8")

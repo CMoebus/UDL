@@ -31,7 +31,7 @@ md"
 
 #### UDL\_3\_1 Shallow Neural Networks I
 ##### file: UDL\_20240317\_3\_1\_ShallowNeuralNetworks\_I
-##### code: Julia 1.10.2/Pluto by *** PCM 2024/03/22 ***
+##### code: Julia 1.10.2/Pluto by *** PCM 2024/03/23 ***
 
 ====================================================================================
 "
@@ -39,7 +39,7 @@ md"
 # ╔═╡ 7ee4c69e-c3a6-4e05-bdd0-b30ae4904d57
 md"
 ---
-#####  Example: Shallow Neural Network
+#####  Example: Shallow Neural Network $shallow\_1\_3\_1$
 ###### Input $x$, Hidden Units $\phi_1, \phi_2, \phi_3$, and Output $y$
 
 $$\;$$
@@ -57,7 +57,7 @@ $$y = ϕ_0 + ϕ_1a[θ_{10} + θ_{11}x] + ϕ_2a[θ_{20} + θ_{21}x] + ϕ_3a[θ_{3
 $$\;$$
 $$\;$$
 
-###### Activation Function $a[•]$: Rectified Linear Unit or ReLU
+###### Activation Function $a[•]$: e.g. Rectified Linear Unit or ReLU
 
 $$a[z] := ReLU[z] = \;\;\;\;\;\;\;\;\;\;\;\;\;\;\text{ (3.2) }$$
 
@@ -83,7 +83,7 @@ $$\;$$
 function plotReLU()
 	zs = [z for z in -5.0:0.1:+5.0]
 	fzs = [reLU(z) for z in zs]
-	plot(zs, fzs, title="UDL Fig. 3.1: Rectified Linear Unit (ReLU)", xlabel=L"z", ylabel=L"y=reLU(z)", label=L"f(z)")
+	plot(zs, fzs, title="UDL Fig. 3.1: Rectified Linear Unit (ReLU)", xlabel=L"z", ylabel=L"y=reLU(z)", label=L"f(z)", lw=2)
 end # function plotReLU
 
 # ╔═╡ 52ca7a13-b42d-4760-9648-eb5bdf427951
@@ -145,7 +145,7 @@ ys, preact1, preact2, preact3, active1, active2, active3, wactive1, wactive2, wa
 typeof(ys)
 
 # ╔═╡ 750ab9ad-b52e-489a-8058-1314ca7d627a
-function plotNeural1(xs::Vector{Float64}, preact1, preact2, preact3, active1, active2, active3, wactive1, wactive2, wactive3)
+function plotNeural_1_3_1(xs::Vector{Float64}, preact1, preact2, preact3, active1, active2, active3, wactive1, wactive2, wactive3)
 	ylims    = (-1,1)
 	#---------------------------------------------------------------------------------
 	prePlot1 = 
@@ -171,14 +171,14 @@ function plotNeural1(xs::Vector{Float64}, preact1, preact2, preact3, active1, ac
 	#---------------------------------------------------------------------------------
 	plot(prePlot1, prePlot2, prePlot3, actPlot1, actPlot2, actPlot3, wactPlot1, wactPlot2, wactPlot3, layout = grid(3, 3, heights=[1/3, 1/3, 1/3]), title=["UDL, Fig 3.3a" "UDL, Fig 3.3b" "UDL, Fig 3.3c" "UDL, Fig 3.3d" "UDL, Fig 3.3e" "UDL, Fig 3.3f" "UDL, Fig 3.3g" "UDL, Fig 3.3h" "UDL, Fig 3.3i"])
 	#---------------------------------------------------------------------------------
-end # function plotNeural1
+end # function plotNeural_1_3_1
 
 # ╔═╡ 0ab74def-c3a4-4ec2-b9fd-9d5a2019f0e7
-plotNeural1(xs, preact1, preact2, preact3, active1, active2, active3, wactive1, wactive2, wactive3)
+plotNeural_1_3_1(xs, preact1, preact2, preact3, active1, active2, active3, wactive1, wactive2, wactive3)
 
 # ╔═╡ f0887491-c78c-4516-946d-c618024acaa1
 	#---------------------------------------------------------------------------------
-	plot(xs, ys, title="UDL, Fig 3.3j", label=L"y = ϕ_0 + ϕ_1a[θ_{10} + θ_{11}x] + ϕ_2a[θ_{20} + θ_{21}x] + ϕ_3a[θ_{30} + θ_{31}x]")
+	plot(xs, ys, title="UDL, Fig 3.3j", label=L"y = ϕ_0 + ϕ_1a[θ_{10} + θ_{11}x] + ϕ_2a[θ_{20} + θ_{21}x] + ϕ_3a[θ_{30} + θ_{31}x]", lw=2)
 
 # ╔═╡ 59c5645a-b8ab-44d3-aacb-d3261a83bf6e
 md"
@@ -227,7 +227,7 @@ function plotTrainData(ysPredict)
 	sc1 = scatter(xsTrain, ysTrain, label=L"(xTrain, yTrain)")
 	sc2 = scatter(xsTrain, ysPredict, label=L"(xTrain, yPredict)")
 	sc3 = scatter(xsTrain, [ysTrain, ysPredict], label=L"(xTrain, yTrn/yPrd)")
-	plot(sc1, sc2, sc3, layout=grid(1, 3), height=[1/4, 1/4, 1/4])
+	plot(sc1, sc2, sc3)
 end # function plotTrainData
 
 # ╔═╡ 698691ea-da26-46f8-bdf7-50bf3d0b086d
@@ -406,7 +406,7 @@ md"
 ---
 ##### Summary
 
-With blockwise sequence of grid search with these steps
+With sequence of blockwise grid search with these three steps
 
 $myϕ_{0\_Min} = 0.9, myϕ_{1\_Min} = 0.0, myϕ_{2\_Min} = -0.3, myϕ_{3\_Min} = 0.6$
 
