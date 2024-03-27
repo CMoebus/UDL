@@ -6,11 +6,19 @@ using InteractiveUtils
 
 # ╔═╡ acdaa496-177e-46cc-bfe6-6e8e72686c8f
 begin
+	#-------------------------------------------------------------------------
+	# neural networks with Flux
 	using Flux, Zygote
+	#-------------------------------------------------------------------------
+	using Flux: train!
+	using Statistics
+	#-------------------------------------------------------------------------
 	# Plotting library
 	using Plots
+	#-------------------------------------------------------------------------
 	# LateXify Strings
 	using LaTeXStrings, Latexify
+	#-------------------------------------------------------------------------
 end # begin
 
 # ╔═╡ d8b4c5e0-e9f1-11ee-151b-35beb6f2ad9c
@@ -18,38 +26,29 @@ md"
 ====================================================================================
 #### UDL\_2\_2\_[Supervised\_Learning with FLUX.jl](http://fluxml.ai/Flux.jl/stable/models/overview/)
 ##### file: UDL\_20240324\_2\_2\_SupervisedLearningWithFlux
-##### code: Julia 1.10.2/Pluto by *** PCM 2024/03/24 ***
+##### code: Julia 1.10.2/Pluto by *** PCM 2024/03/27 ***
 
 ====================================================================================
 
 "
 
-# ╔═╡ 08cd3647-af98-4101-ae03-3b4d3629e36b
+# ╔═╡ e1195d2b-9270-4be1-8b71-fd1b91008dc4
 md"
 ---
 ##### 2 Univariate Linear Regression with Julia/Flux.jl
-"
-
-# ╔═╡ e1195d2b-9270-4be1-8b71-fd1b91008dc4
-md"
-###### 2.1 Model: Straight Line
-$$\hat y = f(ϕ; x) = ϕ_0 + ϕ_1x \;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;(2.4)$$
+###### 2.1 Error-free Linear Regression Model: Straight Line
+$$\mathbb E(Y|x) = \hat y = f(ϕ; x) = ϕ_0 + ϕ_1x \;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;(2.4)$$
 
 $$\;$$
 $$\;$$
 
 "
-
-# ╔═╡ 8aed518a-72f0-40f3-82a8-ebdacf9c02b4
-# Define 1D linear regression model
-function f(xs, ϕ0, ϕ1)
-  ϕ0 .+ ϕ1 .* xs                                # linear regression model (eq 2.4)
-end # function f
 
 # ╔═╡ 3e2e9c15-ffe2-46fe-8309-80f153ba50ff
 md"
 ---
-###### 2.2 Training Data
+###### 2.2 Original Training Data
+(borrowed from [here](https://github.com/udlbook/udlbook/blob/main/Notebooks/Chap02/2_1_Supervised_Learning.ipynb))
 "
 
 # ╔═╡ 8a908e06-0004-4a7f-bb38-65d89ecc5419
@@ -57,88 +56,196 @@ md"
 begin
 	xs = [0.03, 0.19, 0.34, 0.46, 0.78, 0.81, 1.08, 1.18, 1.39, 1.60, 1.65, 1.90]
 	ys = [0.67, 0.85, 1.05, 1.00, 1.40, 1.50, 1.30, 1.54, 1.55, 1.68, 1.73, 1.60]
+	#----------------------------------------------------------------------------
+	scatter(xs, ys, title="Original Training Data", label=L"data: (x, y)", xlabel=L"x", ylabel=L"y")
+	#----------------------------------------------------------------------------
 end # begin
+
+# ╔═╡ 2e73578b-862a-4aff-aacc-d1904747b202
+md"
+---
+###### Flux-tailored Data in Matrix Form
+"
 
 # ╔═╡ 955b4dd7-a75d-465a-ac72-242109630e49
-begin
+begin # construction of Float32 arrays because Flux assumes just that
 	xsTrain = Array{Float32}(undef, (1, length(xs)))
 	ysTrain = Array{Float32}(undef, (1, length(xs)))
+	#----------------------------------------------------------------------
+	for j in 1:length(xs)
+		xsTrain[j] = xs[j]
+		ysTrain[j] = ys[j]
+	end # for
+	#----------------------------------------------------------------------
 end # begin
-
-# ╔═╡ 23637d8f-4307-497e-91e5-ce559edefd8c
-for j in 1:length(xs)
-	xsTrain[j] = xs[j]
-	ysTrain[j] = ys[j]
-end # for
-
-# ╔═╡ 7e3130d1-1c92-4e70-a62f-6ab3a64f4381
-md"
----
-###### 2.3 Regression Model in Flux.jl with 1 Input and 1 Output
-"
-
-# ╔═╡ 13ae968b-ecae-4f0b-b61e-8bc2bf99775d
-linear_1_To_1_Model = Dense(1 => 1)
-
-# ╔═╡ def8665d-9b8b-4f03-b794-b6985f4cbf7f
-linear_1_To_1_Model.weight, linear_1_To_1_Model.bias # initial parameters
-
-# ╔═╡ bdb0611f-6dc2-40cf-b103-7ab2b28a3c86
-md"
----
-###### 2.4 Make Predictions with the Model
-"
-
-# ╔═╡ 10016cd1-ae61-49d0-9a0e-6607dbe6e820
-ysHat = linear_1_To_1_Model(xsTrain)
 
 # ╔═╡ 86d14a5b-4268-4c7c-b7a3-e1a9b08b55f0
 md"
----
-###### Compute the Sum-of-Squares Loss 
+###### Definition of Loss Functions
 (equation 2.5) with Flux.jl
 "
 
 # ╔═╡ b1d74074-3d3f-48cd-84aa-c6c695c3b381
-# Function to calculate the loss (equation 2.5)
-function myLoss(ŷ, y)
-	sumOfSquares(ŷ, y) = Flux.Losses.mse(ŷ, y; agg = sum)
-	sumOfSquares(ŷ, y)
-end # function
+# Sum of Squares Error Loss (equation 2.5)
+function mySSQ(model, xs::Array{Float32}, ys::Array{Float32})::Float32
+	#------------------------------------------------------------------------------
+	ssq(ŷs, ys) = Flux.Losses.mse(ŷs, ys; agg = sum)
+	#------------------------------------------------------------------------------
+	ssq(model(xs), ys)
+end # function mySSQ
 
-# ╔═╡ 563dbf60-0cf2-45d9-8f85-1dff73061d29
+# ╔═╡ 8c4073a6-5348-49ee-b231-6c17b73c36bd
+# Mean Squares Error (equation 2.5)
+function myMSE(model, xs::Array{Float32}, ys::Array{Float32})::Float32
+	#------------------------------------------------------------------------------
+	mse(ŷs, ys) = Flux.Losses.mse(ŷs, ys; agg = mean)
+	#------------------------------------------------------------------------------
+	mse(model(xs), ys)
+end # function mySSQ
+
+# ╔═╡ 0844177d-5bc2-4880-b9c0-1787ab2527f4
 md"
 ---
-###### Result of Epoch 0
+###### 2.3 Regression Model in Flux.jl with 1 Input and 1 Output
+###### Plug-in of Initial Parameters
 "
 
-# ╔═╡ fc68f2df-4ae4-401b-9fae-20666086973c
-let ϕ1 = linear_1_To_1_Model.weight[1]
+# ╔═╡ 440118ac-961c-443d-bc5c-78df16f0f559
+let #------------------------------------------------------------------------------
+	# model specification and construction
+	linear_1_To_1_Model = Dense(1 => 1)  
+	predict = Dense(1 => 1)
+	#------------------------------------------------------------------------------
+	# Initials
+	linear_1_To_1_Model.bias[1]   = 0.00                     # initial bias
+	linear_1_To_1_Model.weight[1] = 0.51                     # initial weight
 	ϕ0 = linear_1_To_1_Model.bias[1]
+	ϕ1 = linear_1_To_1_Model.weight[1]
+	#------------------------------------------------------------------------------
+	# Losses
+	ssqError = mySSQ(linear_1_To_1_Model, xsTrain, ysTrain)  # sum of squares loss
+	mseError = myMSE(linear_1_To_1_Model, xsTrain, ysTrain)  # mean squares error
+	ssqError, mseError
+	#------------------------------------------------------------------------------
+	# Model Prognosis
 	ysHat = linear_1_To_1_Model(xsTrain)
-	sOSq  = myLoss(ysHat, ysTrain)
-	scatter(xs, ys, label=" data: (y,x)", title="Univariate Linear Model, Epoch 0")
-	plot!(xs, ysHat', label=L"ϕ1=0.51, ϕ0=0.00", lw=2)
-	annotate!(1.4, 0.1, "sumOfSquares = $sOSq")
+	#------------------------------------------------------------------------------
+	# Plots
+	scatter(xs, ys, label=" data: (y,x)", 
+		title="Univariate Linear Flux Model: Initial Parms")
+	plot!(xs, ysHat', label=L"E(y|x)=0.00+0.51 x", lw=2)
+	annotate!(1.5, 0.30, "E(Y|x) = $ϕ0 + $ϕ1 x", 12)
+	annotate!(1.5, 0.18, "SSQ = $ssqError", 12)
+	annotate!(1.5, 0.06, "MSE = $mseError", 12)
+	# ssq, mse
 end # let
 
 # ╔═╡ a62039b4-187f-4a79-8537-425d21030832
 md"
 ---
-###### Result for Grid Search Based Parameters
+###### Plugin of Final Grid-Search Parameters
 Both parameters $ϕ0$ and $ϕ1$ were obtained by grid search in the former chapter *Supervised Learning*.
 "
 
-# ╔═╡ 77af6973-6bf8-42cf-9aff-6a86b89d121d
-let 
-	linear_1_To_1_Model.bias[1]   = 0.8                    # ϕ0
-	linear_1_To_1_Model.weight[1] = 0.5                    # ϕ1
+# ╔═╡ b81a066d-2212-447b-9423-a0597de117a4
+let #------------------------------------------------------------------------------
+	# model specification and construction
+	linear_1_To_1_Model = Dense(1 => 1)  
+	predict = Dense(1 => 1)
+	#------------------------------------------------------------------------------
+	# Initials
+	linear_1_To_1_Model.bias[1]   = 0.80                     # initial bias
+	linear_1_To_1_Model.weight[1] = 0.50                     # initial weight
+	ϕ0 = linear_1_To_1_Model.bias[1]
+	ϕ1 = linear_1_To_1_Model.weight[1]
+	#------------------------------------------------------------------------------
+	# Losses
+	ssqError = mySSQ(linear_1_To_1_Model, xsTrain, ysTrain)  # sum of squares loss
+	mseError = myMSE(linear_1_To_1_Model, xsTrain, ysTrain)  # mean squares error
+	ssqError, mseError
+	#------------------------------------------------------------------------------
+	# Model Prognosis
 	ysHat = linear_1_To_1_Model(xsTrain)
-	sOSq  = myLoss(ysHat, ysTrain)
+	#------------------------------------------------------------------------------
+	# Plots
 	scatter(xs, ys, label=" data: (y,x)", 
-		title="Univariate Linear Model, Last Epoch ")
-	plot!(xs, ysHat', label=L"ϕ1=0.5, ϕ0=0.8", lw=2)
-	annotate!(1.3, 0.8, "sumOfSquares = $sOSq")
+		title="Univariate Linear Flux Model: Final Grid-Search Parms")
+	plot!(xs, ysHat', label=L"E(y|x)=0.00+0.51 x", lw=2)
+	annotate!(1.5, 0.86, "E(Y|x) = $ϕ0 + $ϕ1 x", 12)
+	annotate!(1.5, 0.78, "SSQ = $ssqError", 12)
+	annotate!(1.5, 0.70, "MSE = $mseError", 12)
+	# ssq, mse
+end # let
+
+# ╔═╡ 48aa7578-9aae-4cac-80b7-d987bbe78079
+md"
+---
+###### 2.4 Optimizing Sum-Of-Squares Loss by Gradient Descent
+"
+
+# ╔═╡ 9a3956d6-1b61-416c-ab17-3bab14b55e0e
+md"
+###### Tailored Data following the [Flux Tutorial: Fitting a Line](http://fluxml.ai/Flux.jl/stable/models/overview/): $data = [(x_{train}, y_{train})]$
+
+"
+
+# ╔═╡ cd2728d1-153e-4814-9ea4-2cf5a76cc388
+data = [(xsTrain, ysTrain)]
+
+# ╔═╡ 3ffd3b6b-cb4a-4a67-8817-dff388500e09
+md"
+---
+###### Starting Iteration with Initial Parameters: $\phi_0=0.0; \phi_1=0.51$
+"
+
+# ╔═╡ a58f2a8b-cdad-4e13-8d84-a77844e94f91
+let opt = Descent()                                          # grad. desc. optimiz.
+	#------------------------------------------------------------------------------
+	# model specification and construction
+	linear_1_To_1_Model = Dense(1 => 1)  
+	predict = Dense(1 => 1)
+	#------------------------------------------------------------------------------
+	# Initials
+	linear_1_To_1_Model.bias[1]   = 0.00                     # initial bias
+	linear_1_To_1_Model.weight[1] = 0.51                     # initial weight
+	#------------------------------------------------------------------------------
+	# Losses before
+	ssqErrorBefore = mySSQ(linear_1_To_1_Model, xsTrain, ysTrain)  # ssqBefore
+	mseErrorBefore = myMSE(linear_1_To_1_Model, xsTrain, ysTrain)  # mseBefore
+	ssqErrorBefore, mseErrorBefore
+	#------------------------------------------------------------------------------
+	# Iteration
+	mseErrorOld = mseErrorBefore
+	mseErrorNew = 0.0
+	epoch = 0
+	while !(mseErrorOld < mseErrorNew) 
+		mseErrorOld = myMSE(linear_1_To_1_Model, xsTrain, ysTrain)
+		train!(myMSE, linear_1_To_1_Model, data, opt)
+		mseErrorNew = myMSE(linear_1_To_1_Model, xsTrain, ysTrain)
+		epoch += 1
+		println("epoch = $epoch; mseError = $mseErrorNew")
+	end # while
+	#------------------------------------------------------------------------------
+	# Iteration results
+	ϕ0 = linear_1_To_1_Model.bias[1]
+	ϕ1 = linear_1_To_1_Model.weight[1]
+	#------------------------------------------------------------------------------
+	# Losses after
+	ssqErrorAfter = mySSQ(linear_1_To_1_Model, xsTrain, ysTrain)  # ssqBefore
+	mseErrorAfter = myMSE(linear_1_To_1_Model, xsTrain, ysTrain)  # mseBefore
+	ssqErrorAfter, mseErrorAfter
+	#------------------------------------------------------------------------------
+	# Model Prognosis
+	ysHat = linear_1_To_1_Model(xsTrain)
+	#------------------------------------------------------------------------------
+	# Plots
+	scatter(xs, ys, label=" data: (y,x)", 
+		title="Univariate Linear Flux Model: Iteration Results")
+	plot!(xs, ysHat', label=L"E(y|x)=0.825+0.523 x", lw=2)
+	annotate!(1.3, 0.86, "E(Y|x) = $ϕ0 + $ϕ1 x", 12)
+	annotate!(1.3, 0.78, "SSQ = $ssqErrorAfter", 12)
+	annotate!(1.3, 0.70, "MSE = $mseErrorAfter", 12)
+	#------------------------------------------------------------------------------
 end # let
 
 # ╔═╡ 6f3ea5aa-2b34-4746-acb4-7c34e15da48f
@@ -170,6 +277,7 @@ Flux = "587475ba-b771-5e3f-ad9e-33799f191a9c"
 LaTeXStrings = "b964fa9f-0449-5b57-a5c2-d3ea65f4040f"
 Latexify = "23fbe1c1-3f47-55db-b15f-69d7ec21a316"
 Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
+Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
 
 [compat]
@@ -186,7 +294,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.10.2"
 manifest_format = "2.0"
-project_hash = "1f581d40248322e5d4d3f11e881b29955a32a3fc"
+project_hash = "2fa71ff9444358096bb515ea691013803ccdfbf0"
 
 [[deps.AbstractFFTs]]
 deps = ["LinearAlgebra"]
@@ -1716,24 +1824,23 @@ version = "1.4.1+1"
 # ╔═╡ Cell order:
 # ╟─d8b4c5e0-e9f1-11ee-151b-35beb6f2ad9c
 # ╠═acdaa496-177e-46cc-bfe6-6e8e72686c8f
-# ╟─08cd3647-af98-4101-ae03-3b4d3629e36b
 # ╟─e1195d2b-9270-4be1-8b71-fd1b91008dc4
-# ╠═8aed518a-72f0-40f3-82a8-ebdacf9c02b4
 # ╟─3e2e9c15-ffe2-46fe-8309-80f153ba50ff
 # ╠═8a908e06-0004-4a7f-bb38-65d89ecc5419
+# ╟─2e73578b-862a-4aff-aacc-d1904747b202
 # ╠═955b4dd7-a75d-465a-ac72-242109630e49
-# ╠═23637d8f-4307-497e-91e5-ce559edefd8c
-# ╟─7e3130d1-1c92-4e70-a62f-6ab3a64f4381
-# ╠═13ae968b-ecae-4f0b-b61e-8bc2bf99775d
-# ╠═def8665d-9b8b-4f03-b794-b6985f4cbf7f
-# ╟─bdb0611f-6dc2-40cf-b103-7ab2b28a3c86
-# ╠═10016cd1-ae61-49d0-9a0e-6607dbe6e820
 # ╟─86d14a5b-4268-4c7c-b7a3-e1a9b08b55f0
 # ╠═b1d74074-3d3f-48cd-84aa-c6c695c3b381
-# ╟─563dbf60-0cf2-45d9-8f85-1dff73061d29
-# ╠═fc68f2df-4ae4-401b-9fae-20666086973c
+# ╠═8c4073a6-5348-49ee-b231-6c17b73c36bd
+# ╟─0844177d-5bc2-4880-b9c0-1787ab2527f4
+# ╠═440118ac-961c-443d-bc5c-78df16f0f559
 # ╟─a62039b4-187f-4a79-8537-425d21030832
-# ╠═77af6973-6bf8-42cf-9aff-6a86b89d121d
+# ╠═b81a066d-2212-447b-9423-a0597de117a4
+# ╟─48aa7578-9aae-4cac-80b7-d987bbe78079
+# ╟─9a3956d6-1b61-416c-ab17-3bab14b55e0e
+# ╠═cd2728d1-153e-4814-9ea4-2cf5a76cc388
+# ╟─3ffd3b6b-cb4a-4a67-8817-dff388500e09
+# ╠═a58f2a8b-cdad-4e13-8d84-a77844e94f91
 # ╟─6f3ea5aa-2b34-4746-acb4-7c34e15da48f
 # ╟─7566ce49-4f80-4d56-acfc-b66f6911dc3e
 # ╟─00000000-0000-0000-0000-000000000001
