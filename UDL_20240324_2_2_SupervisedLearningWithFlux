@@ -26,7 +26,7 @@ md"
 ====================================================================================
 #### UDL\_2\_2\_[Supervised\_Learning with FLUX.jl](http://fluxml.ai/Flux.jl/stable/models/overview/)
 ##### file: UDL\_20240324\_2\_2\_SupervisedLearningWithFlux
-##### code: Julia 1.10.2/Pluto by *** PCM 2024/03/27 ***
+##### code: Julia 1.10.2/Pluto by *** PCM 2024/03/28 ***
 
 ====================================================================================
 
@@ -36,7 +36,7 @@ md"
 md"
 ---
 ##### 2 Univariate Linear Regression with Julia/Flux.jl
-###### 2.1 Error-free Linear Regression Model: Straight Line
+###### 2.1 Error-free Linear (*Straight Line*) Regression Model: 
 $$\mathbb E(Y|x) = \hat y = f(ϕ; x) = ϕ_0 + ϕ_1x \;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;(2.4)$$
 
 $$\;$$
@@ -144,7 +144,7 @@ end # let
 md"
 ---
 ###### Plugin of Final Grid-Search Parameters
-Both parameters $ϕ0$ and $ϕ1$ were obtained by grid search in the former chapter *Supervised Learning*.
+Both parameters $ϕ0=0.8$ and $ϕ1=0.5$ were obtained by grid search in the former chapter *Supervised Learning*.
 "
 
 # ╔═╡ b81a066d-2212-447b-9423-a0597de117a4
@@ -178,10 +178,13 @@ let #---------------------------------------------------------------------------
 end # let
 
 # ╔═╡ 48aa7578-9aae-4cac-80b7-d987bbe78079
-md"
+md"""
 ---
-###### 2.4 Optimizing Sum-Of-Squares Loss by Gradient Descent
-"
+###### 2.4 Optimizing Sum-Of-Squares (SSQ) Loss by Gradient Descent
+
+###### Starting Iteration with Initial Parameters: $\phi_0=0.0; \phi_1=0.51$
+The result (below) demonstrates that by trying to optimize *SSQ* the iteration process stops with an error message "*DomainError with Loss is Inf on data item 1, stopping training:*"
+"""
 
 # ╔═╡ 9a3956d6-1b61-416c-ab17-3bab14b55e0e
 md"
@@ -192,10 +195,63 @@ md"
 # ╔═╡ cd2728d1-153e-4814-9ea4-2cf5a76cc388
 data = [(xsTrain, ysTrain)]
 
+# ╔═╡ 6876b99e-6109-467e-b782-6185cebe14ab
+let opt = Descent()                                          # grad. desc. optimiz.
+	#------------------------------------------------------------------------------
+	# model specification and construction
+	linear_1_To_1_Model = Dense(1 => 1)  
+	predict = Dense(1 => 1)
+	#------------------------------------------------------------------------------
+	# Initials
+	linear_1_To_1_Model.bias[1]   = 0.00                     # initial bias
+	linear_1_To_1_Model.weight[1] = 0.51                     # initial weight
+	#------------------------------------------------------------------------------
+	# Losses before
+	ssqErrorBefore = mySSQ(linear_1_To_1_Model, xsTrain, ysTrain)  # ssqBefore
+	mseErrorBefore = myMSE(linear_1_To_1_Model, xsTrain, ysTrain)  # mseBefore
+	ssqErrorBefore, mseErrorBefore
+	#------------------------------------------------------------------------------
+	# Iteration
+	mseErrorOld = mseErrorBefore
+	mseErrorNew = 0.0
+	epoch = 0
+	while !(mseErrorOld < mseErrorNew) 
+		ssqErrorOld = mySSQ(linear_1_To_1_Model, xsTrain, ysTrain)
+		train!(mySSQ, linear_1_To_1_Model, data, opt)
+		ssqErrorNew = mySSQ(linear_1_To_1_Model, xsTrain, ysTrain)
+		epoch += 1
+		println("epoch = $epoch; mseError = $ssqErrorNew")
+	end # while
+	#------------------------------------------------------------------------------
+	# Iteration results
+	ϕ0 = linear_1_To_1_Model.bias[1]
+	ϕ1 = linear_1_To_1_Model.weight[1]
+	#------------------------------------------------------------------------------
+	# Losses after
+	ssqErrorAfter = mySSQ(linear_1_To_1_Model, xsTrain, ysTrain)  # ssqAfter
+	mseErrorAfter = myMSE(linear_1_To_1_Model, xsTrain, ysTrain)  # mseAfter
+	ssqErrorAfter, mseErrorAfter
+	#------------------------------------------------------------------------------
+	# Model Prognosis
+	ysHat = linear_1_To_1_Model(xsTrain)
+	#------------------------------------------------------------------------------
+	# Plots
+	scatter(xs, ys, label=" data: (y,x)", 
+		title="Univariate Linear Flux Model: Optimizing SSQ")
+	plot!(xs, ysHat', label=L"E(y|x)=0.825+0.523 x", lw=2)
+	annotate!(1.3, 0.86, "E(Y|x) = $ϕ0 + $ϕ1 x", 12)
+	annotate!(1.3, 0.78, "SSQ = $ssqErrorAfter", 12)
+	annotate!(1.3, 0.70, "MSE = $mseErrorAfter", 12)
+	#------------------------------------------------------------------------------
+end # let
+
 # ╔═╡ 3ffd3b6b-cb4a-4a67-8817-dff388500e09
 md"
 ---
+###### 2.5 Optimizing Mean-Squares-Error (MSE) Loss by Gradient Descent
+
 ###### Starting Iteration with Initial Parameters: $\phi_0=0.0; \phi_1=0.51$
+The result (below) demonstrates that by optimizing *MSE* both SSQ and MSE are smaller than the grid-search results (see above).
 "
 
 # ╔═╡ a58f2a8b-cdad-4e13-8d84-a77844e94f91
@@ -231,8 +287,8 @@ let opt = Descent()                                          # grad. desc. optim
 	ϕ1 = linear_1_To_1_Model.weight[1]
 	#------------------------------------------------------------------------------
 	# Losses after
-	ssqErrorAfter = mySSQ(linear_1_To_1_Model, xsTrain, ysTrain)  # ssqBefore
-	mseErrorAfter = myMSE(linear_1_To_1_Model, xsTrain, ysTrain)  # mseBefore
+	ssqErrorAfter = mySSQ(linear_1_To_1_Model, xsTrain, ysTrain)  # ssqAfter
+	mseErrorAfter = myMSE(linear_1_To_1_Model, xsTrain, ysTrain)  # mseAfter
 	ssqErrorAfter, mseErrorAfter
 	#------------------------------------------------------------------------------
 	# Model Prognosis
@@ -240,13 +296,20 @@ let opt = Descent()                                          # grad. desc. optim
 	#------------------------------------------------------------------------------
 	# Plots
 	scatter(xs, ys, label=" data: (y,x)", 
-		title="Univariate Linear Flux Model: Iteration Results")
+		title="Univariate Linear Flux Model: Optimizing MSE")
 	plot!(xs, ysHat', label=L"E(y|x)=0.825+0.523 x", lw=2)
 	annotate!(1.3, 0.86, "E(Y|x) = $ϕ0 + $ϕ1 x", 12)
 	annotate!(1.3, 0.78, "SSQ = $ssqErrorAfter", 12)
 	annotate!(1.3, 0.70, "MSE = $mseErrorAfter", 12)
 	#------------------------------------------------------------------------------
 end # let
+
+# ╔═╡ c10d71ea-92d2-49e3-a38c-07c168eb61ba
+md"
+---
+##### Summary
+To obstain stable processing with the FLUX-model we encapsulated all relevant computations into $let ... end$-expressions. Furthermore, we had to replace SSQ-loss by MSE-loss.
+"
 
 # ╔═╡ 6f3ea5aa-2b34-4746-acb4-7c34e15da48f
 md"
@@ -257,7 +320,7 @@ md"
 
 - **Flux.jl**; *Flux Overview: Fitting a Straight Line*; [http://fluxml.ai/Flux.jl/stable/models/overview/#man-overview](http://fluxml.ai/Flux.jl/stable/models/overview/#man-overview); last visit: 2024/03/24
 
-- **Prince, S.J.D.**; *Understand Deep Learning*; MIT Press, 2024
+- **Prince, S.J.D.**; *Understanding Deep Learning*; MIT Press, 2024
 
 "
 
@@ -1839,8 +1902,10 @@ version = "1.4.1+1"
 # ╟─48aa7578-9aae-4cac-80b7-d987bbe78079
 # ╟─9a3956d6-1b61-416c-ab17-3bab14b55e0e
 # ╠═cd2728d1-153e-4814-9ea4-2cf5a76cc388
+# ╠═6876b99e-6109-467e-b782-6185cebe14ab
 # ╟─3ffd3b6b-cb4a-4a67-8817-dff388500e09
 # ╠═a58f2a8b-cdad-4e13-8d84-a77844e94f91
+# ╟─c10d71ea-92d2-49e3-a38c-07c168eb61ba
 # ╟─6f3ea5aa-2b34-4746-acb4-7c34e15da48f
 # ╟─7566ce49-4f80-4d56-acfc-b66f6911dc3e
 # ╟─00000000-0000-0000-0000-000000000001
