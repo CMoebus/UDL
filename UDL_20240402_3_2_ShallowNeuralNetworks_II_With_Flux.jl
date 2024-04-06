@@ -27,7 +27,7 @@ md"
 ====================================================================================
 #### UDL\_20240402\_[3\_2\_ShallowNeuralNetworks\_II](https://github.com/udlbook/udlbook/blob/main/Notebooks/Chap03/3_2_Shallow_Networks_II.ipynb)\_With\_Flux.jl
 ##### file: UDL\_20240402\_3\_2\_ShallowNeuralNetworks\_II\_With\_Flux.jl
-##### code: Julia 1.10.2/Pluto by *** PCM 2024/04/05 ***
+##### code: Julia 1.10.2/Pluto by *** PCM 2024/04/06 ***
 
 ===================================================================================
 "
@@ -52,6 +52,8 @@ end # let
 #   in the form of a shallow neural network 
 #   with, two inputs, three hidden units, and one output
 #-------------------------------------------------------------------------------------
+# function shallow_2_3_1 with vector x1s, x2s
+#
 function shallow_2_3_1(x1s::Vector{Float64}, x2s::Vector{Float64}, activationFn, ϕ0, ϕ1, ϕ2, ϕ3, θ10, θ11, θ12, θ20, θ21, θ22, θ30, θ31, θ32)
 	ylims    = (-1, 1)
 	#---------------------------------------------------------------------------------
@@ -97,8 +99,8 @@ end # function
 
 # ╔═╡ e5669939-cba3-4036-87c4-39b5b0636767
 #------------------------------------------------------------------------------------
-# function shallow_2_3_1 mit skalarem x1s, x2s
-#-------------------------------------------------------------------------------------
+# function shallow_2_3_1 with scalar x1s, x2s
+#
 function shallow_2_3_1(x1s::Float64, x2s::Float64, activationFn, ϕ0, ϕ1, ϕ2, ϕ3, θ10, θ11, θ12, θ20, θ21, θ22, θ30, θ31, θ32)
 	ylims    = (-1, 1)
 	#---------------------------------------------------------------------------------
@@ -157,7 +159,8 @@ begin # generation of error-free data with shallow 1-3-1 neural network
 	#--------------------------------------------------------------------------------
 	# plot of generated data
 	# plot(x1s, x2s, ys(x1s, x2s))
-	contour(x1s::Vector{Float64}, x2s::Vector{Float64}, ys, fill=true, title=L"UDL, Fig\;3.8j\;;\; y=f[x_1,x_2,\phi]")
+	plot1 = contour(x1s::Vector{Float64}, x2s::Vector{Float64}, ys, fill=true, xlabel=L"x_1", ylabel=L"x_2", title=L"\hat y=f[x_1,x_2,\phi_{generator}]")
+	plot(plot1)
 	#--------------------------------------------------------------------------------
 end # begin
 
@@ -291,45 +294,54 @@ md"
 "
 
 # ╔═╡ 975e624d-19e1-464d-a2a1-95fac535c2e1
+linear_2_3_1_Model, ysHat =
+	let 
+		#-----------------------------------------------------------------------------
+		# model specification and construction: 
+		#   multi-layer perceptron with tow inputs, 
+		#   one hidden layer of size 3 and one output
+		layer1 = Dense(2 => 3, tanh)
+		layer2 = Dense(3 => 1)
+		linear_2_3_1_Model = 
+			Chain(layer1, layer2) |> gpu
+		#-----------------------------------------------------------------------------
+		# Losses before
+		ssqErrorBefore = 
+			mySSQ(linear_2_3_1_Model, predictorMatrixX, ysTrain)  # ssqBefore
+		mseErrorBefore = 
+			myMSE(linear_2_3_1_Model, predictorMatrixX, ysTrain)  # mseBefore
+		ssqErrorBefore, mseErrorBefore
+		#-----------------------------------------------------------------------------
+		# Iteration
+		opt = # Descent()                                         # grad. desc. optimiz.
+			 Flux.setup(Adam(0.01), linear_2_3_1_Model)
+		mseErrorOld = Inf
+		mseErrorNew = mseErrorBefore
+		epochs = 0
+		δ     = 1.0E-6     
+		while ((mseErrorOld - mseErrorNew) >  + δ) 
+			mseErrorOld = mseErrorNew
+			train!(myMSE, linear_2_3_1_Model, data, opt)
+			mseErrorNew = myMSE(linear_2_3_1_Model, predictorMatrixX, ysTrain)
+			epochs += 1
+		end # while
+		println("epochs = $epochs; mseErrorOld = $mseErrorOld; mseErrorNew = $mseErrorNew")
+		#-----------------------------------------------------------------------------
+		# model prognosis
+		ysHat = linear_2_3_1_Model(predictorMatrixX)
+		#-----------------------------------------------------------------------------
+		linear_2_3_1_Model, ysHat
+	end # let
+
+# ╔═╡ dea03092-349f-436f-853a-e8bb2dd76ed6
 let 
-	#--------------------------------------------------------------------------------
-	# model specification and construction: 
-	#   multi-layer perceptron with tow inputs, 
-	#   one hidden layer of size 3 and one output
-	layer1 = Dense(2 => 3, tanh)
-	layer2 = Dense(3 => 1)
-	linear_2_3_1_Model = 
-		Chain(layer1, layer2) |> gpu
-	#--------------------------------------------------------------------------------
-	# Losses before
-	ssqErrorBefore = 
-		mySSQ(linear_2_3_1_Model, predictorMatrixX, ysTrain)  # ssqBefore
-	mseErrorBefore = 
-		myMSE(linear_2_3_1_Model, predictorMatrixX, ysTrain)  # mseBefore
-	ssqErrorBefore, mseErrorBefore
-	#--------------------------------------------------------------------------------
-	# Iteration
-	opt = # Descent()                                         # grad. desc. optimiz.
-		 Flux.setup(Adam(0.01), linear_2_3_1_Model)
-	mseErrorOld = Inf
-	mseErrorNew = mseErrorBefore
-	epochs = 0
-	δ     = 1.0E-6     
-	while ((mseErrorOld - mseErrorNew) >  + δ) 
-		mseErrorOld = mseErrorNew
-		train!(myMSE, linear_2_3_1_Model, data, opt)
-		mseErrorNew = myMSE(linear_2_3_1_Model, predictorMatrixX, ysTrain)
-		epochs += 1
-	end # while
-	println("epochs = $epochs; mseErrorOld = $mseErrorOld; mseErrorNew = $mseErrorNew")
 	#--------------------------------------------------------------------------------
 	# Losses after
 	ssqErrorAfter = mySSQ(linear_2_3_1_Model, predictorMatrixX, ysTrain)  # ssqAfter
 	mseErrorAfter = myMSE(linear_2_3_1_Model, predictorMatrixX, ysTrain)  # mseAfter
 	ssqErrorAfter, mseErrorAfter
 	#--------------------------------------------------------------------------------
-	# Model Prognosis
-	ysHat = linear_2_3_1_Model(predictorMatrixX)
+	# Model validity
 	rxy   = cor(ysTrain[1,:], ysHat[1,:])
 	println("r(y, yHat) = $rxy")
 	#--------------------------------------------------------------------------------
@@ -342,17 +354,32 @@ let
 	ndims(x1s), ndims(x2s), ndims(ysHat[1,:])
 	plot1 = responseSurface((x1, x2) -> ys(x1, x2), ys(x1s, x2s), L"\hat y=f[x_1,x_2,\phi_{generator}]")
 	plot2 = responseSurface((x1, x2) -> ys(x1, x2), ysHat[1,:], L"\hat y=f[x_1,x_2,\phi_{FluxModel}]")
-	annotate!(-6.0, 0.3, -12.00, "SSQ = $ssqErrorAfter", 6)
-	annotate!(-6.0, 0.3, -16.00, "MSE = $mseErrorAfter", 6)
-	annotate!(-6.0, 0.3, -20.00, "r(y, yHat) = $rxy", 6)
+	annotate!(-6.0, 0.3, -11.00, "SSQ = $ssqErrorAfter", 6)
+	annotate!(-6.0, 0.3, -15.00, "MSE = $mseErrorAfter", 6)
+	annotate!(-6.0, 0.3, -19.00, "r(y, yHat) = $rxy", 6)
 	plot(plot1, plot2)
 end # let
+
+# ╔═╡ 168ecf51-5f59-4d5f-ae94-21c3bbfe4059
+	plot2 =
+		let #-------------------------------------------------------------------------
+			function modelRsonseSurface(x1, x2)							
+				matrixX1X2 = vcat(x1, x2)
+				linear_2_3_1_Model(matrixX1X2)[1]
+			end # function modelRsonseSurface
+			#-------------------------------------------------------------------------
+			contour(x1sTrain[1,:], x2sTrain[1,:], modelRsonseSurface, fill=true, title=L"\hat y=f[x_1,x_2,\phi_{FluxModel}]", xlabel=L"x_1", ylabel=L"x_2")
+			#-------------------------------------------------------------------------
+		end # let
+
+# ╔═╡ 51f2331a-26a2-4319-9fa3-d45f4a01dec1
+plot(plot1, plot2, layout=(2, 2))
 
 # ╔═╡ fa885022-18e6-46a1-9e46-596d7a73036a
 md"
 ---
 ##### 4. Summary
-We took the mathematical structure of Prince's 2-3-1 shallow neural network as a blueprint for a training data generator implemented in Julia. Then we reconstructed the mathematical 2-3-1-structure in Flux.jl. It was possible to estimate parameters by minimizing the mse so that the model predictions are a nearly exact replication of the y-traing data. The Pearson product-moment correlation between y-training data and y-Hat Flux-model prediction are approximately $0.999$ with an $mse \approx 0.33$.
+We took the mathematical structure of Prince's 2-3-1 shallow neural network as a blueprint for a training data generator implemented in Julia. Then we reconstructed the mathematical 2-3-1-structure in Flux.jl. It was possible to estimate parameters by minimizing the *mse* so that the model predictions are a nearly exact replication of the y-traing data. The Pearson product-moment correlation between y-training data and y-Hat Flux-model prediction are approximately $0.999$ with an $mse \approx 0.33$.
 "
 
 # ╔═╡ e5804cc5-3a76-47df-bf47-d706dd45a157
@@ -2117,6 +2144,9 @@ version = "1.4.1+1"
 # ╟─451a9ef0-96eb-438a-9370-b48943539fb1
 # ╟─45f63dd0-1e43-428d-906c-8dd1d045959b
 # ╠═975e624d-19e1-464d-a2a1-95fac535c2e1
+# ╠═dea03092-349f-436f-853a-e8bb2dd76ed6
+# ╠═168ecf51-5f59-4d5f-ae94-21c3bbfe4059
+# ╠═51f2331a-26a2-4319-9fa3-d45f4a01dec1
 # ╟─fa885022-18e6-46a1-9e46-596d7a73036a
 # ╟─e5804cc5-3a76-47df-bf47-d706dd45a157
 # ╟─9ae03c78-460f-44c1-b3af-5219d9cfe336
