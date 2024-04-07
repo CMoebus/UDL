@@ -27,7 +27,7 @@ md"
 ====================================================================================
 #### UDL\_20240402\_[3\_2\_ShallowNeuralNetworks\_II](https://github.com/udlbook/udlbook/blob/main/Notebooks/Chap03/3_2_Shallow_Networks_II.ipynb)\_With\_Flux.jl
 ##### file: UDL\_20240402\_3\_2\_ShallowNeuralNetworks\_II\_With\_Flux.jl
-##### code: Julia 1.10.2/Pluto by *** PCM 2024/04/06 ***
+##### code: Julia 1.10.2/Pluto by *** PCM 2024/04/07 ***
 
 ===================================================================================
 "
@@ -363,12 +363,12 @@ end # let
 # ╔═╡ 168ecf51-5f59-4d5f-ae94-21c3bbfe4059
 	plot2 =
 		let #-------------------------------------------------------------------------
-			function modelRsonseSurface(x1, x2)							
+			function modelResponseSurface(x1, x2)							
 				matrixX1X2 = vcat(x1, x2)
 				linear_2_3_1_Model(matrixX1X2)[1]
-			end # function modelRsonseSurface
+			end # function modelResponseSurface
 			#-------------------------------------------------------------------------
-			contour(x1sTrain[1,:], x2sTrain[1,:], modelRsonseSurface, fill=true, title=L"\hat y=f[x_1,x_2,\phi_{FluxModel}]", xlabel=L"x_1", ylabel=L"x_2")
+			contour(x1sTrain[1,:], x2sTrain[1,:], modelResponseSurface, fill=true, title=L"\hat y=f[x_1,x_2,\phi_{FluxModel}]", xlabel=L"x_1", ylabel=L"x_2")
 			#-------------------------------------------------------------------------
 		end # let
 
