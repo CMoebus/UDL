@@ -20,7 +20,7 @@ md"
 ====================================================================================
 #### UDL\_3\_3 Shallow Network Regions
 ##### file: UDL\_20240407\_3\_3\_ShallowNetworkRegions
-##### code: Julia 1.10.2/Pluto by *** PCM 2024/04/09 ***
+##### code: Julia 1.10.2/Pluto by *** PCM 2024/04/10 ***
 
 ====================================================================================
 
@@ -45,9 +45,8 @@ $$\;$$
 "
 
 # ╔═╡ fd4f507d-cdb2-4c43-8a98-f8fb0638be98
-function numberOfRegions(di::Int64, d::Int64)::Int64
-	di < d ? sum((binomial(d, j) for j in 0:di)) : 2^d
-	# sum((binomial(d, j) for j in 0:di))                         # sum(generator) !
+function numberOfRegions(di, d)
+	di < d ? sum((binomial(d, j) for j in 0:di)) : 2^d 
 end # function numberOfRegions
 
 # ╔═╡ 06d84744-3f8b-470b-a30d-956ddde2f9f5
@@ -80,13 +79,45 @@ let dis    = [1, 2, 5, 8, 10, 15]                      # selection of input unit
 			println("Di = $di; D = $d; log(#regions) = $nRegionsd")
 		end # for d
 	end # for di
-	plot(hiddenUnits[:], [nRegions[i, :] for i in 1:lenDis], xlabel=L"nD = \#hidden\  units", ylabel=L"log(\#regions)", title="UDL, Figure 3.9a")
+	plot(hiddenUnits[:], [nRegions[i, :] for i in 1:lenDis], xlabel=L"nD = \#hidden\  units", ylabel=L"log(\#regions)", title=L"log(\#regions)=f(D_i, D); (cf.UDL, Figure\ 3.9a)")
 end # let
 
 # ╔═╡ d879fe0c-5a11-400c-8ebe-c36382748cac
 let dis = [di for di in 1: 15]
 	ds  = [d  for d  in 1:100]
-	contour(dis, ds, (di, d) -> log(numberOfRegions(di, d)), fill=true, title="UDL, Figure 3.9a")
+	contour(dis, ds, (di, d) -> log(numberOfRegions(di, d)), fill=true, xlabel=L"inputs\ D_i", ylabel=L"hidden\ D", title=L"log(\#regions)=f(D_i, D); (cf.UDL, Figure\ 3.9a)")
+end # let
+
+# ╔═╡ 9356e5f7-41f8-453b-a78e-fa7442b073e6
+function numberOfParameters(di, d)
+	di * 2*d + d
+end # function numberOfParameters
+
+# ╔═╡ a0ea8897-6b78-4e2d-905c-4372fda8e44d
+let dis    = [1, 2, 5, 8, 10, 15]                      # selection of input units Di
+	lenDis = length(dis)
+	nD     = 100                                       # nr of hidden units D       
+	hiddenUnits = [1:nD]                               # range of hidden units
+	nParameters = zeros(Real, (length(dis), nD))          # array of counts
+	i        =  0                                      # nth selected hidden units
+	plotid   = Array{Any}(missing, lenDis)
+	#--------------------------------------------------------------------------------
+	for di in dis                                      # nr of input units Di
+		i += 1
+		disI = dis[i]
+		for d in 1:nD
+			nParameters[i, d] = log(numberOfParameters(di, d))
+			nParametersd   = nParameters[i, d]
+			println("Di = $di; D = $d; log(#parameters) = $nParametersd")
+		end # for d
+	end # for di
+	plot(hiddenUnits[:], [nParameters[i, :] for i in 1:lenDis], xlabel=L"nD = \#hidden\  units", ylabel=L"log(\#parameters)", title=L"log(\#parameters)=g(D_i, D); (cf.UDL, Figure\ 3.9b)")
+end # let
+
+# ╔═╡ 7fcf6c54-d28c-4b0f-9c54-ad604d5194e8
+let dis = [di for di in 1: 15]
+	ds  = [d  for d  in 1:100]
+	contour(dis, ds, (di, d) -> log(numberOfParameters(di, d)), fill=true, xlabel=L"inputs\ D_i", ylabel=L"hidden\ D", title=L"log(\#parameters)=g(D_i, D); (cf.UDL, Figure\ 3.9b)")
 end # let
 
 # ╔═╡ 325bc709-6ddc-4231-b47f-a1191ae8573f
@@ -1190,12 +1221,15 @@ version = "1.4.1+1"
 # ╠═990961be-69fc-4402-bd0b-9f606126dddf
 # ╟─62cd201f-260b-44d2-9099-93a8092b9b1f
 # ╠═fd4f507d-cdb2-4c43-8a98-f8fb0638be98
+# ╠═9356e5f7-41f8-453b-a78e-fa7442b073e6
 # ╠═06d84744-3f8b-470b-a30d-956ddde2f9f5
 # ╠═3ad39e35-56d6-494c-9db6-f694df900a8e
 # ╠═bca0c0de-b279-4d5a-90c4-8f78a3508e8a
 # ╠═d961f0cc-1771-4f0c-a784-b28d4d40b64a
 # ╠═0d8a95e8-a9b3-4744-a671-52c59ae4851d
 # ╠═d879fe0c-5a11-400c-8ebe-c36382748cac
+# ╠═a0ea8897-6b78-4e2d-905c-4372fda8e44d
+# ╠═7fcf6c54-d28c-4b0f-9c54-ad604d5194e8
 # ╟─325bc709-6ddc-4231-b47f-a1191ae8573f
 # ╟─99035e1f-5859-4787-9416-c27070e4600e
 # ╟─00000000-0000-0000-0000-000000000001
