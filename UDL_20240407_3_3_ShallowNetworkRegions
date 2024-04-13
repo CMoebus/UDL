@@ -20,7 +20,7 @@ md"
 ====================================================================================
 #### UDL\_3\_3 Shallow Network Regions
 ##### file: UDL\_20240407\_3\_3\_ShallowNetworkRegions
-##### code: Julia 1.10.2/Pluto by *** PCM 2024/04/10 ***
+##### code: Julia 1.10.2/Pluto by *** PCM 2024/04/13 ***
 
 ====================================================================================
 
@@ -29,8 +29,9 @@ md"
 # ╔═╡ 62cd201f-260b-44d2-9099-93a8092b9b1f
 md"
 ---
-##### Number of Regions (Zaslavsky, 1974)
-*The number of regions N created by a shallow neural network with $D_i$ inputs and $D$ hidden units is given by Zaslavsky's formula* ([Peirce, 2024](https://github.com/udlbook/udlbook/blob/main/Notebooks/Chap03/3_3_Shallow_Network_Regions.ipynb)):
+##### Number of Regions and Parameters as a Function of Units
+###### Number of Regions
+*The number of regions N created by a shallow neural network with $D_i$ inputs, $D$ hidden units, and $$D_o=1$$ outputs is given by Zaslavsky's formula* (Zaslavsky, 1974; [Peirce, 2024](https://github.com/udlbook/udlbook/blob/main/Notebooks/Chap03/3_3_Shallow_Network_Regions.ipynb)):
 
 $$\;$$
 
@@ -45,8 +46,12 @@ $$\;$$
 "
 
 # ╔═╡ fd4f507d-cdb2-4c43-8a98-f8fb0638be98
-function numberOfRegions(di, d)
-	di < d ? sum((binomial(d, j) for j in 0:di)) : 2^d 
+function numberOfRegions(di::Int64, d::Int64)::Signed
+	try
+		di < d ? sum((binomial(d, j) for j in 0:di)) : 2^d 
+	catch
+		di < d ? sum((binomial(big(d), big(j)) for j in 0:di)) : big(2)^big(d) 
+	end # try/catch
 end # function numberOfRegions
 
 # ╔═╡ 06d84744-3f8b-470b-a30d-956ddde2f9f5
@@ -61,44 +66,134 @@ numberOfRegions(10, 8)  # ==> 256  -->  :)
 # ╔═╡ d961f0cc-1771-4f0c-a784-b28d4d40b64a
 numberOfRegions(8, 8)   # ==> 256  -->  :)
 
+# ╔═╡ bbdbbfdc-bb1f-4b6f-bb58-e0ec4bbdb6e3
+let di = 100; d = 1000
+	bigBin = binomial(di, d)
+	bigRegions = numberOfRegions(di, d)
+	logBigRegions = log(numberOfRegions(di, d))
+	bigRegions, logBigRegions
+end # let
+
+# ╔═╡ 9025c575-58a7-4dbe-bc5a-93cda50d297e
+begin
+	numberOfRegions(100, 500), log(numberOfRegions(100, 500)), 
+	numberOfRegions(100, 1000), log(numberOfRegions(100, 1000))
+end # begin
+
+# ╔═╡ cb7d8981-7c02-40e9-9071-e8ebd91b35f1
+big(10)^big(107) < numberOfRegions(100, 500) < big(10)^big(108)
+
+# ╔═╡ 9135bd55-1ee6-4b32-b187-c7eda07abede
+supertype(BigInt)
+
+# ╔═╡ ce89dd8e-a498-4c51-a68b-4b67750dbd37
+supertype(Int64)
+
+# ╔═╡ 1e0bc189-e862-4949-b7de-50bd8c9c6f5a
+(typemin(Int64), typemax(Int64))
+
 # ╔═╡ 0d8a95e8-a9b3-4744-a671-52c59ae4851d
-let dis    = [1, 2, 5, 8, 10, 15]                      # selection of input units Di
-	lenDis = length(dis)
-	nD     = 100                                       # nr of hidden units D       
+let dis      = [1, 2, 5, 8, 10, 15, 50, 100]           # selection of input units Di
+	lenDis   = length(dis)
+	nD       = 1000                                    # nr of hidden units D       
 	hiddenUnits = [1:nD]                               # range of hidden units
-	nRegions = zeros(Real, (length(dis), nD))          # array of counts
-	i        =  0                                      # nth selected hidden units
+	logRegions  = zeros(Number, (lenDis, nD))          # array of counts
+	i        = 0                                       # nth selected hidden units
 	plotid   = Array{Any}(missing, lenDis)
 	#--------------------------------------------------------------------------------
 	for di in dis                                      # nr of input units Di
 		i += 1
 		disI = dis[i]
 		for d in 1:nD
-			nRegions[i, d] = log(numberOfRegions(di, d))
-			nRegionsd   = nRegions[i, d]
-			println("Di = $di; D = $d; log(#regions) = $nRegionsd")
+			try 
+				logRegions[i, d] = log(numberOfRegions(di, d))
+			catch
+				logRegions[i, d] = Inf
+			end # tray/catch
+			logRegionsd = logRegions[i, d]
+			println("Di = $di; D = $d; log(#regions) = $logRegionsd")
 		end # for d
 	end # for di
-	plot(hiddenUnits[:], [nRegions[i, :] for i in 1:lenDis], xlabel=L"nD = \#hidden\  units", ylabel=L"log(\#regions)", title=L"log(\#regions)=f(D_i, D); (cf.UDL, Figure\ 3.9a)")
+	plot(hiddenUnits[:], [logRegions[i, :] for i in 1:lenDis], xlabel=L"nD = \#hidden\  units", ylabel=L"log(\#regions)", title=L"log(\#regions)=f(D_i, D); (cf.UDL, Figure\ 3.9a)")
+	annotate!(920, 320, L"D_i=100", 10)
+	annotate!(920, 200, L"D_i= 50", 10)
+	annotate!(920,  80, L"D_i= 15", 10)
+	annotate!(920,  57, L"D_i= 10", 10)
+	annotate!(920,  28, L"D_i=  5", 10)
+	annotate!(920,  -2, L"D_i=  1", 10)
+	scatter!([500], [log(numberOfRegions(100, 500))], label=L"D_i=100, D=500")
 end # let
+
+# ╔═╡ c2942264-dc36-4712-8675-ba536438910d
+md"
+In Peirce's Fig. 3.9a the function value $f(D_i=100, D=500)$ is marked with a solid circle: *The number of regions increases rapidly in high dimensions;
+with D = 500 units and input size Di = 100, there can be greater than $10^{107}$
+regions (solid circle)*(Peirce, 2024, p.34).
+We were successful in narrowing the interval to $10^{107} < numberOfRegions(100, 500) < 10^{108}$.
+"
 
 # ╔═╡ d879fe0c-5a11-400c-8ebe-c36382748cac
-let dis = [di for di in 1: 15]
-	ds  = [d  for d  in 1:100]
-	contour(dis, ds, (di, d) -> log(numberOfRegions(di, d)), fill=true, xlabel=L"inputs\ D_i", ylabel=L"hidden\ D", title=L"log(\#regions)=f(D_i, D); (cf.UDL, Figure\ 3.9a)")
+let dis = [di for di in 1:100]
+	ds  = [d  for d  in 1:1000]
+	logRegions  = zeros(Number, (length(dis), length(ds)))        # array of counts
+	contour(dis, ds, 
+		(di, d) -> 
+			try 
+				logRegions[di, d] = log(numberOfRegions(di, d))
+			catch
+				logRegions[di, d] = Inf
+			end, # tray/catch
+			fill=false, xlabel=L"inputs\ D_i", ylabel=L"hidden\ D", title=L"log(\#regions)=f(D_i, D); (cf.UDL, Figure\ 3.9a)")
 end # let
 
+# ╔═╡ baea20f5-22a1-4894-bd0a-63b577e36224
+md"
+---
+###### Number of Parameters
+The *number of parameters P* created by a shallow neural network with $D_i$ inputs, $D$ hidden units, and $D_o$ outputs is given by
+
+$$P = D_i(2D + (D + 1))D_o = D_i(3D+1)D_o$$
+
+$$\;$$
+
+We did not try to replicate Peirce's Fig 3.9b (p.34) because we think that our graph is more informative and less misleading. His *independent* variable ($x$-axis, *abscissis*) is the *number of parameters* and his *dependent* variable ($y$-axis, *ordinate*) is the *number of regions*. In contrast to that our *independent* variable ($x$-axis, *abscissis*) is the *number of hidden units* $D$ and our *dependent* variable ($y$-axis, *ordinate*) is the *number of parameters*.
+
+"
+
 # ╔═╡ 9356e5f7-41f8-453b-a78e-fa7442b073e6
-function numberOfParameters(di, d)
-	di * 2*d + d
+function numberOfParameters(di, d; d_o = 1)
+	di * (3d + 1) * d_o
 end # function numberOfParameters
 
+# ╔═╡ 5ad72da6-e703-49de-b3a5-f44bab20d7b6
+numberOfParameters(1, 3)     #  ==> 10  --> :)
+
+# ╔═╡ 048409d5-b927-415e-8896-e2ec4fc6ce5c
+numberOfParameters(2, 3)     #  ==> 20  --> :)
+
+# ╔═╡ f40eabc9-ada8-439d-862e-46d9169ee0ee
+numberOfParameters(10, 50)
+
+# ╔═╡ d511fee6-4cc7-4502-8384-82b0880221c1
+numberOfParameters(10, 50) < numberOfRegions(10, 50)
+
+# ╔═╡ acb51d09-70db-4d5a-b78c-741671b3d260
+numberOfParameters(10, 8)  # ==> 250  -->  :)
+
+# ╔═╡ 689fc7ae-7bb0-448d-923a-9e20382c3d80
+numberOfParameters(8, 8)  # ==> 200  -->  :)
+
+# ╔═╡ d7e5878a-7218-4cda-af46-1f3cafc2d53d
+begin
+	numberOfParameters(100, 500), log(numberOfParameters(100, 500)), numberOfParameters(100, 1000), log(numberOfParameters(100, 1000))
+end # begin
+
 # ╔═╡ a0ea8897-6b78-4e2d-905c-4372fda8e44d
-let dis    = [1, 2, 5, 8, 10, 15]                      # selection of input units Di
+let dis    = [1, 2, 5, 8, 10, 15, 50, 100]             # selection of input units Di
 	lenDis = length(dis)
-	nD     = 100                                       # nr of hidden units D       
-	hiddenUnits = [1:nD]                               # range of hidden units
-	nParameters = zeros(Real, (length(dis), nD))          # array of counts
+	nD     = 10000                                     # nr of hidden units D       
+	hiddenUnits  = [1:nD]                              # range of hidden units
+	logParameters = zeros(Number, (lenDis, nD))
 	i        =  0                                      # nth selected hidden units
 	plotid   = Array{Any}(missing, lenDis)
 	#--------------------------------------------------------------------------------
@@ -106,18 +201,38 @@ let dis    = [1, 2, 5, 8, 10, 15]                      # selection of input unit
 		i += 1
 		disI = dis[i]
 		for d in 1:nD
-			nParameters[i, d] = log(numberOfParameters(di, d))
-			nParametersd   = nParameters[i, d]
-			println("Di = $di; D = $d; log(#parameters) = $nParametersd")
+			try 
+				logParameters[i, d] = log(numberOfParameters(di, d))
+			catch
+				logParameters[i, d] = Inf
+			end # tray/catch
+			logParametersd      = logParameters[i, d]
+			println("Di = $di; D = $d; log(#parameters) = $logParametersd")
 		end # for d
 	end # for di
-	plot(hiddenUnits[:], [nParameters[i, :] for i in 1:lenDis], xlabel=L"nD = \#hidden\  units", ylabel=L"log(\#parameters)", title=L"log(\#parameters)=g(D_i, D); (cf.UDL, Figure\ 3.9b)")
+	plot(hiddenUnits[:], [logParameters[i, :] for i in 1:lenDis], xlabel=L"nD = \#hidden\  units", ylabel=L"log(\#parameters)", title=L"log(\#parameters)=g(D_i, D); (cf.UDL, Figure\ 3.9b)")
+	annotate!(9440, 14.5, L"D_i=100", 10)
+	annotate!(9445, 13.7, L"D_i= 50", 10)
+	annotate!(9445, 12.8, L"D_i= 15", 10)
+	annotate!(9420, 12.2, L"D_i= 10", 10)
+	annotate!(9450, 11.5, L"D_i=  5", 10)
+	annotate!(9452, 10.7, L"D_i=  2", 10)
+	annotate!(9460,  9.9, L"D_i=  1", 10)
+	scatter!([500], [log(numberOfParameters(100, 500))], label=L"D_i=100, D=500")
 end # let
 
+# ╔═╡ f9602287-d64d-443a-b272-f4848ab4ca57
+md"
+In Peirce's Fig. 3.9b the function value $g(D_i=100, D=500)$ is marked with a solid circle: *The solid circle represents the same model as in panel (a) with D =
+500 hidden units. This network has 51, 001 parameters and would be considered
+very small by modern standards.*(Peirce, 2024, p.34).
+According to our formula (see above) we come up with different function values $g(D_i=100, D=500) = 150100$ and $log(g(D_i=100, D=500)) = 11.9191$.
+"
+
 # ╔═╡ 7fcf6c54-d28c-4b0f-9c54-ad604d5194e8
-let dis = [di for di in 1: 15]
-	ds  = [d  for d  in 1:100]
-	contour(dis, ds, (di, d) -> log(numberOfParameters(di, d)), fill=true, xlabel=L"inputs\ D_i", ylabel=L"hidden\ D", title=L"log(\#parameters)=g(D_i, D); (cf.UDL, Figure\ 3.9b)")
+let dis = [di for di in 1:100]
+	ds  = [d  for d  in 1:1000]
+	contour(dis, ds, (di, d) -> log(numberOfParameters(di, d)), fill=false, xlabel=L"inputs\ D_i", ylabel=L"hidden\ D", title=L"log(\#parameters)=g(D_i, D); (cf.UDL, Figure\ 3.9b)")
 end # let
 
 # ╔═╡ 325bc709-6ddc-4231-b47f-a1191ae8573f
@@ -1221,14 +1336,30 @@ version = "1.4.1+1"
 # ╠═990961be-69fc-4402-bd0b-9f606126dddf
 # ╟─62cd201f-260b-44d2-9099-93a8092b9b1f
 # ╠═fd4f507d-cdb2-4c43-8a98-f8fb0638be98
-# ╠═9356e5f7-41f8-453b-a78e-fa7442b073e6
 # ╠═06d84744-3f8b-470b-a30d-956ddde2f9f5
 # ╠═3ad39e35-56d6-494c-9db6-f694df900a8e
 # ╠═bca0c0de-b279-4d5a-90c4-8f78a3508e8a
 # ╠═d961f0cc-1771-4f0c-a784-b28d4d40b64a
+# ╠═bbdbbfdc-bb1f-4b6f-bb58-e0ec4bbdb6e3
+# ╠═9025c575-58a7-4dbe-bc5a-93cda50d297e
+# ╠═cb7d8981-7c02-40e9-9071-e8ebd91b35f1
+# ╠═9135bd55-1ee6-4b32-b187-c7eda07abede
+# ╠═ce89dd8e-a498-4c51-a68b-4b67750dbd37
+# ╠═1e0bc189-e862-4949-b7de-50bd8c9c6f5a
 # ╠═0d8a95e8-a9b3-4744-a671-52c59ae4851d
+# ╟─c2942264-dc36-4712-8675-ba536438910d
 # ╠═d879fe0c-5a11-400c-8ebe-c36382748cac
+# ╟─baea20f5-22a1-4894-bd0a-63b577e36224
+# ╠═9356e5f7-41f8-453b-a78e-fa7442b073e6
+# ╠═5ad72da6-e703-49de-b3a5-f44bab20d7b6
+# ╠═048409d5-b927-415e-8896-e2ec4fc6ce5c
+# ╠═f40eabc9-ada8-439d-862e-46d9169ee0ee
+# ╠═d511fee6-4cc7-4502-8384-82b0880221c1
+# ╠═acb51d09-70db-4d5a-b78c-741671b3d260
+# ╠═689fc7ae-7bb0-448d-923a-9e20382c3d80
+# ╠═d7e5878a-7218-4cda-af46-1f3cafc2d53d
 # ╠═a0ea8897-6b78-4e2d-905c-4372fda8e44d
+# ╟─f9602287-d64d-443a-b272-f4848ab4ca57
 # ╠═7fcf6c54-d28c-4b0f-9c54-ad604d5194e8
 # ╟─325bc709-6ddc-4231-b47f-a1191ae8573f
 # ╟─99035e1f-5859-4787-9416-c27070e4600e
