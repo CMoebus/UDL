@@ -254,15 +254,15 @@ $\;$
 c3
 
 # ╔═╡ faabdd44-4397-47fe-a9c8-c74b7635c91f
-function plotSIG(; title="")
+function plotSIG(c; title="")
 	zs = [z for z in -1.0:0.01:+1.0]
 	fzs = [logistic(c3*z) for z in zs]
 	plot(zs, fzs, title=title, xlabel=L"z", ylabel=L"y=sig(c*z)", label=L"y = \sigma(cz)", lw=2)
-	annotate!(-0.75, 0.3, "c = $c3", 10)
+	annotate!(-0.75, 0.3, "c = $c", 10)
 end # function plotSIG
 
 # ╔═╡ e12cef59-150c-4608-90da-c0cbb967800c
-plotSIG(; title="UDL Fig. 3.13a: Logistic (Sigmoid) Activation (SIG)")
+plotSIG(c3; title="UDL Fig. 3.13a: Logistic (Sigmoid) Activation (SIG)")
 
 # ╔═╡ 2aa33fab-13d4-4543-86f4-3067efa68634
 # We run the neural network for each of these input values
@@ -1493,9 +1493,9 @@ version = "1.4.1+1"
 # ╠═c0e7e35c-7a55-44f9-a47f-919363655e08
 # ╠═3b866572-3d46-4591-a717-609f92520911
 # ╟─e4d525dd-1897-4507-b76f-ece34da25c61
+# ╠═faabdd44-4397-47fe-a9c8-c74b7635c91f
 # ╠═040bf9dd-e911-4698-9696-c188176396bd
 # ╠═4f87abe5-9c9e-42ab-b8b1-19b983f4ac51
-# ╠═faabdd44-4397-47fe-a9c8-c74b7635c91f
 # ╠═e12cef59-150c-4608-90da-c0cbb967800c
 # ╠═2aa33fab-13d4-4543-86f4-3067efa68634
 # ╟─a7364d61-95e8-48f9-842d-c7d714cfdbcf
