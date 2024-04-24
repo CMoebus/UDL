@@ -30,7 +30,7 @@ md"
 #### UDL_20240422\_3\_1\_ShallowNeuralNetworks\_I\_With\_LUX.j
 ##### title: Fitting a Polynomial using [*MultiLayer Perceptron*](https://lux.csail.mit.edu/dev/tutorials/beginner/2_PolynomialFitting#Fitting-a-Polynomial-using-MLP) (*MLP*)
 ##### file: UDL\_20240422\_3\_1\_ShallowNeuralNetworks\_I\_With\_LUX.j
-##### code: Julia 1.10.2/Pluto by *** PCM 2024/04/23 ***
+##### code: Julia 1.10.2/Pluto by *** PCM 2024/04/24 ***
 =====================================================================================
 "
 
@@ -45,6 +45,7 @@ md"
 ---
 ##### 1. Generation of Data
 ###### 1.1 Specification of Data Generating Neural Network
+Her we reuse the *generating network* from [UDL\_20240328\_3\_1\_ShallowNeuralNetworks\_I\_With\_Flux.j](https://uol.de/f/2/dept/informatik/ag/lks/download/Probabilistic_Programming/JULIA/Pluto.jl/Machine_Learning/UnderstandingDeepLearning/UDL_20240328_3_1_ShallowNeuralNetworks_I_With_Flux.html?v=1711990572).
 "
 
 # ╔═╡ ac4ddb81-978d-4c70-bd45-e217cc5be352
@@ -109,35 +110,33 @@ begin # generation of erro-free data with shallow 1-3-1 neural network
 end # begin
 
 # ╔═╡ e4fcbd61-3f43-4732-acd3-9f571609daf5
-xsData
+xsData, ysData
 
 # ╔═╡ 1b50b1c4-3730-470a-981a-a46493f48267
-size(xsData)
-
-# ╔═╡ 6fb7cd67-35ff-4ba6-a7a7-41ef6bb2264e
-ysData
-
-# ╔═╡ 3a8b5960-b476-47dd-8e9e-369df5607ef3
-size(ysData)
+size(xsData), size(ysData)
 
 # ╔═╡ 657eacc6-8987-4e31-aae9-f47e5c146203
 md"
 ---
-##### Definition of LUX.jl 1-16-1 Neural Network
+##### Definition of LUX.jl Network $linear\_1\_5\_1\_Model$ with $tanh$-Activation
 "
 
 # ╔═╡ 48fd38be-fe6a-4fab-9268-749915ebd6dc
-linear_1_5_1_Model = Chain(Dense(1 => 5, tanh), Dense(5 => 1))
+linear_1_5_1_Model = Chain(Dense(1 => 3, tanh), Dense(3 => 1))
 
 # ╔═╡ 0f0a0010-3140-4104-9c4a-d794e7e22780
 md"
 ---
-##### Optimizer
+##### Optimizer: *ADAM* (*ADA*ptive *M*oment Estimation)
 "
 
 
 # ╔═╡ c810cfe9-f686-4983-a690-5776f6b8ac94
-optimizer = Adam(0.03f0)
+begin
+	maxEpochs = 1.0E4
+	learningRate = 0.03f0 
+	optimizer = Adam(learningRate)
+end # begin
 
 # ╔═╡ d734461e-97d9-4003-a04d-a5d5e9d6dba0
 md"
@@ -147,8 +146,11 @@ md"
 
 # ╔═╡ 278ed88f-d6a0-4c3b-a67b-97f7ec1ca562
 function loss_function(model, parameters, states, data)
-    y_pred, states = Lux.apply(model, data[1], parameters, states)
-    mse_loss = mean(abs2, y_pred .- data[2])
+	xs = data[1]
+	ys = data[2]
+	# Lux.apply(model, data[1], parameters, states) == model(xs, parameters, states)
+	ysPredicted, states = model(xs, parameters, states)
+    mse_loss = mean(abs2, ysPredicted .- ys)
     return mse_loss, states, ()
 end
 
@@ -178,6 +180,7 @@ Now we will use Zygote for our AD requirements.
 "
 
 # ╔═╡ 4c98be17-b989-4a32-8c4d-bada66127076
+# struct ADTypes.AutoZygote
 vjp_rule = AutoZygote()
 
 # ╔═╡ 43411887-53c6-48b3-bb85-c522b3ccf978
@@ -206,7 +209,7 @@ dev_cpu = cpu_device()
 dev_gpu = gpu_device()
 
 # ╔═╡ 1f060041-f56f-453d-9f8c-d98b89757301
-trainStateNew = main(trainState, vjp_rule, (xsData', ysData'), 250)
+trainStateNew = main(trainState, vjp_rule, (xsData', ysData'), maxEpochs)
 
 # ╔═╡ ddb3f055-5bb9-48f3-9313-2402b3204961
 ysPredNew =
@@ -216,9 +219,12 @@ ysPredNew =
 ysPredNew
 
 # ╔═╡ df76389b-cbb1-4d96-a13b-92c419361359
-let xs = [x for x in -2:0.01:2]
-	Plots.scatter(xsData, ysData, label=L"Data Points")
+let xs        = [x for x in -2:0.01:2]
+	myMseLoss = mean(abs2.(ysPredNew' - ysData))
+	Plots.scatter(xsData, ysData, label=L"Data Points", title="Predictions of 1-3-1 LUX.jl-Model")
 	Plots.scatter!(xsData, ysPredNew', label=L"Model Predictions", color=:red)
+	annotate!(0.65, -0.00, "mse = $myMseLoss", 11)
+	annotate!(0.65, -0.08, "maxEpochs = $maxEpochs", 11)
 end # let
 
 # ╔═╡ 220f633c-db9e-4153-9e82-30f5b91e3b45
@@ -2491,8 +2497,6 @@ version = "1.4.1+1"
 # ╠═6cc29c41-3bb6-4e16-8a4f-3ef8ee883c2a
 # ╠═e4fcbd61-3f43-4732-acd3-9f571609daf5
 # ╠═1b50b1c4-3730-470a-981a-a46493f48267
-# ╠═6fb7cd67-35ff-4ba6-a7a7-41ef6bb2264e
-# ╠═3a8b5960-b476-47dd-8e9e-369df5607ef3
 # ╟─657eacc6-8987-4e31-aae9-f47e5c146203
 # ╠═48fd38be-fe6a-4fab-9268-749915ebd6dc
 # ╟─0f0a0010-3140-4104-9c4a-d794e7e22780
