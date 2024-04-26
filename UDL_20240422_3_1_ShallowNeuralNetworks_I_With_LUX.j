@@ -27,10 +27,10 @@ end # begin
 # ╔═╡ 5937e7e5-c260-47d0-9c46-d5d72656312d
 md"
 =====================================================================================
-#### UDL_20240422\_3\_1\_ShallowNeuralNetworks\_I\_With\_LUX.j
+#### UDL\_20240422\_3\_1\_ShallowNeuralNetworks\_I\_With\_LUX.j
 ##### title: Fitting a Polynomial using [*MultiLayer Perceptron*](https://lux.csail.mit.edu/dev/tutorials/beginner/2_PolynomialFitting#Fitting-a-Polynomial-using-MLP) (*MLP*)
 ##### file: UDL\_20240422\_3\_1\_ShallowNeuralNetworks\_I\_With\_LUX.j
-##### code: Julia 1.10.2/Pluto by *** PCM 2024/04/25 ***
+##### code: Julia 1.10.2/Pluto by *** PCM 2024/04/26 ***
 =====================================================================================
 "
 
@@ -83,12 +83,12 @@ function shallow_1_3_1(xs::Vector{Float64}, activationFn, ϕ0, ϕ1, ϕ2, ϕ3, θ
 	ys = ϕ0 .+ (wactive1 + wactive2 + wactive3)
 	ys, preact1, preact2, preact3, active1, active2, active3, wactive1, wactive2, wactive3
 	#---------------------------------------------------------------------------------
-end # function
+end # function shallow_1_3_1
 
 # ╔═╡ f022025a-f86b-40e6-b5d8-6ed386606e4d
 md"
 ---
-###### 1.2 Generation of Error-free Training Data in $Array{Float64,1}$ Form
+###### 1.2 Generation of Error-free Training Data in $Array\{Float64,1\}$ Form
 "
 
 # ╔═╡ 6cc29c41-3bb6-4e16-8a4f-3ef8ee883c2a
@@ -118,11 +118,18 @@ size(xsData), size(ysData)
 # ╔═╡ 657eacc6-8987-4e31-aae9-f47e5c146203
 md"
 ---
-##### Definition of LUX.jl Network $linear\_1\_5\_1\_Model$ with $tanh$-Activation
+##### Definition of LUX.jl Network $linear\_1\_3\_1\_Model$ with $tanh$-Activation
+The *number of parameters* is:
+
+$\;$
+
+$in\cdot(1 + 1)\cdot hi + (hi \cdot out) + 1 = 1\cdot(1 + 1)\cdot 3 + (3 \cdot 1) + 1 = 10.$
+
+$\;$
 "
 
 # ╔═╡ 48fd38be-fe6a-4fab-9268-749915ebd6dc
-linear_1_5_1_Model = Chain(Dense(1 => 3, tanh), Dense(3 => 1))
+linear_1_3_1_Model = Chain(Dense(1 => 3, tanh), Dense(3 => 1))
 
 # ╔═╡ 0f0a0010-3140-4104-9c4a-d794e7e22780
 md"
@@ -151,7 +158,7 @@ function loss_function(model, parameters, states, data)
 	# Lux.apply(model, data[1], parameters, states) == model(xs, parameters, states)
 	ysPredicted, states = model(xs, parameters, states)
     mse_loss = mean(abs2, ysPredicted .- ys)
-    return mse_loss, states, ()
+    mse_loss, states, ()
 end
 
 # ╔═╡ 16be76a6-cc4e-4623-a497-0300e82e8909
@@ -171,7 +178,7 @@ First we will create a $Lux.Experimental.TrainState$ which is essentially a conv
 begin 
 	rng = MersenneTwister()
 	Random.seed!(rng, 12345)
-	trainState = Lux.Experimental.TrainState(rng, linear_1_5_1_Model, optimizer)
+	trainState = Lux.Experimental.TrainState(rng, linear_1_3_1_Model, optimizer)
 end # begin
 
 # ╔═╡ d2d82635-4c61-4416-87ca-c43b6a283f70
@@ -194,12 +201,12 @@ function main(trainState::Lux.Experimental.TrainState, vjp, data, epochs)
     for epoch in 1:epochs
         grads, loss, stats, trainState = Lux.Training.compute_gradients(
             vjp, loss_function, data, trainState)
-        if epoch % 50 == 1 || epoch == epochs
+        if epoch % 100 == 1 || epoch == epochs
             @printf "Epoch: %3d \t Loss: %.5g\n" epoch loss
         end
         trainState = Lux.Training.apply_gradients(trainState, grads)
     end
-    return trainState
+    trainState, epochs
 end
 
 # ╔═╡ 4b2c0f3c-08f6-4d07-9e10-457142b505c2
@@ -209,7 +216,7 @@ dev_cpu = cpu_device()
 dev_gpu = gpu_device()
 
 # ╔═╡ 1f060041-f56f-453d-9f8c-d98b89757301
-trainStateNew = main(trainState, vjp_rule, (xsData', ysData'), maxEpochs)
+trainStateNew, epochs = main(trainState, vjp_rule, (xsData', ysData'), maxEpochs)
 
 # ╔═╡ ddb3f055-5bb9-48f3-9313-2402b3204961
 ysPredNew =
@@ -221,19 +228,21 @@ ysPredNew
 # ╔═╡ df76389b-cbb1-4d96-a13b-92c419361359
 let xs        = [x for x in -2:0.01:2]
 	myMseLoss = mean(abs2.(ysPredNew' - ysData))
-	myCor = cor(ysData, ysPredNew')[1]
+	myCor     = cor(ysData, ysPredNew')[1]
+	myCorSq   = myCor^2
 	Plots.scatter(xsData, ysData, label=L"Data Points", title="Predictions of 1-3-1 LUX.jl-Model")
 	Plots.scatter!(xsData, ysPredNew', label=L"Model Predictions", color=:red)
-	annotate!(0.65, -0.00, "mse = $myMseLoss", 11)
-	annotate!(0.65, -0.08, "maxEpochs = $maxEpochs", 11)
-	annotate!(0.65, -0.16, "r(y, y-hat) = $myCor", 11)
+	annotate!(0.65,  0.08, "mse = $myMseLoss", 11)
+	annotate!(0.65, -0.00, "r(y, y-hat) = $myCor", 11)
+	annotate!(0.65, -0.08, "r(y, y-hat)^2 = $myCorSq", 11)
+	annotate!(0.65, -0.16, "#epochs = $epochs", 11)
 end # let
 
 # ╔═╡ 0e36b733-c2c9-4704-a0b4-132a8888da91
 md"
 ---
 ##### Summary
-This model run demonstrates the nearly perfect prediction quality of the training data $ysData$ by the LUX.jl-1-3-1-model including a $tanh$-activation and the $Adam$-optimizer. The *mean-square-error* $mse$ is nearly *zero* and the *Pearson product-moment-correlation* $r$ is nearly *one*.
+This model run demonstrates the nearly perfect prediction quality of the training data $ysData$ by the LUX.jl-1-3-1-model including a $tanh$-activation and the $Adam$-optimizer. The *mean-square-error* $mse$ is nearly *zero*, the *Pearson product-moment-correlation* $r$ is nearly *one*, and the proportion of criterion explained variance $r^2\cdot100.0 = 99.69\%$.
 
 "
 
