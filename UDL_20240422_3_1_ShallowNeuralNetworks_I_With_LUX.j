@@ -30,7 +30,7 @@ md"
 #### UDL\_20240422\_3\_1\_ShallowNeuralNetworks\_I\_With\_LUX.j
 ##### title: Fitting a Polynomial using [*MultiLayer Perceptron*](https://lux.csail.mit.edu/dev/tutorials/beginner/2_PolynomialFitting#Fitting-a-Polynomial-using-MLP) (*MLP*)
 ##### file: UDL\_20240422\_3\_1\_ShallowNeuralNetworks\_I\_With\_LUX.j
-##### code: Julia 1.10.2/Pluto by *** PCM 2024/04/26 ***
+##### code: Julia 1.10.2/Pluto by *** PCM 2024/04/27 ***
 =====================================================================================
 "
 
@@ -112,20 +112,31 @@ end # begin
 # ╔═╡ e4fcbd61-3f43-4732-acd3-9f571609daf5
 xsData, ysData
 
+# ╔═╡ 0e1c3d72-9209-4af2-bb14-a605d779e21a
+typeof(xsData), typeof(ysData)
+
 # ╔═╡ 1b50b1c4-3730-470a-981a-a46493f48267
 size(xsData), size(ysData)
 
 # ╔═╡ 657eacc6-8987-4e31-aae9-f47e5c146203
 md"
 ---
-##### Definition of LUX.jl Network $linear\_1\_3\_1\_Model$ with $tanh$-Activation
+##### Definition of LUX.jl Network *linear\_1\_3\_1\_Model* with *tanh*-Activation
 The *number of parameters* is:
 
 $\;$
 
-$in\cdot(1 + 1)\cdot hi + (hi \cdot out) + 1 = 1\cdot(1 + 1)\cdot 3 + (3 \cdot 1) + 1 = 10.$
+$hid \cdot (in+1) + (hid+1) \cdot out = 3 \cdot (1+1) +(3+1) \cdot 1 = 6 + 4 = 10$
 
 $\;$
+
+where:
+- *in* = #input_units
+- *hid* = # hidden_units
+- *out* = #output_units
+
+$\;$
+
 "
 
 # ╔═╡ 48fd38be-fe6a-4fab-9268-749915ebd6dc
@@ -157,8 +168,8 @@ function loss_function(model, parameters, states, data)
 	ys = data[2]
 	# Lux.apply(model, data[1], parameters, states) == model(xs, parameters, states)
 	ysPredicted, states = model(xs, parameters, states)
-    mse_loss = mean(abs2, ysPredicted .- ys)
-    mse_loss, states, ()
+    mseLoss = mean(abs2, ysPredicted .- ys)
+    mseLoss, states, ()
 end
 
 # ╔═╡ 16be76a6-cc4e-4623-a497-0300e82e8909
@@ -181,6 +192,9 @@ begin
 	trainState = Lux.Experimental.TrainState(rng, linear_1_3_1_Model, optimizer)
 end # begin
 
+# ╔═╡ 8a1b6bf8-2f37-42c0-ab37-c2bbcc8c5312
+typeof(trainState)
+
 # ╔═╡ d2d82635-4c61-4416-87ca-c43b6a283f70
 md"
 Now we will use Zygote for our AD requirements.
@@ -196,17 +210,17 @@ Finally the training loop
 "
 
 # ╔═╡ 83aee5f9-e78b-4aed-af39-12ece1b27581
-function main(trainState::Lux.Experimental.TrainState, vjp, data, epochs)
+function main(trainState, vjp, data, maxEpochs)
     data = data .|> gpu_device()
-    for epoch in 1:epochs
-        grads, loss, stats, trainState = Lux.Training.compute_gradients(
-            vjp, loss_function, data, trainState)
-        if epoch % 100 == 1 || epoch == epochs
+    for epoch in 1:maxEpochs
+        grads, loss, stats, trainState = 
+			Lux.Training.compute_gradients(vjp, loss_function, data, trainState)
+        if epoch % 100 == 1 || epoch == maxEpochs
             @printf "Epoch: %3d \t Loss: %.5g\n" epoch loss
         end
         trainState = Lux.Training.apply_gradients(trainState, grads)
     end
-    trainState, epochs
+    trainState, maxEpochs
 end
 
 # ╔═╡ 4b2c0f3c-08f6-4d07-9e10-457142b505c2
@@ -214,6 +228,9 @@ dev_cpu = cpu_device()
 
 # ╔═╡ 0b218572-66e0-4925-bea4-bc2f6534eac8
 dev_gpu = gpu_device()
+
+# ╔═╡ 744c0467-8154-4c6e-a913-723ac5037bd2
+(xsData', ysData')
 
 # ╔═╡ 1f060041-f56f-453d-9f8c-d98b89757301
 trainStateNew, epochs = main(trainState, vjp_rule, (xsData', ysData'), maxEpochs)
@@ -253,7 +270,7 @@ md"
 
 - **Bishop, C.M. & Bishop, H.**; *Deep Learning: Foundations and Concepts*, Cham, Swiss: Springer, 2024
 
-- **Prince, S.J.D.**; *Understand Deep Learning*; MIT Press, 2024
+- **Prince, S.J.D.**; *Understanding Deep Learning*; MIT Press, 2024
 
 - **LUXDL-Doc**; *Fitting a Polynomial using MLP*, [https://lux.csail.mit.edu/dev/tutorials/beginner/2_PolynomialFitting#Fitting-a-Polynomial-using-MLP](https://lux.csail.mit.edu/dev/tutorials/beginner/2_PolynomialFitting#Fitting-a-Polynomial-using-MLP); last visit 2024/04/22
 
@@ -1795,6 +1812,7 @@ version = "1.4.1+1"
 # ╟─f022025a-f86b-40e6-b5d8-6ed386606e4d
 # ╠═6cc29c41-3bb6-4e16-8a4f-3ef8ee883c2a
 # ╠═e4fcbd61-3f43-4732-acd3-9f571609daf5
+# ╠═0e1c3d72-9209-4af2-bb14-a605d779e21a
 # ╠═1b50b1c4-3730-470a-981a-a46493f48267
 # ╟─657eacc6-8987-4e31-aae9-f47e5c146203
 # ╠═48fd38be-fe6a-4fab-9268-749915ebd6dc
@@ -1804,12 +1822,14 @@ version = "1.4.1+1"
 # ╠═278ed88f-d6a0-4c3b-a67b-97f7ec1ca562
 # ╟─16be76a6-cc4e-4623-a497-0300e82e8909
 # ╠═74e19ca4-b968-4532-8d25-ef7a04c51e57
+# ╠═8a1b6bf8-2f37-42c0-ab37-c2bbcc8c5312
 # ╟─d2d82635-4c61-4416-87ca-c43b6a283f70
 # ╠═4c98be17-b989-4a32-8c4d-bada66127076
 # ╟─43411887-53c6-48b3-bb85-c522b3ccf978
 # ╠═83aee5f9-e78b-4aed-af39-12ece1b27581
 # ╠═4b2c0f3c-08f6-4d07-9e10-457142b505c2
 # ╠═0b218572-66e0-4925-bea4-bc2f6534eac8
+# ╠═744c0467-8154-4c6e-a913-723ac5037bd2
 # ╠═1f060041-f56f-453d-9f8c-d98b89757301
 # ╠═ddb3f055-5bb9-48f3-9313-2402b3204961
 # ╠═dc42ac3e-a618-49d8-8388-602fdae94446
