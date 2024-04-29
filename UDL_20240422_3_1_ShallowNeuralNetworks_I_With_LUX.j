@@ -30,7 +30,7 @@ md"
 #### UDL\_20240422\_3\_1\_ShallowNeuralNetworks\_I\_With\_LUX.j
 ##### title: Fitting a Polynomial using [*MultiLayer Perceptron*](https://lux.csail.mit.edu/dev/tutorials/beginner/2_PolynomialFitting#Fitting-a-Polynomial-using-MLP) (*MLP*)
 ##### file: UDL\_20240422\_3\_1\_ShallowNeuralNetworks\_I\_With\_LUX.j
-##### code: Julia 1.10.2/Pluto by *** PCM 2024/04/27 ***
+##### code: Julia 1.10.2/Pluto by *** PCM 2024/04/29 ***
 =====================================================================================
 "
 
@@ -131,7 +131,7 @@ $hid \cdot (in+1) + (hid+1) \cdot out = 3 \cdot (1+1) +(3+1) \cdot 1 = 6 + 4 = 1
 $\;$
 
 where:
-- *in* = #input_units
+- *in*  = #input_units
 - *hid* = # hidden_units
 - *out* = #output_units
 
@@ -166,6 +166,7 @@ md"
 function loss_function(model, parameters, states, data)
 	xs = data[1]
 	ys = data[2]
+	# ysPredicted, states = Lux.apply(model, data[1], parameters, states)
 	# Lux.apply(model, data[1], parameters, states) == model(xs, parameters, states)
 	ysPredicted, states = model(xs, parameters, states)
     mseLoss = mean(abs2, ysPredicted .- ys)
@@ -192,6 +193,9 @@ begin
 	trainState = Lux.Experimental.TrainState(rng, linear_1_3_1_Model, optimizer)
 end # begin
 
+# ╔═╡ ff856901-2b3d-47cf-824c-a1fbdff304da
+trainState
+
 # ╔═╡ 8a1b6bf8-2f37-42c0-ab37-c2bbcc8c5312
 typeof(trainState)
 
@@ -202,7 +206,13 @@ Now we will use Zygote for our AD requirements.
 
 # ╔═╡ 4c98be17-b989-4a32-8c4d-bada66127076
 # struct ADTypes.AutoZygote
-vjp_rule = AutoZygote()
+vjp_rule = AutoZygote()                          # vjp = Vector-Jacobian Product Rule
+
+# ╔═╡ 4b2c0f3c-08f6-4d07-9e10-457142b505c2
+dev_cpu = cpu_device()
+
+# ╔═╡ 0b218572-66e0-4925-bea4-bc2f6534eac8
+dev_gpu = gpu_device()
 
 # ╔═╡ 43411887-53c6-48b3-bb85-c522b3ccf978
 md"
@@ -223,12 +233,6 @@ function main(trainState, vjp, data, maxEpochs)
     trainState, maxEpochs
 end
 
-# ╔═╡ 4b2c0f3c-08f6-4d07-9e10-457142b505c2
-dev_cpu = cpu_device()
-
-# ╔═╡ 0b218572-66e0-4925-bea4-bc2f6534eac8
-dev_gpu = gpu_device()
-
 # ╔═╡ 744c0467-8154-4c6e-a913-723ac5037bd2
 (xsData', ysData')
 
@@ -243,8 +247,7 @@ ysPredNew =
 ysPredNew
 
 # ╔═╡ df76389b-cbb1-4d96-a13b-92c419361359
-let xs        = [x for x in -2:0.01:2]
-	myMseLoss = mean(abs2.(ysPredNew' - ysData))
+let myMseLoss = mean(abs2.(ysPredNew' - ysData))
 	myCor     = cor(ysData, ysPredNew')[1]
 	myCorSq   = myCor^2
 	Plots.scatter(xsData, ysData, label=L"Data Points", title="Predictions of 1-3-1 LUX.jl-Model")
@@ -1822,13 +1825,14 @@ version = "1.4.1+1"
 # ╠═278ed88f-d6a0-4c3b-a67b-97f7ec1ca562
 # ╟─16be76a6-cc4e-4623-a497-0300e82e8909
 # ╠═74e19ca4-b968-4532-8d25-ef7a04c51e57
+# ╠═ff856901-2b3d-47cf-824c-a1fbdff304da
 # ╠═8a1b6bf8-2f37-42c0-ab37-c2bbcc8c5312
 # ╟─d2d82635-4c61-4416-87ca-c43b6a283f70
 # ╠═4c98be17-b989-4a32-8c4d-bada66127076
-# ╟─43411887-53c6-48b3-bb85-c522b3ccf978
-# ╠═83aee5f9-e78b-4aed-af39-12ece1b27581
 # ╠═4b2c0f3c-08f6-4d07-9e10-457142b505c2
 # ╠═0b218572-66e0-4925-bea4-bc2f6534eac8
+# ╟─43411887-53c6-48b3-bb85-c522b3ccf978
+# ╠═83aee5f9-e78b-4aed-af39-12ece1b27581
 # ╠═744c0467-8154-4c6e-a913-723ac5037bd2
 # ╠═1f060041-f56f-453d-9f8c-d98b89757301
 # ╠═ddb3f055-5bb9-48f3-9313-2402b3204961
