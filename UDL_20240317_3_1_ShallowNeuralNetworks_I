@@ -31,7 +31,7 @@ md"
 
 #### UDL\_3\_1 Shallow Neural Networks I
 ##### file: UDL\_20240317\_3\_1\_ShallowNeuralNetworks\_I
-##### code: Julia 1.10.2/Pluto by *** PCM 2024/03/23 ***
+##### code: Julia 1.10.2/Pluto by *** PCM 2024/05/07 ***
 
 ====================================================================================
 "
@@ -40,11 +40,12 @@ md"
 md"
 ---
 #####  Example: Shallow Neural Network $shallow\_1\_3\_1$
-###### Input $x$, Hidden Units $\phi_1, \phi_2, \phi_3$, and Output $y$
+
+One input $x$, three hidden units $\phi_1, \phi_2, \phi_3$, and one output $y$
 
 $$\;$$
 
-$$y = f[x, \mathbf ϕ]\;\;\;\;\;\;\;\;\;\;\;\;\;\;\text{ (3.1) }$$
+$$y = f[x, \mathbf ϕ]\;\;\;\;\;\;\;\;\;\;\;\;\;\;\text{ (Prince, 2024, 3.1) }$$
 
 $$\;$$
 
@@ -57,13 +58,13 @@ $$y = ϕ_0 + ϕ_1a[θ_{10} + θ_{11}x] + ϕ_2a[θ_{20} + θ_{21}x] + ϕ_3a[θ_{3
 $$\;$$
 $$\;$$
 
-###### Activation Function $a[•]$: e.g. Rectified Linear Unit or ReLU
+##### Activation Function reLU(z) (= Rectified Linear Unit)
 
-$$a[z] := ReLU[z] = \;\;\;\;\;\;\;\;\;\;\;\;\;\;\text{ (3.2) }$$
+###### Rectified Linear UnitActivation Function $reLU(z)$
 
-$$\;$$
+$$reLU[z] = 
 
-$$\begin{cases}
+\begin{cases}
 0 & \text{if $z$ < 0} \\ 
 z & \text{if $z$ ≥ 0}
 \end{cases}$$
@@ -82,26 +83,24 @@ $$\;$$
 # ╔═╡ 667c3c47-7423-4a5a-8bde-9ecbcbfa00f3
 function plotReLU()
 	zs = [z for z in -5.0:0.1:+5.0]
-	fzs = [reLU(z) for z in zs]
-	plot(zs, fzs, title="UDL Fig. 3.1: Rectified Linear Unit (ReLU)", xlabel=L"z", ylabel=L"y=reLU(z)", label=L"f(z)", lw=2)
+	plot(zs, reLU, title="UDL Fig. 3.1: Rectified Linear Unit (ReLU)", xlabel=L"z", ylabel=L"y=reLU(z)", label=L"f(z)", lw=2)
 end # function plotReLU
 
 # ╔═╡ 52ca7a13-b42d-4760-9648-eb5bdf427951
 plotReLU()
 
-# ╔═╡ 8a4b1990-83a8-44b1-bf88-6f97cd88d4f2
-# linear functions of the input data
-function linearInput(xs::Vector{Float64}, θ10, θ11, θ20, θ21, θ30, θ31)
-	h1(xs) = θ10 .+ θ11.*xs
-	h2(xs) = θ20 .+ θ21.*xs
-	h3(xs) = θ30 .+ θ31.*xs
-	h1(xs), h2(xs), h3(xs)
-end # function linearInput
-
 # ╔═╡ 0815dc03-a3b1-4b31-ad11-e3904019fcf8
 # Define a shallow neural network with, one input, three hidden units, and one output
 function shallow_1_3_1(xs::Vector{Float64}, activationFn, ϕ0, ϕ1, ϕ2, ϕ3, θ10, θ11, θ20, θ21, θ30, θ31)
 	ylims    = (-1, 1)
+	#---------------------------------------------------------------------------------
+	# linear functions of the input data
+	function linearInput(xs::Vector{Float64}, θ10, θ11, θ20, θ21, θ30, θ31)
+		h1(xs) = θ10 .+ θ11.*xs
+		h2(xs) = θ20 .+ θ21.*xs
+		h3(xs) = θ30 .+ θ31.*xs
+		h1(xs), h2(xs), h3(xs)
+	end # function linearInput
 	#---------------------------------------------------------------------------------
 	# Three initial lines (figure 3.3a-c) from the thetas = preactivations
 	preact1  = linearInput(xs, θ10, θ11, θ20, θ21, θ30, θ31)[1]
@@ -473,7 +472,7 @@ PlutoUI = "~0.7.56"
 PLUTO_MANIFEST_TOML_CONTENTS = """
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.10.2"
+julia_version = "1.10.3"
 manifest_format = "2.0"
 project_hash = "947cb89fbbc4b0aa6eda9c89837712a2dacdf533"
 
@@ -559,7 +558,7 @@ weakdeps = ["Dates", "LinearAlgebra"]
 [[deps.CompilerSupportLibraries_jll]]
 deps = ["Artifacts", "Libdl"]
 uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
-version = "1.1.0+0"
+version = "1.1.1+0"
 
 [[deps.ConcurrentUtilities]]
 deps = ["Serialization", "Sockets"]
@@ -1570,7 +1569,6 @@ version = "1.4.1+1"
 # ╠═f8089f22-f919-4bc5-ac1e-704cb5507c66
 # ╠═667c3c47-7423-4a5a-8bde-9ecbcbfa00f3
 # ╠═52ca7a13-b42d-4760-9648-eb5bdf427951
-# ╠═8a4b1990-83a8-44b1-bf88-6f97cd88d4f2
 # ╠═0815dc03-a3b1-4b31-ad11-e3904019fcf8
 # ╠═161f31a0-f72b-4623-8109-9089a13977ee
 # ╠═334d19b5-eae4-4412-a38e-fd6c37c9cb9c
