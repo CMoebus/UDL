@@ -25,19 +25,24 @@ end # begin
 # ╔═╡ d8b4c5e0-e9f1-11ee-151b-35beb6f2ad9c
 md"
 ====================================================================================
-#### UDL\_20240328\_3\_1\_ShallowNeuralNetworks\_I\_With\_Flux.j
+#### UDL\_20240328\_3\_1\_ShallowNeuralNetworks\_I\_With\_FLUX.j
 ##### file: UDL\_20240328\_3\_1\_ShallowNeuralNetworks\_I\_With\_Flux.jl
-##### code: Julia 1.10.2/Pluto by *** PCM 2024/04/25 ***
+##### code: Julia 1.10.3/Pluto by *** PCM 2024/05/09 ***
 
 ====================================================================================
 
 "
 
+# ╔═╡ eb45c4eb-579b-44ad-9227-d6ab6771118e
+md"
+##### 1. Packages
+"
+
 # ╔═╡ 3e2e9c15-ffe2-46fe-8309-80f153ba50ff
 md"
 ---
-##### 1. Generation of Training Data
-###### 1.1 Specification of Data Generating Neural Network
+##### 2. Generation of Training Data
+###### 2.1 Activation Functions: $relu, tanh, logistics$
 "
 
 # ╔═╡ 629ecec9-12b1-4f29-8c1f-a99f435813bb
@@ -47,72 +52,76 @@ let zs = [z for z in -5.0:0.1:+5.0]
 	plot!(zs, logistic.(zs), label=L"logistic")
 end # let
 
+# ╔═╡ 240a9b4c-309f-4b46-8fa8-bcd282ad5fb8
+md"
+---
+###### 2.2 Specification of *Generator* (= Data Generating Neural Network)
+"
+
 # ╔═╡ 6cb00f63-dbaa-4b3a-b16a-4a6c159e33b5
-#------------------------------------------------------------------------------------
-# definition of a data generator 
-#   in the form of a shallow neural network 
-#   with, one input, three hidden units, and one output
-#-------------------------------------------------------------------------------------
+# Define a shallow neural network with, one input, three hidden units, and one output
 function shallow_1_3_1(xs::Vector{Float64}, activationFn, ϕ0, ϕ1, ϕ2, ϕ3, θ10, θ11, θ20, θ21, θ30, θ31)
 	ylims    = (-1, 1)
 	#---------------------------------------------------------------------------------
-	# linear functions of the input data
-	function linearInput(xs::Vector{Float64}, θ10, θ11, θ20, θ21, θ30, θ31)
-		h1(xs) = θ10 .+ θ11.*xs
-		h2(xs) = θ20 .+ θ21.*xs
-		h3(xs) = θ30 .+ θ31.*xs
-		h1(xs), h2(xs), h3(xs)
-	end # function linearInput
+	# preactivation (= linear functions of the input data)
+	preactivation(xs::Vector{Float64}, θj0, θj1) = θj0 .+ θj1.*xs
 	#---------------------------------------------------------------------------------
-	# Three initial lines (figure 3.3a-c) from the thetas = preactivations
-	preact1  = linearInput(xs, θ10, θ11, θ20, θ21, θ30, θ31)[1]
-	preact2  = linearInput(xs, θ10, θ11, θ20, θ21, θ30, θ31)[2]
-	preact3  = linearInput(xs, θ10, θ11, θ20, θ21, θ30, θ31)[3]
+	# Three initial lines (similar to figure 3.3a-c) 
+	preact1  = preactivation(xs, θ10, θ11)
+	preact2  = preactivation(xs, θ20, θ21)
+	preact3  = preactivation(xs, θ30, θ31)
 	#---------------------------------------------------------------------------------
-	# Pass these through the ReLU function to get activations as in fig 3.3 d-f
-  	active1   = activationFn.(preact1)
-  	active2   = activationFn.(preact2)
-  	active3   = activationFn.(preact3)
+	# Pass these through the ReLU function to get activations similar to fig 3.3 d-f
+  	h_active1   = activationFn.(preact1)
+  	h_active2   = activationFn.(preact2)
+  	h_active3   = activationFn.(preact3)
 	#---------------------------------------------------------------------------------
-	# weight the activations using phi1, phi2 and phi3 To create figure 3.3 g-i
-	wactive1 = ϕ1 .* active1
-  	wactive2 = ϕ2 .* active2
-  	wactive3 = ϕ3 .* active3
+	# weight the activations using phi1, phi2 and phi3 similar to figure 3.3 g-i
+	w_active1 = ϕ1 .* h_active1
+  	w_active2 = ϕ2 .* h_active2
+  	w_active3 = ϕ3 .* h_active3
 	#---------------------------------------------------------------------------------
-	ys = ϕ0 .+ (wactive1 + wactive2 + wactive3)
-	ys, preact1, preact2, preact3, active1, active2, active3, wactive1, wactive2, wactive3
+	ys = ϕ0 .+ (w_active1 + w_active2 + w_active3)
+	ys, preact1, preact2, preact3, h_active1, h_active2, h_active3, w_active1, w_active2, w_active3
 	#---------------------------------------------------------------------------------
-end # function
+end # function shallow_1_3_1
 
 # ╔═╡ d7e490f1-2a17-438e-a1e5-47ffb04d8500
 md"
-###### 1.2 Generation of Error-free Training Data in $Array\{Float64, 1\}$ Form
+###### 2.3  Parameters
 "
 
-# ╔═╡ 8a908e06-0004-4a7f-bb38-65d89ecc5419
-begin # generation of erro-free data with shallow 1-3-1 neural network
-	#--------------------------------------------------------------------------------
-	# parameters of the neural network generator
+# ╔═╡ 55805b8f-49ee-443c-87c7-8adaaf9d19d9
+begin
 	θ10 =  0.3 ; θ11 = -1.0 
 	θ20 = -1.0 ; θ21 =  2.0 
 	θ30 = -0.5 ; θ31 =  0.65
 	ϕ0  = -0.3 ; ϕ1  =  2.0 ; ϕ2  = -1.0 ; ϕ3  = 7.0
-	#--------------------------------------------------------------------------------
-	# generation of output data ys with the neural network generator
-	xs = [x for x in 0.0:0.02:1.0]
-	ys, rest... = shallow_1_3_1(xs::Vector{Float64}, relu, ϕ0, ϕ1, ϕ2, ϕ3, θ10, θ11, θ20, θ21, θ30, θ31)
-	#--------------------------------------------------------------------------------
-	# plot of generated data
-	scatter(xs, ys, title="Error-free Training Data", label=L"data: (x, y)", xlabel=L"x", ylabel=L"y")
-	#--------------------------------------------------------------------------------
 end # begin
 
-# ╔═╡ 2f342e05-25ea-423c-8874-e953add30079
-typeof(xs)
+# ╔═╡ 3ed124a4-3923-4a8f-8439-f181cd8360bc
+md"
+---
+###### 2.4 Generator Output and Plots for *Non*random Input
+"
+
+# ╔═╡ ccce8bb4-4a2e-4c00-a05c-6a6beb96d4f9
+# generation of output data ys with the neural network generator
+xs = [x for x in 0.0:0.02:1.0]
+
+# ╔═╡ fc17c172-385e-4461-89db-6f4972c62740
+# generation of error-free data with shallow 1-3-1 neural network
+ys, rest... = shallow_1_3_1(xs::Vector{Float64}, relu, ϕ0, ϕ1, ϕ2, ϕ3, θ10, θ11, θ20, θ21, θ30, θ31)
+
+# ╔═╡ 8c86f96a-b184-4dca-9ff0-8b0192e3a6fb
+# plot of generated data
+scatter(xs, ys, title="Error-free Training Data", label=L"data: (x, y)", xlabel=L"x", ylabel=L"y")
 
 # ╔═╡ 2e73578b-862a-4aff-aacc-d1904747b202
 md"
-###### 1.3 Data Conversion into Flux-tailored $Array\{Float32, 2\}$ Data Matrices
+---
+##### 3. Data Conversion into Flux-tailored $Array\{Float32, 2\}$ Data Matrices
+###### 3.1 Data Conversion
 "
 
 # ╔═╡ 955b4dd7-a75d-465a-ac72-242109630e49
@@ -130,9 +139,12 @@ end # begin
 # ╔═╡ 125627ca-a2f9-47f6-b974-6398e38e4be5
 xsTrain, ysTrain
 
+# ╔═╡ 7a2e7ee3-3060-4b22-808a-10cb5ee63835
+
+
 # ╔═╡ 9a3956d6-1b61-416c-ab17-3bab14b55e0e
 md"
-###### 1.4 Bundling Data according to the [Flux Tutorial: Fitting a Line](http://fluxml.ai/Flux.jl/stable/models/overview/): $data = [(x_{train}, y_{train})]$
+###### 3.2 Fusion of Data according the [Flux Tutorial: Fitting a Line](http://fluxml.ai/Flux.jl/stable/models/overview/): $data = [(x_{train}, y_{train})]$
 
 "
 
@@ -142,13 +154,13 @@ data = [(xsTrain, ysTrain)]
 # ╔═╡ 86d14a5b-4268-4c7c-b7a3-e1a9b08b55f0
 md"
 ---
-##### 2. Loss Functions
+##### 4. Loss Functions
 (equation 2.5) with Flux.jl
 "
 
 # ╔═╡ a5bf5766-3019-443f-bd6a-6fb6d8e50297
 md"
-###### 2.1 Sum of Squares (SSQ) Loss
+###### 4.1 Sum of Squares (SSQ) Loss
 "
 
 # ╔═╡ b1d74074-3d3f-48cd-84aa-c6c695c3b381
@@ -162,7 +174,7 @@ end # function mySSQ
 
 # ╔═╡ 9a11288c-b12f-4326-b85a-84443f9f26aa
 md"
-###### 2.2 Mean Squares Error (MSE) Loss
+###### 4.2 Mean Squares Error (MSE) Loss
 "
 
 # ╔═╡ 8c4073a6-5348-49ee-b231-6c17b73c36bd
@@ -177,34 +189,31 @@ end # function mySSQ
 # ╔═╡ 2ac38d54-b4e7-4185-a1ca-01513bee6338
 md"
 ---
-#####  3. Shallow Neural Network $shallow\_1\_3\_1$
-###### 3.1 Mathematical Model
+#####  5. Shallow Neural Network $shallow\_1\_3\_1$
+###### 5.1 Mathematical Model
 ###### Input $x$, Hidden Units $\phi_1, \phi_2, \phi_3$, and Output $y$
 
 $$\;$$
 
-$$\mathbb E(Y=y|x) = \hat y = f[x, \mathbf ϕ]\;\;\;\;\;\;\;\;\;\;\;\;\;\;\text{ (3.1) }$$
+$$\hat{\mathbf y} = \mathbb E(Y=\mathbf y|\mathbf x) = y(\mathbf ϕ| \mathbf x)\;\;\;\;\;\;\;\;\;\;\;\;\;\;\text{ (3.1) }$$
 
 $$\;$$
 
-$$\hat y = ϕ_0 + ϕ_1a[h_1(x)] + ϕ_2a[h_2(x)] + ϕ_3a[h_3(x)]$$
+$$\hat{\mathbf y} = ϕ_0 + ϕ_1a[h_1(\mathbf x)] + ϕ_2a[h_2(\mathbf x)] + ϕ_3a[h_3(\mathbf x)]$$
 
 $$\;$$
 
-$$\hat y = ϕ_0 + ϕ_1a[θ_{10} + θ_{11}x] + ϕ_2a[θ_{20} + θ_{21}x] + ϕ_3a[θ_{30} + θ_{31}x]$$
+$$\hat{\mathbf y}  = ϕ_0 + ϕ_1a[θ_{10} + θ_{11}\mathbf x)] + ϕ_2a[θ_{20} + θ_{21}\mathbf x)] + ϕ_3a[θ_{30} + θ_{31}\mathbf x)]$$
 
 $$\;$$
 $$\;$$
 
-###### Activation Function $a[•]$: e.g. Rectified Linear Unit or ReLU
+###### Activation Function $a(x)$: e.g. Rectified Linear Unit or ReLU
 
-$$a[z] := ReLU[z] = \;\;\;\;\;\;\;\;\;\;\;\;\;\;\text{ (3.2) }$$
-
-$$\;$$
-
-$$\begin{cases}
-0 & \text{if $z$ < 0} \\ 
-z & \text{if $z$ ≥ 0}
+$$a[x] := reLU[x] = 
+\begin{cases}
+0 & \text{if $x$ < 0} \\ 
+x & \text{if $x$ ≥ 0}
 \end{cases}$$
 
 $$\;$$
@@ -215,7 +224,7 @@ $$\;$$
 # ╔═╡ 3ffd3b6b-cb4a-4a67-8817-dff388500e09
 md"
 ---
-###### 3.2 Optimizing Mean-Squares-Error (MSE) Loss by *ADAptive Moment Estimation (ADAM)*
+###### 5.2 Optimizing Mean-Squares-Error (MSE) Loss by *ADAptive Moment Estimation (ADAM)*
 
 "
 
@@ -285,7 +294,7 @@ md"
 
 - **Flux.jl**; *Flux Overview: Fitting a Straight Line*; [http://fluxml.ai/Flux.jl/stable/models/overview/#man-overview](http://fluxml.ai/Flux.jl/stable/models/overview/#man-overview); last visit: 2024/03/24
 
-- **Prince, S.J.D.**; *Understanding Deep Learning*; MIT Press, 2024
+- **Prince, S.J.D.**; [*Understanding Deep Learning*](https://udlbook.github.io/udlbook/); MIT Press, 2024, last visit 2024/05/09
 
 "
 
@@ -328,7 +337,7 @@ cuDNN = "~1.3.0"
 PLUTO_MANIFEST_TOML_CONTENTS = """
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.10.2"
+julia_version = "1.10.3"
 manifest_format = "2.0"
 project_hash = "294773afede5567355679472e3a2a5e53a055423"
 
@@ -531,7 +540,7 @@ weakdeps = ["Dates", "LinearAlgebra"]
 [[deps.CompilerSupportLibraries_jll]]
 deps = ["Artifacts", "Libdl"]
 uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
-version = "1.1.0+0"
+version = "1.1.1+0"
 
 [[deps.CompositionsBase]]
 git-tree-sha1 = "802bb88cd69dfd1509f6670416bd4434015693ad"
@@ -2014,16 +2023,22 @@ version = "1.4.1+1"
 
 # ╔═╡ Cell order:
 # ╟─d8b4c5e0-e9f1-11ee-151b-35beb6f2ad9c
+# ╟─eb45c4eb-579b-44ad-9227-d6ab6771118e
 # ╠═acdaa496-177e-46cc-bfe6-6e8e72686c8f
 # ╟─3e2e9c15-ffe2-46fe-8309-80f153ba50ff
 # ╠═629ecec9-12b1-4f29-8c1f-a99f435813bb
+# ╟─240a9b4c-309f-4b46-8fa8-bcd282ad5fb8
 # ╠═6cb00f63-dbaa-4b3a-b16a-4a6c159e33b5
 # ╟─d7e490f1-2a17-438e-a1e5-47ffb04d8500
-# ╠═2f342e05-25ea-423c-8874-e953add30079
-# ╠═8a908e06-0004-4a7f-bb38-65d89ecc5419
+# ╠═55805b8f-49ee-443c-87c7-8adaaf9d19d9
+# ╟─3ed124a4-3923-4a8f-8439-f181cd8360bc
+# ╠═ccce8bb4-4a2e-4c00-a05c-6a6beb96d4f9
+# ╠═fc17c172-385e-4461-89db-6f4972c62740
+# ╠═8c86f96a-b184-4dca-9ff0-8b0192e3a6fb
 # ╟─2e73578b-862a-4aff-aacc-d1904747b202
 # ╠═955b4dd7-a75d-465a-ac72-242109630e49
 # ╠═125627ca-a2f9-47f6-b974-6398e38e4be5
+# ╠═7a2e7ee3-3060-4b22-808a-10cb5ee63835
 # ╟─9a3956d6-1b61-416c-ab17-3bab14b55e0e
 # ╠═cd2728d1-153e-4814-9ea4-2cf5a76cc388
 # ╟─86d14a5b-4268-4c7c-b7a3-e1a9b08b55f0
