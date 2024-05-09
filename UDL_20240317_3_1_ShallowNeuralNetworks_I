@@ -16,10 +16,13 @@ end
 
 # ╔═╡ 34569e56-a6ec-4bf9-b57b-81074638fd86
 begin
+	#------------------------------------------------------------------------------
 	# Plotting library
 	using Plots
+	#------------------------------------------------------------------------------
 	# LateXify Strings
 	using LaTeXStrings, Latexify
+	#------------------------------------------------------------------------------
 end # begin
 
 # ╔═╡ e0e76f87-4632-4913-9ffa-bbd7a7915676
@@ -31,42 +34,87 @@ md"
 
 #### UDL\_3\_1 Shallow Neural Networks I
 ##### file: UDL\_20240317\_3\_1\_ShallowNeuralNetworks\_I
-##### code: Julia 1.10.2/Pluto by *** PCM 2024/05/07 ***
+##### code: Julia 1.10.2/Pluto by *** PCM 2024/05/09 ***
 
 ====================================================================================
+"
+
+# ╔═╡ 011d91c6-4a55-4343-b0a2-2054676535e9
+md"
+##### 1. Packages
 "
 
 # ╔═╡ 7ee4c69e-c3a6-4e05-bdd0-b30ae4904d57
 md"
 ---
-#####  Example: Shallow Neural Network $shallow\_1\_3\_1$
+#####  2. Example: $shallow\_1\_3\_1$ Neural Network 
+###### 2.1 Structure
 
-One input $x$, three hidden units $\phi_1, \phi_2, \phi_3$, and one output $y$
-
-$$\;$$
-
-$$y = f[x, \mathbf ϕ]\;\;\;\;\;\;\;\;\;\;\;\;\;\;\text{ (Prince, 2024, 3.1) }$$
+*One* input $x$, *three* hidden units $\phi_1, \phi_2, \phi_3$, and *one* output $y$:
 
 $$\;$$
 
-$$y = ϕ_0 + ϕ_1a[h_1(x)] + ϕ_2a[h_2(x)] + ϕ_3a[h_3(x)]$$
+$$y(x, \mathbf ϕ) =\;;\;\;\;\text{ (Prince, 2024, 3.1, 3.4) }$$
 
 $$\;$$
 
-$$y = ϕ_0 + ϕ_1a[θ_{10} + θ_{11}x] + ϕ_2a[θ_{20} + θ_{21}x] + ϕ_3a[θ_{30} + θ_{31}x]$$
+$$ϕ_0 + ϕ_1\left(h_1(a, θ_{10}, θ_{11}, x)\right) + ϕ_2\left(h_2(a, θ_{20}, θ_{21}, x)\right) + ϕ_3\left(h_3(a, θ_{30}, θ_{31}, x)\right)$$
 
 $$\;$$
 $$\;$$
 
-##### Activation Function reLU(z) (= Rectified Linear Unit)
+$$y(x, \mathbf ϕ) = ϕ_0 + ϕ_1a[θ_{10} + θ_{11}x] + ϕ_2a[θ_{20} + θ_{21}x] + ϕ_3a[θ_{30} + θ_{31}x]$$
 
-###### Rectified Linear UnitActivation Function $reLU(z)$
+$$\;$$
+$$\;$$
 
-$$reLU[z] = 
+with *activation* function $a(x, h_j)$ and *linear* inputs $h_j(a, θ_{j0}, θ_{j1}, x)$:
+
+$$h_j(a, θ_{j0}, θ_{j1}, x) = a(θ_{j0} + θ_{j1}x)\;;\;\;\; j= 1,...,3\;;\;\;\;\text{ (Prince, 2024, 3.3) }.$$
+
+$$\;$$
+$$\;$$
+
+"
+
+# ╔═╡ 0815dc03-a3b1-4b31-ad11-e3904019fcf8
+# Define a shallow neural network with, one input, three hidden units, and one output
+function shallow_1_3_1(xs::Vector{Float64}, activationFn, ϕ0, ϕ1, ϕ2, ϕ3, θ10, θ11, θ20, θ21, θ30, θ31)
+	ylims    = (-1, 1)
+	#---------------------------------------------------------------------------------
+	# preactivation (= linear functions of the input data)
+	preactivation(xs::Vector{Float64}, θj0, θj1) = θj0 .+ θj1.*xs
+	#---------------------------------------------------------------------------------
+	# Three initial lines (similar to figure 3.3a-c) 
+	preact1  = preactivation(xs, θ10, θ11)
+	preact2  = preactivation(xs, θ20, θ21)
+	preact3  = preactivation(xs, θ30, θ31)
+	#---------------------------------------------------------------------------------
+	# Pass these through the ReLU function to get activations similar to fig 3.3 d-f
+  	h_active1   = activationFn.(preact1)
+  	h_active2   = activationFn.(preact2)
+  	h_active3   = activationFn.(preact3)
+	#---------------------------------------------------------------------------------
+	# weight the activations using phi1, phi2 and phi3 similar to figure 3.3 g-i
+	w_active1 = ϕ1 .* h_active1
+  	w_active2 = ϕ2 .* h_active2
+  	w_active3 = ϕ3 .* h_active3
+	#---------------------------------------------------------------------------------
+	ys = ϕ0 .+ (w_active1 + w_active2 + w_active3)
+	ys, preact1, preact2, preact3, h_active1, h_active2, h_active3, w_active1, w_active2, w_active3
+	#---------------------------------------------------------------------------------
+end # function
+
+# ╔═╡ 4e98f9fd-7b4d-43fa-ab0e-bee62003d6ea
+md"
+---
+###### 2.2. Activation Function reLU(z) (= Rectified Linear Unit)
+
+$$a(x, h_j) = reLU[x] = 
 
 \begin{cases}
-0 & \text{if $z$ < 0} \\ 
-z & \text{if $z$ ≥ 0}
+0 & \text{if $x$ < 0}\;;\;\;\;\;\;\text{ (Prince, 2024, 3.2) }\\ 
+x & \text{if $x$ ≥ 0}
 \end{cases}$$
 
 $$\;$$
@@ -75,52 +123,24 @@ $$\;$$
 "
 
 # ╔═╡ f8089f22-f919-4bc5-ac1e-704cb5507c66
-	function reLU(z)
-		# z = preactivation
-		z < 0.0 ? 0.0 : z
-	end # function reLU
+	reLU(x) = x < 0.0 ? 0.0 : x
 
 # ╔═╡ 667c3c47-7423-4a5a-8bde-9ecbcbfa00f3
 function plotReLU()
-	zs = [z for z in -5.0:0.1:+5.0]
-	plot(zs, reLU, title="UDL Fig. 3.1: Rectified Linear Unit (ReLU)", xlabel=L"z", ylabel=L"y=reLU(z)", label=L"f(z)", lw=2)
+	xs = [x for x in -5.0:0.1:+5.0]
+	plot(xs, reLU, title="UDL Fig. 3.1: Rectified Linear Unit (ReLU)", xlabel=L"x", ylabel=L"y=reLU(x)", label=L"reLU(x)", lw=2)
 end # function plotReLU
 
 # ╔═╡ 52ca7a13-b42d-4760-9648-eb5bdf427951
 plotReLU()
 
-# ╔═╡ 0815dc03-a3b1-4b31-ad11-e3904019fcf8
-# Define a shallow neural network with, one input, three hidden units, and one output
-function shallow_1_3_1(xs::Vector{Float64}, activationFn, ϕ0, ϕ1, ϕ2, ϕ3, θ10, θ11, θ20, θ21, θ30, θ31)
-	ylims    = (-1, 1)
-	#---------------------------------------------------------------------------------
-	# linear functions of the input data
-	function linearInput(xs::Vector{Float64}, θ10, θ11, θ20, θ21, θ30, θ31)
-		h1(xs) = θ10 .+ θ11.*xs
-		h2(xs) = θ20 .+ θ21.*xs
-		h3(xs) = θ30 .+ θ31.*xs
-		h1(xs), h2(xs), h3(xs)
-	end # function linearInput
-	#---------------------------------------------------------------------------------
-	# Three initial lines (figure 3.3a-c) from the thetas = preactivations
-	preact1  = linearInput(xs, θ10, θ11, θ20, θ21, θ30, θ31)[1]
-	preact2  = linearInput(xs, θ10, θ11, θ20, θ21, θ30, θ31)[2]
-	preact3  = linearInput(xs, θ10, θ11, θ20, θ21, θ30, θ31)[3]
-	#---------------------------------------------------------------------------------
-	# Pass these through the ReLU function to get activations as in fig 3.3 d-f
-  	active1   = activationFn.(preact1)
-  	active2   = activationFn.(preact2)
-  	active3   = activationFn.(preact3)
-	#---------------------------------------------------------------------------------
-	# weight the activations using phi1, phi2 and phi3 To create figure 3.3 g-i
-	wactive1 = ϕ1 .* active1
-  	wactive2 = ϕ2 .* active2
-  	wactive3 = ϕ3 .* active3
-	#---------------------------------------------------------------------------------
-	ys = ϕ0 .+ (wactive1 + wactive2 + wactive3)
-	ys, preact1, preact2, preact3, active1, active2, active3, wactive1, wactive2, wactive3
-	#---------------------------------------------------------------------------------
-end # function
+# ╔═╡ fe063929-91b9-4a5d-a57a-a5e488f72a58
+md"
+---
+###### 2.3 Parameters
+These parameters are taken from [3\_1\_Shallow\_Networks\_I.ipynb](https://colab.research.google.com/github/udlbook/udlbook/blob/main/Notebooks/Chap03/3_1_Shallow_Networks_I.ipynb#scrollTo=SzIVdp9U-JWb). A bit irritating is the the fact that these are *not* the parameters which were used to generate figure 3.3 in his book (Prince, 2024, Fig. 3.3, p.28). So the plots here a similar but *not* identical to figure 3.3 in the book.
+
+"
 
 # ╔═╡ 161f31a0-f72b-4623-8109-9089a13977ee
 # Now lets define some parameters and run the neural network
@@ -131,83 +151,91 @@ begin
 	ϕ0  = -0.3 ; ϕ1  =  2.0 ; ϕ2  = -1.0 ; ϕ3  = 7.0
 end # begin
 
+# ╔═╡ 4b94a544-1800-43a0-8497-a147d90bffce
+md"
+---
+###### 2.4 Generator Output and Plots for *Non*random Input
+The neural net is used as a data *generator*. A traing set $xs$ is used as input and propagated through the network to *generate* the output.
+"
+
 # ╔═╡ 334d19b5-eae4-4412-a38e-fd6c37c9cb9c
 xs = [x for x in 0.0:0.1:1.0]
 
-# ╔═╡ 1e0b5cc0-57f6-473a-a11c-c04f7fd52b9b
-typeof(xs)
-
 # ╔═╡ 5d99a5dc-bfdb-46c8-af7a-fd40beac9f92
-ys, preact1, preact2, preact3, active1, active2, active3, wactive1, wactive2, wactive3 = shallow_1_3_1(xs::Vector{Float64}, reLU, ϕ0, ϕ1, ϕ2, ϕ3, θ10, θ11, θ20, θ21, θ30, θ31)
-
-# ╔═╡ bb087f64-1e0b-401b-b1c3-c6842cd8b769
-typeof(ys)
+ys, preact1, preact2, preact3, h_active1, h_active2, h_active3, w_active1, w_active2, w_active3 = shallow_1_3_1(xs::Vector{Float64}, reLU, ϕ0, ϕ1, ϕ2, ϕ3, θ10, θ11, θ20, θ21, θ30, θ31)
 
 # ╔═╡ 750ab9ad-b52e-489a-8058-1314ca7d627a
-function plotNeural_1_3_1(xs::Vector{Float64}, preact1, preact2, preact3, active1, active2, active3, wactive1, wactive2, wactive3)
+function plotNeural_1_3_1(xs::Vector{Float64}, preact1, preact2, preact3, h_active1, h_active2, h_active3, w_active1, w_active2, w_active3)
 	ylims    = (-1,1)
 	#---------------------------------------------------------------------------------
 	prePlot1 = 
-		plot(xs, preact1, ylims=ylims, title="UDL, Fig 3.3a", label=L"θ_{10}+θ_{11}x")
+		plot(xs, preact1, ylims=ylims, label=L"+0.3-1.0x")
 	prePlot2 = 
-		plot(xs, preact2, ylims=ylims, title="UDL, Fig 3.3b", label=L"θ_{20}+θ_{21}x")
+		plot(xs, preact2, ylims=ylims, label=L"-1.0+2.0x")
 	prePlot3 = 
-		plot(xs, preact3, ylims=ylims, title="UDL, Fig 3.3c", label=L"θ_{30}+θ_{31}x")
+		plot(xs, preact3, ylims=ylims, label=L"-0.5+0.65x")
 	#---------------------------------------------------------------------------------
 	actPlot1 = 
-		plot(xs, active1, ylims=ylims, title="UDL, Fig 3.3d", label=L"a(θ_{10}+θ_{11}x")
+		plot(xs, h_active1, ylims=ylims, label=L"a(θ_{10}+θ_{11}x)")
 	actPlot2 = 
-		plot(xs, active2, ylims=ylims, title="UDL, Fig 3.3e", label=L"a(θ_{20}+θ_{21}x")
+		plot(xs, h_active2, ylims=ylims, label=L"a(θ_{20}+θ_{21}x)")
 	actPlot3 = 
-		plot(xs, active3, ylims=ylims, title="UDL, Fig 3.3f", label=L"a(θ_{30}+θ_{31}x")
+		plot(xs, h_active3, ylims=ylims, label=L"a(θ_{30}+θ_{31}x)")
 	#---------------------------------------------------------------------------------
 	wactPlot1 = 
-		plot(xs, wactive1, ylims=ylims, title="UDL, Fig 3.3g", label=L"ϕ_1\cdot a(θ_{30}+θ_{31}x")
+		plot(xs, w_active1, ylims=ylims, label=L"-.3+2a(θ_{30}+θ_{31}x)")
 	wactPlot2 = 
-		plot(xs, wactive2, ylims=ylims, title="UDL, Fig 3.3h", label=L"ϕ_1\cdot a(θ_{30}+θ_{31}x")
+		plot(xs, w_active2, ylims=ylims, label=L"-.3-1a(θ_{30}+θ_{31}x)")
 	wactPlot3 = 
-		plot(xs, wactive3, ylims=ylims, title="UDL, Fig 3.3i", label=L"ϕ_1\cdot a(θ_{30}+θ_{31}x")
+		plot(xs, w_active3, ylims=ylims, label=L"-.3+7a(θ_{30}+θ_{31}x)")
 	#---------------------------------------------------------------------------------
-	plot(prePlot1, prePlot2, prePlot3, actPlot1, actPlot2, actPlot3, wactPlot1, wactPlot2, wactPlot3, layout = grid(3, 3, heights=[1/3, 1/3, 1/3]), title=["UDL, Fig 3.3a" "UDL, Fig 3.3b" "UDL, Fig 3.3c" "UDL, Fig 3.3d" "UDL, Fig 3.3e" "UDL, Fig 3.3f" "UDL, Fig 3.3g" "UDL, Fig 3.3h" "UDL, Fig 3.3i"])
+	plot(prePlot1, prePlot2, prePlot3, actPlot1, actPlot2, actPlot3, wactPlot1, wactPlot2, wactPlot3, layout = grid(3, 3, heights=[1/3, 1/3, 1/3]), title=["cf. Fig3.3a" "cf. Fig3.3b" "cf. Fig3.3c" "cf. Fig 3.3d" "cf. Fig 3.3e" "cf. Fig 3.3f" "cf. Fig 3.3g" "cf. Fig 3.3h" "cf. Fig 3.3i"])
 	#---------------------------------------------------------------------------------
 end # function plotNeural_1_3_1
 
 # ╔═╡ 0ab74def-c3a4-4ec2-b9fd-9d5a2019f0e7
-plotNeural_1_3_1(xs, preact1, preact2, preact3, active1, active2, active3, wactive1, wactive2, wactive3)
+plotNeural_1_3_1(xs, preact1, preact2, preact3, h_active1, h_active2, h_active3, w_active1, w_active2, w_active3)
 
 # ╔═╡ f0887491-c78c-4516-946d-c618024acaa1
 	#---------------------------------------------------------------------------------
-	plot(xs, ys, title="UDL, Fig 3.3j", label=L"y = ϕ_0 + ϕ_1a[θ_{10} + θ_{11}x] + ϕ_2a[θ_{20} + θ_{21}x] + ϕ_3a[θ_{30} + θ_{31}x]", lw=2)
+	plot(xs, ys, title="cf. Fig 3.3j (cf.3_1_Shallow_Networks_I.ipynb)", label=L"y = ϕ_0 + ϕ_1a[θ_{10} + θ_{11}x] + ϕ_2a[θ_{20} + θ_{21}x] + ϕ_3a[θ_{30} + θ_{31}x]", lw=2)
 
 # ╔═╡ 59c5645a-b8ab-44d3-aacb-d3261a83bf6e
 md"
 ---
-##### Least Squares Loss
+##### 3. Least Squares Loss
 
-$$L[\mathbf ϕ]=\sum_{i=1}^I\left(y_i−f[x_i, \mathbf ϕ]\right)^2$$
+$$L\left(\mathbf x, \mathbf y, \mathbf ϕ\right)=\sum_{i=1}^I\left(y_i−\hat y_i\right)^2=\sum_{i=1}^I\left(y_i−f(x_i, \mathbf ϕ)\right)^2$$
 
 $$\;$$
 $$\;$$
 $$\;$$
 
-where $(x_i,y_i)$ is an input/output training pair and $f[∙, \mathbf ϕ]$ is the neural network with parameters $\mathbf ϕ$. The first term in the brackets is the ground truth output and the second term is the prediction of the model.
+where $(x_i,y_i)$ is an input/output *training pair* and $f(\mathbf x, \mathbf ϕ)$ is the neural network with parameters $\mathbf ϕ$. The first term $y_i$ is the *ground* truth (= *nature's*) output and the second term is the *prediction* $\hat y_i$ of the *model*.
 
 "
 
 # ╔═╡ 48965784-e391-43a7-9fc9-6941757e51b2
-function leastSquaresLoss(ysTrain, ysPredict)
-	loss = sum((ysTrain-ysPredict).^2)
+function leastSquaresLoss(ysTraining, ysPrediction)
+	loss = sum((ysTraining-ysPrediction).^2)
 end # function leastSquaresLoss
 
+# ╔═╡ 649fadba-d176-41ed-a1d3-2cf26e23cb83
+md"
+---
+##### 4. Training Data
+Random training data were obtained from [3\_1\_Shallow\_Networks\_I.ipynb](https://colab.research.google.com/github/udlbook/udlbook/blob/main/Notebooks/Chap03/3_1_Shallow_Networks_I.ipynb#scrollTo=SzIVdp9U-JWb).
+"
+
 # ╔═╡ a523462a-a8ab-4681-9280-c51ecb31a142
-xsTrain = [
+xsTraining = [
 	 0.09291784, 0.46809093,  0.93089486,  0.67612654,  0.73441752, 
 	 0.86847339, 0.49873225,  0.51083168,  0.18343972,  0.99380898,
 	 0.27840809, 0.38028817,  0.12055708,  0.56715537,  0.92005746, 
 	 0.77072270, 0.85278176,  0.05315950,  0.87168699,  0.58858043]
 
 # ╔═╡ 1bbbd3ca-b46c-43aa-8237-5b9f13d5ed9d
-ysTrain = [
+ysTraining = [
 	-0.15934537, 0.18195445,  0.451270150, 0.13921448,  0.09366691,
 	 0.30567674, 0.372291170, 0.40716968, -0.08131792,  0.41187806, 
 	 0.36943738, 0.3994327,   0.019062570, 0.35820410,  0.452564960,
@@ -215,22 +243,26 @@ ysTrain = [
 
 # ╔═╡ bd963ad1-c7d4-4eff-a598-16422945e5d1
 # Run the neural network on the training data
-(ysPredict, rest...) = 
-	shallow_1_3_1(xsTrain, reLU, ϕ0, ϕ1, ϕ2, ϕ3, θ10, θ11, θ20, θ21, θ30, θ31)
+(ysPrediction, rest...) = 
+	shallow_1_3_1(xsTraining, reLU, ϕ0, ϕ1, ϕ2, ϕ3, θ10, θ11, θ20, θ21, θ30, θ31)
 
 # ╔═╡ 8efb64a3-5b23-4b06-93fe-5048e3f899e3
-leastSquaresLoss(ysTrain, ysPredict)
+loss1 = leastSquaresLoss(ysTraining, ysPrediction)
 
 # ╔═╡ ef992bd4-de87-4b60-9982-f4968472435b
-function plotTrainData(ysPredict)
-	sc1 = scatter(xsTrain, ysTrain, label=L"(xTrain, yTrain)")
-	sc2 = scatter(xsTrain, ysPredict, label=L"(xTrain, yPredict)")
-	sc3 = scatter(xsTrain, [ysTrain, ysPredict], label=L"(xTrain, yTrn/yPrd)")
-	plot(sc1, sc2, sc3)
+function plotTrainData(ysPrediction, loss; title="")
+	scatter(xsTraining, ysTraining, ylimits=(-0.9, 0.7), title=title, label=L"(xsTraining, ysTraining)")
+	scatter!(xsTraining, ysPrediction, label=L"(xsTraining, ysPrediction)")
+	annotate!(0.245, -0.7, "loss=$loss", 10)
 end # function plotTrainData
 
 # ╔═╡ 698691ea-da26-46f8-bdf7-50bf3d0b086d
-plotTrainData(ysPredict)
+plotTrainData(ysPrediction, loss1, title="No Error Loss Minimization")
+
+# ╔═╡ e658b3e8-d253-4920-9f92-a74e9e4c9c2e
+md"
+The plots demonstrate clearly a wide divergence between the output of the generator $ysPrediction$ and the dependent variable of training data $ysTraining$.
+"
 
 # ╔═╡ 59779c1e-41bf-41b0-89ef-c2a901b0c432
 md"
@@ -243,7 +275,9 @@ fit the data better and try to reduce the loss to as small a number
 as possible.  The best that I could do was $0.181$. Tip... start by manipulating phi_0.
 It's not that easy, so don't spend too much time on this!*
 
-To meet the task requirement for a fast try-out we used the *slider*-feature of $PlutoUI$. We tried a simple top down strategy $\phi_0 \rightarrow \phi_1 ... \rightarrow \theta_{10} \rightarrow \theta_{11} \rightarrow ... \theta_{31}$ with two passes. We got a *minimum loss* of $1.8272439945092038$. Unfortunately, this is in discrepancy to Peirce's $0.181$.
+To meet the task requirement for a fast try-out we used the *slider*-feature of $PlutoUI$. We tried a simple top down strategy $\phi_0 \rightarrow \phi_1 ... \rightarrow \theta_{10} \rightarrow \theta_{11} \rightarrow ... \theta_{31}$ with two passes. We got a *minimum loss* of $1.8272439945092038$. Unfortunately, this is very far from Peirce's $0.181$ :(.
+
+We moved the slider and fixed the chosen value by a assignment.
 "
 
 # ╔═╡ 51731619-ce90-44af-b054-be3116b6e048
@@ -306,22 +340,28 @@ myθ30 = 1.0
 # ╔═╡ 7840e5db-30e9-49a1-b277-9d9e26d8808e
 myθ31 = 0.1
 
+# ╔═╡ d91c58a3-7c1d-439d-90ab-6fb15ae24b9e
+md"
+Run the neural network on the training data with the slider-chosen parameter values 
+"
+
 # ╔═╡ beaaded4-2f3b-492a-9911-6a70081decd7
-let # Run the neural network on the training data
-	(ysPredict, rest...) = 
-		shallow_1_3_1(xsTrain, reLU, myϕ0, myϕ1, myϕ2, myϕ3, myθ10, myθ11, myθ20, myθ21, myθ30, myθ31)
-	leastSquaresLoss(ysTrain, ysPredict)
+let 
+	(ysPrediction, rest...) = 
+		shallow_1_3_1(xsTraining, reLU, myϕ0, myϕ1, myϕ2, myϕ3, myθ10, myθ11, myθ20, myθ21, myθ30, myθ31)
+	leastSquaresLoss(ysTraining, ysPrediction)
 end # let
 
 # ╔═╡ d34918cb-d766-422f-bc3f-397ede0945ba
-(ysPredict2, rest2...) = 
-	shallow_1_3_1(xsTrain, reLU, myϕ0, myϕ1, myϕ2, myϕ3, myθ10, myθ11, myθ20, myθ21, myθ30, myθ31)
+(ysPrediction2, rest2...) = 
+	shallow_1_3_1(xsTraining, reLU, myϕ0, myϕ1, myϕ2, myϕ3, myθ10, myθ11, myθ20, myθ21, myθ30, myθ31)
 
 # ╔═╡ 25c6a7cd-3f64-4f02-805d-f21d0e5ac90a
-leastSquaresLoss(ysTrain, ysPredict2)  # ====> 1.8272439945092038 --->  :(
+loss2 = 
+	leastSquaresLoss(ysTraining, ysPrediction2)  # ====> 1.8272439945092038 --->  :(
 
 # ╔═╡ 64b7ec52-cd13-4141-aeab-4edde49a362e
-plotTrainData(ysPredict2)
+plotTrainData(ysPrediction2, loss2, title="Manual Loss Minimzation")
 
 # ╔═╡ 326b1b5a-f3e8-4090-a265-a42474c358f6
 md"
@@ -342,9 +382,9 @@ let lSL_Min   = 10.0E1
 	for myθ11 in -4.0:0.1:+3.0
 		for myθ21 in -4.0:0.1:+3.0
 			for myθ31 in -4.0:0.1:+3.0
-				(ysPredict, rest...) = 
-					shallow_1_3_1(xsTrain, reLU, myϕ0, myϕ1, myϕ2, myϕ3, myθ10, myθ11, myθ20, myθ21, myθ30, myθ31)
-				lSL = leastSquaresLoss(ysTrain, ysPredict)
+				(ysPrediction, rest...) = 
+					shallow_1_3_1(xsTraining, reLU, myϕ0, myϕ1, myϕ2, myϕ3, myθ10, myθ11, myθ20, myθ21, myθ30, myθ31)
+				lSL = leastSquaresLoss(ysTraining, ysPrediction)
 				if 	lSL < lSL_Min
 					lSL_Min   = lSL
 					myθ11_Min = myθ11
@@ -358,9 +398,9 @@ let lSL_Min   = 10.0E1
 	for myθ10 in -4.0:0.1:+3.0
 		for myθ20 in -4.0:0.1:+3.0
 			for myθ30 in -4.0:0.1:+3.0
-				(ysPredict, rest...) = 
-					shallow_1_3_1(xsTrain, reLU, myϕ0, myϕ1, myϕ2, myϕ3, myθ10, myθ11_Min, myθ20, myθ21_Min, myθ30, myθ31_Min)
-				lSL = leastSquaresLoss(ysTrain, ysPredict)
+				(ysPrediction, rest...) = 
+					shallow_1_3_1(xsTraining, reLU, myϕ0, myϕ1, myϕ2, myϕ3, myθ10, myθ11_Min, myθ20, myθ21_Min, myθ30, myθ31_Min)
+				lSL = leastSquaresLoss(ysTraining, ysPrediction)
 				if 	lSL < lSL_Min
 					lSL_Min   = lSL
 					myθ10_Min = myθ10
@@ -375,9 +415,9 @@ let lSL_Min   = 10.0E1
 		for myϕ1 in -4.0:0.1:+3.0
 			for myϕ2 in -4.0:0.1:+3.0
 				for myϕ3 in -4.0:0.1:+3.0
-					(ysPredict, rest...) = 
-						shallow_1_3_1(xsTrain, reLU, myϕ0, myϕ1, myϕ2, myϕ3, myθ10_Min, myθ11_Min, myθ20_Min, myθ21_Min, myθ30_Min, myθ31_Min)
-					lSL = leastSquaresLoss(ysTrain, ysPredict)
+					(ysPrediction, rest...) = 
+						shallow_1_3_1(xsTraining, reLU, myϕ0, myϕ1, myϕ2, myϕ3, myθ10_Min, myθ11_Min, myθ20_Min, myθ21_Min, myθ30_Min, myθ31_Min)
+					lSL = leastSquaresLoss(ysTraining, ysPrediction)
 						if 	lSL < lSL_Min
 							lSL_Min  = lSL
 							myϕ0_Min = myϕ0
@@ -392,12 +432,12 @@ let lSL_Min   = 10.0E1
 	#--------------------------------------------------------------------------------
 	println((lSL_Min=lSL_Min, myϕ0_Min=myϕ0_Min, myϕ1_Min=myϕ1_Min, myϕ2_Min=myϕ2_Min, myϕ3_Min=myϕ3_Min, myθ10_Min=myθ10_Min, myθ20_Min=myθ20_Min, myθ30_Min=myθ30_Min,myθ11_Min=myθ11_Min, myθ21_Min=myθ21_Min, myθ31_Min=myθ31_Min))
 	#--------------------------------------------------------------------------------
-	(ysPredict3, rest...) = 
-		shallow_1_3_1(xsTrain, reLU, myϕ0_Min, myϕ1_Min, myϕ2_Min, myϕ3_Min, myθ10_Min, myθ11_Min, myθ20_Min, myθ21_Min, myθ30_Min, myθ31_Min)
-	lSL = leastSquaresLoss(ysTrain, ysPredict3)
-	print("lsL = $lSL")
+	(ysPrediction3, rest...) = 
+		shallow_1_3_1(xsTraining, reLU, myϕ0_Min, myϕ1_Min, myϕ2_Min, myϕ3_Min, myθ10_Min, myθ11_Min, myθ20_Min, myθ21_Min, myθ30_Min, myθ31_Min)
+	lSL_Blockwise = leastSquaresLoss(ysTraining, ysPrediction3)
+	print("lsL = $lSL_Blockwise")
 	#--------------------------------------------------------------------------------
-	plotTrainData(ysPredict3)
+	plotTrainData(ysPrediction3, lSL_Blockwise, title="Blockwise Loss Minimzation")
 end # let
 
 # ╔═╡ 3b0737ab-7ac7-469b-b8a3-ddd6d8f0f8ce
@@ -439,7 +479,9 @@ md"
 
 - **Bishop, C.M. & Bishop, H.**; *Deep Learning: Foundations and Concepts*, Cham, Swiss: Springer, 2024
 
-- **Prince, S.J.D.**; *Understand Deep Learning*; MIT Press, 2024
+- **Prince, S.J.D.**; [*Understanding Deep Learning*](https://udlbook.github.io/udlbook/); MIT Press, 2024; last visit 2024/05/09
+
+- **Prince, S.J.D.**; [3\_1\_Shallow\_Networks\_I.ipynb](https://colab.research.google.com/github/udlbook/udlbook/blob/main/Notebooks/Chap03/3_1_Shallow_Networks_I.ipynb#scrollTo=SzIVdp9U-JWb); last visit 2024/05/09
 
 "
 
@@ -1564,28 +1606,32 @@ version = "1.4.1+1"
 
 # ╔═╡ Cell order:
 # ╟─7785b15e-e449-11ee-15e6-0bcd06d976e1
+# ╟─011d91c6-4a55-4343-b0a2-2054676535e9
 # ╠═34569e56-a6ec-4bf9-b57b-81074638fd86
 # ╟─7ee4c69e-c3a6-4e05-bdd0-b30ae4904d57
+# ╠═0815dc03-a3b1-4b31-ad11-e3904019fcf8
+# ╟─4e98f9fd-7b4d-43fa-ab0e-bee62003d6ea
 # ╠═f8089f22-f919-4bc5-ac1e-704cb5507c66
 # ╠═667c3c47-7423-4a5a-8bde-9ecbcbfa00f3
 # ╠═52ca7a13-b42d-4760-9648-eb5bdf427951
-# ╠═0815dc03-a3b1-4b31-ad11-e3904019fcf8
+# ╟─fe063929-91b9-4a5d-a57a-a5e488f72a58
 # ╠═161f31a0-f72b-4623-8109-9089a13977ee
+# ╟─4b94a544-1800-43a0-8497-a147d90bffce
 # ╠═334d19b5-eae4-4412-a38e-fd6c37c9cb9c
-# ╠═1e0b5cc0-57f6-473a-a11c-c04f7fd52b9b
-# ╠═bb087f64-1e0b-401b-b1c3-c6842cd8b769
 # ╠═5d99a5dc-bfdb-46c8-af7a-fd40beac9f92
 # ╠═750ab9ad-b52e-489a-8058-1314ca7d627a
 # ╠═0ab74def-c3a4-4ec2-b9fd-9d5a2019f0e7
 # ╠═f0887491-c78c-4516-946d-c618024acaa1
 # ╟─59c5645a-b8ab-44d3-aacb-d3261a83bf6e
 # ╠═48965784-e391-43a7-9fc9-6941757e51b2
+# ╟─649fadba-d176-41ed-a1d3-2cf26e23cb83
 # ╠═a523462a-a8ab-4681-9280-c51ecb31a142
 # ╠═1bbbd3ca-b46c-43aa-8237-5b9f13d5ed9d
 # ╠═bd963ad1-c7d4-4eff-a598-16422945e5d1
 # ╠═8efb64a3-5b23-4b06-93fe-5048e3f899e3
 # ╠═ef992bd4-de87-4b60-9982-f4968472435b
 # ╠═698691ea-da26-46f8-bdf7-50bf3d0b086d
+# ╟─e658b3e8-d253-4920-9f92-a74e9e4c9c2e
 # ╟─59779c1e-41bf-41b0-89ef-c2a901b0c432
 # ╠═e0e76f87-4632-4913-9ffa-bbd7a7915676
 # ╠═51731619-ce90-44af-b054-be3116b6e048
@@ -1608,6 +1654,7 @@ version = "1.4.1+1"
 # ╠═302983b4-1c04-4adf-a8b8-6c1ae2fe7ccc
 # ╠═b5c4e1f5-b9b4-4265-9d61-b4469e43afd7
 # ╠═7840e5db-30e9-49a1-b277-9d9e26d8808e
+# ╟─d91c58a3-7c1d-439d-90ab-6fb15ae24b9e
 # ╠═beaaded4-2f3b-492a-9911-6a70081decd7
 # ╠═d34918cb-d766-422f-bc3f-397ede0945ba
 # ╠═25c6a7cd-3f64-4f02-805d-f21d0e5ac90a
