@@ -30,98 +30,49 @@ md"
 #### UDL\_20240422\_3\_1\_ShallowNeuralNetworks\_I\_With\_LUX.j
 ##### title: Fitting a Polynomial using [*MultiLayer Perceptron*](https://lux.csail.mit.edu/dev/tutorials/beginner/2_PolynomialFitting#Fitting-a-Polynomial-using-MLP) (*MLP*)
 ##### file: UDL\_20240422\_3\_1\_ShallowNeuralNetworks\_I\_With\_LUX.j
-##### code: Julia 1.10.2/Pluto by *** PCM 2024/04/29 ***
+##### code: Julia 1.10.3/Pluto by *** PCM 2024/05/10 ***
 =====================================================================================
 "
 
 # ╔═╡ 471ccb61-b64a-4796-ad99-2410a3baeec8
 md"
 ---
-##### Packages
+##### 1. Packages
 "
 
 # ╔═╡ 9026870f-0623-49f2-b6a8-82433157faa0
 md"
 ---
-##### 1. Generation of Data
-###### 1.1 Specification of Data Generating Neural Network
-Her we reuse the *generating network* from [UDL\_20240328\_3\_1\_ShallowNeuralNetworks\_I\_With\_Flux.j](https://uol.de/f/2/dept/informatik/ag/lks/download/Probabilistic_Programming/JULIA/Pluto.jl/Machine_Learning/UnderstandingDeepLearning/UDL_20240328_3_1_ShallowNeuralNetworks_I_With_Flux.html?v=1711990572).
+##### 2. Generation of Training Data with *shallow\_1\_3\_1*-Generator
+###### 2.1 Mathematical Model
+Input Vector $\mathbf x$, Hidden Units $\phi_1, \phi_2, \phi_3$, and Output Vector $\mathbf y$:
+
+$$y(\mathbf ϕ| \mathbf x) = \hat{\mathbf y}|\mathbf x = \mathbb E(Y=\mathbf y|\mathbf x)\;\;\;\;\;\;\;\;\;\;\;\;\;\;\text{ (Prince, 2024, 3.1) }$$
+
+$$\;$$
+
+$$y(\mathbf ϕ| \mathbf x) = ϕ_0 + ϕ_1h_1(a,θ_{10},θ_{11},\mathbf x) + ϕ_2h_2(a,θ_{20},θ_{21},\mathbf x) + ϕ_3h_3(a,θ_{30},θ_{31},\mathbf x)$$
+
+$$\;$$
+
+$$y(\mathbf ϕ| \mathbf x) = ϕ_0 + ϕ_1a(θ_{10} + θ_{11}\mathbf x) + ϕ_2a(θ_{20} + θ_{21}\mathbf x) + ϕ_3a(θ_{30} + θ_{31}\mathbf x)$$
+
+$$\;$$
+$$\;$$
+
+with *activation* function $a(\mathbf x,h_j)$ and linear inputs $h_j(a,θ_{j0},θ_{j1},\mathbf x)$:
+
+$$h_j(a,θ_{j0},θ_{j1},\mathbf x)=a(θ_{j0}+θ_{j1}\mathbf x);j=1,...,3;\;\;\text{(Prince, 2024, 3.3) }$$
+
+$$\;$$
+$$\;$$
+
 "
 
-# ╔═╡ ac4ddb81-978d-4c70-bd45-e217cc5be352
-#------------------------------------------------------------------------------------
-# definition of a data generator 
-#   in the form of a shallow neural network 
-#   with, one input, three hidden units, and one output
-#-------------------------------------------------------------------------------------
-function shallow_1_3_1(xs::Vector{Float64}, activationFn, ϕ0, ϕ1, ϕ2, ϕ3, θ10, θ11, θ20, θ21, θ30, θ31)
-	ylims    = (-1, 1)
-	#---------------------------------------------------------------------------------
-	# linear functions of the input data
-	function linearInput(xs::Vector{Float64}, θ10, θ11, θ20, θ21, θ30, θ31)
-		h1(xs) = θ10 .+ θ11.*xs
-		h2(xs) = θ20 .+ θ21.*xs
-		h3(xs) = θ30 .+ θ31.*xs
-		h1(xs), h2(xs), h3(xs)
-	end # function linearInput
-	#---------------------------------------------------------------------------------
-	# Three initial lines (figure 3.3a-c) from the thetas = preactivations
-	preact1  = linearInput(xs, θ10, θ11, θ20, θ21, θ30, θ31)[1]
-	preact2  = linearInput(xs, θ10, θ11, θ20, θ21, θ30, θ31)[2]
-	preact3  = linearInput(xs, θ10, θ11, θ20, θ21, θ30, θ31)[3]
-	#---------------------------------------------------------------------------------
-	# Pass these through the ReLU function to get activations as in fig 3.3 d-f
-  	active1   = activationFn.(preact1)
-  	active2   = activationFn.(preact2)
-  	active3   = activationFn.(preact3)
-	#---------------------------------------------------------------------------------
-	# weight the activations using phi1, phi2 and phi3 To create figure 3.3 g-i
-	wactive1 = ϕ1 .* active1
-  	wactive2 = ϕ2 .* active2
-  	wactive3 = ϕ3 .* active3
-	#---------------------------------------------------------------------------------
-	ys = ϕ0 .+ (wactive1 + wactive2 + wactive3)
-	ys, preact1, preact2, preact3, active1, active2, active3, wactive1, wactive2, wactive3
-	#---------------------------------------------------------------------------------
-end # function shallow_1_3_1
-
-# ╔═╡ f022025a-f86b-40e6-b5d8-6ed386606e4d
+# ╔═╡ 69869cb1-9afb-49f8-bd03-34045318e8fc
 md"
 ---
-###### 1.2 Generation of Error-free Training Data in $Array\{Float64,1\}$ Form
-"
-
-# ╔═╡ 6cc29c41-3bb6-4e16-8a4f-3ef8ee883c2a
-begin # generation of erro-free data with shallow 1-3-1 neural network
-	#--------------------------------------------------------------------------------
-	# parameters of the neural network generator
-	θ10 =  0.3 ; θ11 = -1.0 
-	θ20 = -1.0 ; θ21 =  2.0 
-	θ30 = -0.5 ; θ31 =  0.65
-	ϕ0  = -0.3 ; ϕ1  =  2.0 ; ϕ2  = -1.0 ; ϕ3  = 7.0
-	#--------------------------------------------------------------------------------
-	# generation of output data ys with the neural network generator
-	xsData = [x for x in 0.0:0.02:1.0]
-	ysData, rest... = shallow_1_3_1(xsData::Vector{Float64}, relu, ϕ0, ϕ1, ϕ2, ϕ3, θ10, θ11, θ20, θ21, θ30, θ31)
-	#--------------------------------------------------------------------------------
-	# plot of generated data
-	Plots.scatter(xsData, ysData, title="Error-free Training Data", label=L"data: (x, y)", xlabel=L"x", ylabel=L"y")
-	#--------------------------------------------------------------------------------
-end # begin
-
-# ╔═╡ e4fcbd61-3f43-4732-acd3-9f571609daf5
-xsData, ysData
-
-# ╔═╡ 0e1c3d72-9209-4af2-bb14-a605d779e21a
-typeof(xsData), typeof(ysData)
-
-# ╔═╡ 1b50b1c4-3730-470a-981a-a46493f48267
-size(xsData), size(ysData)
-
-# ╔═╡ 657eacc6-8987-4e31-aae9-f47e5c146203
-md"
----
-##### Definition of LUX.jl Network *linear\_1\_3\_1\_Model* with *tanh*-Activation
+###### 3.2 Number of Parameters
 The *number of parameters* is:
 
 $\;$
@@ -139,13 +90,91 @@ $\;$
 
 "
 
+# ╔═╡ ca32e42f-063b-4895-a867-86207dc4d755
+md"
+---
+###### 2.2 Specification of *Generator* (= Data Generating Neural Network)
+Here we reuse the *generating network* from [UDL\_20240328\_3\_1\_ShallowNeuralNetworks\_I\_With\_Flux.j](https://uol.de/f/2/dept/informatik/ag/lks/download/Probabilistic_Programming/JULIA/Pluto.jl/Machine_Learning/UnderstandingDeepLearning/UDL_20240328_3_1_ShallowNeuralNetworks_I_With_Flux.html?v=1711990572).
+"
+
+# ╔═╡ ac4ddb81-978d-4c70-bd45-e217cc5be352
+# Define a shallow neural network with, one input, three hidden units, and one output
+function shallow_1_3_1(xs::Vector{Float64}, activationFn, ϕ0, ϕ1, ϕ2, ϕ3, θ10, θ11, θ20, θ21, θ30, θ31)
+	ylims    = (-1, 1)
+	#---------------------------------------------------------------------------------
+	# preactivation (= linear functions of the input data)
+	preactivation(xs::Vector{Float64}, θj0, θj1) = θj0 .+ θj1.*xs
+	#---------------------------------------------------------------------------------
+	# Three initial lines (similar to figure 3.3a-c) 
+	preact1  = preactivation(xs, θ10, θ11)
+	preact2  = preactivation(xs, θ20, θ21)
+	preact3  = preactivation(xs, θ30, θ31)
+	#---------------------------------------------------------------------------------
+	# Pass these through the ReLU function to get activations similar to fig 3.3 d-f
+  	h_active1   = activationFn.(preact1)
+  	h_active2   = activationFn.(preact2)
+  	h_active3   = activationFn.(preact3)
+	#---------------------------------------------------------------------------------
+	# weight the activations using phi1, phi2 and phi3 similar to figure 3.3 g-i
+	w_active1 = ϕ1 .* h_active1
+  	w_active2 = ϕ2 .* h_active2
+  	w_active3 = ϕ3 .* h_active3
+	#---------------------------------------------------------------------------------
+	ys = ϕ0 .+ (w_active1 + w_active2 + w_active3)
+	ys, preact1, preact2, preact3, h_active1, h_active2, h_active3, w_active1, w_active2, w_active3
+	#---------------------------------------------------------------------------------
+end # function shallow_1_3_1
+
+# ╔═╡ 0d06e781-817c-4928-bb50-72da26b692e2
+md"
+###### 2.3  Parameters
+(obtained from [*Notebook 3.1 -- Shallow neural networks I*](https://github.com/udlbook/udlbook/blob/main/Notebooks/Chap03/3_1_Shallow_Networks_I.ipynb))
+"
+
+# ╔═╡ d4d60fc6-9379-4ea5-aa5b-5b0429139c53
+begin
+	θ10 =  0.3 ; θ11 = -1.0 
+	θ20 = -1.0 ; θ21 =  2.0 
+	θ30 = -0.5 ; θ31 =  0.65
+	ϕ0  = -0.3 ; ϕ1  =  2.0 ; ϕ2  = -1.0 ; ϕ3  = 7.0
+end # begin
+
+# ╔═╡ f022025a-f86b-40e6-b5d8-6ed386606e4d
+md"
+---
+###### 2.4 2.4 Generator Output $ys$ and Plot $(x, y)$ for *Error-free* Input $xs$
+"
+
+# ╔═╡ 87b4aa2a-930d-4348-b090-69920939b9d2
+# generation of input data xs for the neural network generator
+xs = [x for x in 0.0:0.02:1.0]
+
+# ╔═╡ 4d37b249-863f-4ed9-998e-d25b1ccc5ce2
+# generation of error-free data with shallow 1-3-1 neural network
+ys, rest... = shallow_1_3_1(xs::Vector{Float64}, relu, ϕ0, ϕ1, ϕ2, ϕ3, θ10, θ11, θ20, θ21, θ30, θ31)
+
+# ╔═╡ 6cc29c41-3bb6-4e16-8a4f-3ef8ee883c2a
+# plot of generated data
+Plots.scatter(xs, ys, title="Error-free Training Data", label=L"data: (x, y)", xlabel=L"x", ylabel=L"y")
+
+# ╔═╡ 657eacc6-8987-4e31-aae9-f47e5c146203
+md"
+---
+##### 3. Definition of LUX.jl Network *linear\_1\_3\_1\_Model* with *tanh*-Activation
+"
+
+# ╔═╡ 11d1143c-1f2d-4f49-a951-aa9ff0b8ef29
+md"
+###### 3.1 LUX.jl Layers with $tanh$-Activation
+"
+
 # ╔═╡ 48fd38be-fe6a-4fab-9268-749915ebd6dc
 linear_1_3_1_Model = Chain(Dense(1 => 3, tanh), Dense(3 => 1))
 
 # ╔═╡ 0f0a0010-3140-4104-9c4a-d794e7e22780
 md"
 ---
-##### Optimizer: *ADAM* (*ADA*ptive *M*oment Estimation)
+###### 3.2 Optimizer: *ADAM* (*ADA*ptive *M*oment Estimation)
 "
 
 
@@ -159,11 +188,11 @@ end # begin
 # ╔═╡ d734461e-97d9-4003-a04d-a5d5e9d6dba0
 md"
 ---
-##### Loss Function
+###### 3.3 Loss
 "
 
 # ╔═╡ 278ed88f-d6a0-4c3b-a67b-97f7ec1ca562
-function loss_function(model, parameters, states, data)
+function myMSE(model, parameters, states, data)
 	xs = data[1]
 	ys = data[2]
 	# ysPredicted, states = Lux.apply(model, data[1], parameters, states)
@@ -171,15 +200,16 @@ function loss_function(model, parameters, states, data)
 	ysPredicted, states = model(xs, parameters, states)
     mseLoss = mean(abs2, ysPredicted .- ys)
     mseLoss, states, ()
-end
+end # function myMSE
 
 # ╔═╡ 16be76a6-cc4e-4623-a497-0300e82e8909
 md"
 ---
-##### Training
+##### 4. Training the LUX-Model
+###### 4.1 Definition of TrainState
 First we will create a $Lux.Experimental.TrainState$ which is essentially a convenience wrapper over parameters, states and optimizer states.
 
-###### Arguments
+Arguments are:
 - *rng*: Random Number Generator
 - *model*: LUX model
 - *optimizer*: Optimizer from Optimisers.jl
@@ -195,9 +225,6 @@ end # begin
 
 # ╔═╡ ff856901-2b3d-47cf-824c-a1fbdff304da
 trainState
-
-# ╔═╡ 8a1b6bf8-2f37-42c0-ab37-c2bbcc8c5312
-typeof(trainState)
 
 # ╔═╡ d2d82635-4c61-4416-87ca-c43b6a283f70
 md"
@@ -216,7 +243,8 @@ dev_gpu = gpu_device()
 
 # ╔═╡ 43411887-53c6-48b3-bb85-c522b3ccf978
 md"
-Finally the training loop
+---
+###### 4.2 Training Loop
 "
 
 # ╔═╡ 83aee5f9-e78b-4aed-af39-12ece1b27581
@@ -224,7 +252,7 @@ function main(trainState, vjp, data, maxEpochs)
     data = data .|> gpu_device()
     for epoch in 1:maxEpochs
         grads, loss, stats, trainState = 
-			Lux.Training.compute_gradients(vjp, loss_function, data, trainState)
+			Lux.Training.compute_gradients(vjp, myMSE, data, trainState)
         if epoch % 100 == 1 || epoch == maxEpochs
             @printf "Epoch: %3d \t Loss: %.5g\n" epoch loss
         end
@@ -234,24 +262,30 @@ function main(trainState, vjp, data, maxEpochs)
 end
 
 # ╔═╡ 744c0467-8154-4c6e-a913-723ac5037bd2
-(xsData', ysData')
+(xs', ys')
 
 # ╔═╡ 1f060041-f56f-453d-9f8c-d98b89757301
-trainStateNew, epochs = main(trainState, vjp_rule, (xsData', ysData'), maxEpochs)
+trainStateNew, epochs = main(trainState, vjp_rule, (xs', ys'), maxEpochs)
+
+# ╔═╡ 77cce0de-a15c-4286-bb37-4013a8a631fa
+md"
+---
+###### 4.3 Model Output $\hat {\mathbf y}| \mathbf x$ and Plot
+"
 
 # ╔═╡ ddb3f055-5bb9-48f3-9313-2402b3204961
 ysPredNew =
-	dev_cpu(Lux.apply(trainStateNew.model, dev_gpu(xsData'), trainStateNew.parameters, trainStateNew.states)[1])
+	dev_cpu(Lux.apply(trainStateNew.model, dev_gpu(xs'), trainStateNew.parameters, trainStateNew.states)[1])
 
 # ╔═╡ dc42ac3e-a618-49d8-8388-602fdae94446
 ysPredNew
 
 # ╔═╡ df76389b-cbb1-4d96-a13b-92c419361359
-let myMseLoss = mean(abs2.(ysPredNew' - ysData))
-	myCor     = cor(ysData, ysPredNew')[1]
+let myMseLoss = mean(abs2.(ysPredNew' - ys))
+	myCor     = cor(ys, ysPredNew')[1]
 	myCorSq   = myCor^2
-	Plots.scatter(xsData, ysData, label=L"Data Points", title="Predictions of 1-3-1 LUX.jl-Model")
-	Plots.scatter!(xsData, ysPredNew', label=L"Model Predictions", color=:red)
+	Plots.scatter(xs, ys, label=L"Data Points", title="Predictions of 1-3-1 LUX.jl-Model")
+	Plots.scatter!(xs, ysPredNew', label=L"Model Predictions", color=:red)
 	annotate!(0.65,  0.08, "mse = $myMseLoss", 11)
 	annotate!(0.65, -0.00, "r(y, y-hat) = $myCor", 11)
 	annotate!(0.65, -0.08, "r(y, y-hat)^2 = $myCorSq", 11)
@@ -262,7 +296,7 @@ end # let
 md"
 ---
 ##### Summary
-This model run demonstrates the nearly perfect prediction quality of the training data $ysData$ by the LUX.jl-1-3-1-model including a $tanh$-activation and the $Adam$-optimizer. The *mean-square-error* $mse$ is nearly *zero*, the *Pearson product-moment-correlation* $r$ is nearly *one*, and the proportion of criterion explained variance $r^2\cdot100.0 = 99.69\%$.
+This model run demonstrates the nearly perfect prediction quality of the the LUX.jl $linear\_1\_3\_1\_Model$ for the training data $ys$ by including a $tanh$-activation and the $Adam$-optimizer. The *mean-square-error* $mse$ is nearly *zero*, the *Pearson product-moment-correlation* $r$ is nearly *one*, and the proportion of criterion explained variance $r^2\cdot100.0 = 99.69\%$.
 
 "
 
@@ -273,9 +307,11 @@ md"
 
 - **Bishop, C.M. & Bishop, H.**; *Deep Learning: Foundations and Concepts*, Cham, Swiss: Springer, 2024
 
-- **Prince, S.J.D.**; *Understanding Deep Learning*; MIT Press, 2024
-
 - **LUXDL-Doc**; *Fitting a Polynomial using MLP*, [https://lux.csail.mit.edu/dev/tutorials/beginner/2_PolynomialFitting#Fitting-a-Polynomial-using-MLP](https://lux.csail.mit.edu/dev/tutorials/beginner/2_PolynomialFitting#Fitting-a-Polynomial-using-MLP); last visit 2024/04/22
+
+- **Prince, S.J.D.**; [*Understanding Deep Learning*](https://udlbook.github.io/udlbook/); MIT Press, 2024; last visit 2024/05/10
+
+- **Prince, S.J.D.**; [*Notebook 3.1 -- Shallow neural networks I*](https://github.com/udlbook/udlbook/blob/main/Notebooks/Chap03/3_1_Shallow_Networks_I.ipynb)); last visit 2024/05/10
 
 "
 
@@ -316,7 +352,7 @@ Zygote = "~0.6.69"
 PLUTO_MANIFEST_TOML_CONTENTS = """
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.10.2"
+julia_version = "1.10.3"
 manifest_format = "2.0"
 project_hash = "9ac41a42444c50bbc10e33eada2fc0b69ce893cb"
 
@@ -475,7 +511,7 @@ weakdeps = ["Dates", "LinearAlgebra"]
 [[deps.CompilerSupportLibraries_jll]]
 deps = ["Artifacts", "Libdl"]
 uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
-version = "1.1.0+0"
+version = "1.1.1+0"
 
 [[deps.ConcreteStructs]]
 git-tree-sha1 = "f749037478283d372048690eb3b5f92a79432b34"
@@ -1811,13 +1847,17 @@ version = "1.4.1+1"
 # ╟─471ccb61-b64a-4796-ad99-2410a3baeec8
 # ╠═6b54ba57-9528-4f90-ad35-45a6170b555b
 # ╟─9026870f-0623-49f2-b6a8-82433157faa0
+# ╟─69869cb1-9afb-49f8-bd03-34045318e8fc
+# ╟─ca32e42f-063b-4895-a867-86207dc4d755
 # ╠═ac4ddb81-978d-4c70-bd45-e217cc5be352
+# ╟─0d06e781-817c-4928-bb50-72da26b692e2
+# ╠═d4d60fc6-9379-4ea5-aa5b-5b0429139c53
 # ╟─f022025a-f86b-40e6-b5d8-6ed386606e4d
+# ╠═87b4aa2a-930d-4348-b090-69920939b9d2
+# ╠═4d37b249-863f-4ed9-998e-d25b1ccc5ce2
 # ╠═6cc29c41-3bb6-4e16-8a4f-3ef8ee883c2a
-# ╠═e4fcbd61-3f43-4732-acd3-9f571609daf5
-# ╠═0e1c3d72-9209-4af2-bb14-a605d779e21a
-# ╠═1b50b1c4-3730-470a-981a-a46493f48267
 # ╟─657eacc6-8987-4e31-aae9-f47e5c146203
+# ╟─11d1143c-1f2d-4f49-a951-aa9ff0b8ef29
 # ╠═48fd38be-fe6a-4fab-9268-749915ebd6dc
 # ╟─0f0a0010-3140-4104-9c4a-d794e7e22780
 # ╠═c810cfe9-f686-4983-a690-5776f6b8ac94
@@ -1826,7 +1866,6 @@ version = "1.4.1+1"
 # ╟─16be76a6-cc4e-4623-a497-0300e82e8909
 # ╠═74e19ca4-b968-4532-8d25-ef7a04c51e57
 # ╠═ff856901-2b3d-47cf-824c-a1fbdff304da
-# ╠═8a1b6bf8-2f37-42c0-ab37-c2bbcc8c5312
 # ╟─d2d82635-4c61-4416-87ca-c43b6a283f70
 # ╠═4c98be17-b989-4a32-8c4d-bada66127076
 # ╠═4b2c0f3c-08f6-4d07-9e10-457142b505c2
@@ -1835,6 +1874,7 @@ version = "1.4.1+1"
 # ╠═83aee5f9-e78b-4aed-af39-12ece1b27581
 # ╠═744c0467-8154-4c6e-a913-723ac5037bd2
 # ╠═1f060041-f56f-453d-9f8c-d98b89757301
+# ╟─77cce0de-a15c-4286-bb37-4013a8a631fa
 # ╠═ddb3f055-5bb9-48f3-9313-2402b3204961
 # ╠═dc42ac3e-a618-49d8-8388-602fdae94446
 # ╠═df76389b-cbb1-4d96-a13b-92c419361359
