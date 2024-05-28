@@ -18,7 +18,7 @@ md"
 =====================================================================================
 #### [Multivariate Linear Regression with LUX.jl](https://lux.csail.mit.edu/dev/tutorials/beginner/1_Basics) 
 ##### file: PCM20240520_MultivariateLinearRegressionWithLUX.jl
-##### code: Julia/Pluto  by  ***LUX-Team & PCM 2024/05/27 ***
+##### code: Julia/Pluto  by  ***LUX-Team & PCM 2024/05/28 ***
 =====================================================================================
 "
 
@@ -135,14 +135,13 @@ md"
 (SGD) with a learning rate of 0.01.
 "
 
-# ╔═╡ 5393e8cf-b62c-4bb2-a02b-6655e4b09e63
+# ╔═╡ 58658d5d-f33c-45fe-ac7a-742fe740a039
 md"
----
-###### 4.1 Iteration Loop
+###### 4.1 Loss Functions
 "
 
-# ╔═╡ 08057547-8c46-4a8b-bb7e-6d8c1782da40
-function iterationLoop(model, ps, st, opt_state, xs, ys) 
+# ╔═╡ c073425b-4642-4642-882f-4696bf3d079b
+begin
 	#---------------------------------------------------
 	loss_function(ps, X, y) = 
 		mse(model, ps, st, X, y)
@@ -157,6 +156,17 @@ function iterationLoop(model, ps, st, opt_state, xs, ys)
 	function mse(weight, bias, X, y)
 		mean(abs2, weight * X .+ bias .- y)
 	end # function
+	#---------------------------------------------------
+end # begin
+
+# ╔═╡ 5393e8cf-b62c-4bb2-a02b-6655e4b09e63
+md"
+---
+###### 4.2 Iteration Loop
+"
+
+# ╔═╡ 08057547-8c46-4a8b-bb7e-6d8c1782da40
+function iterationLoop(model, ps, st, opt_state, xs, ys) 
 	#---------------------------------------------------------------------------------
 	# Iteration
 	local lossOld = Inf
@@ -190,7 +200,7 @@ ssqLoss = iterationLoop(model, ps, st, opt_state, xsTraining, ysTraining)
 # ╔═╡ 93896ff4-7261-47ba-b1f8-7592bb663b01
 md"
 ---
-###### 4.2 Results
+##### 5. Results
 "
 
 # ╔═╡ 99cfe9e4-139c-4742-8c5a-8483e09a19a4
@@ -214,9 +224,9 @@ end # let
 # ╔═╡ 9b932c4c-94ee-4b84-9c17-39dd15c4af33
 md"
 ---
-##### 5. Summary
+##### 6. Summary
 
-We succeeded in adopting the rather cryptic LUX.jl-tutorial *Julia & Lux for the Uninitiated* to a declarative *Pluto*-notebook. One aspect of being opaque is the usage of *assignments* and *global* variables. We removed global variables and unnecessary assignments. 
+We succeeded in adopting the rather cryptic LUX.jl-tutorial *Julia & Lux for the Uninitiated* to a declarative *Pluto*-notebook. One aspect of being opaque is the usage of *assignments*, *nonlocal*, and *global* variables. We removed global variables and unnecessary assignments and introduced *pure* functions. 
 Now, the estimated *multivariate linear regression* model has a high precision: *all* correlations between the 5 dependent variables $\mathbf y$ and model predictions $\hat{\mathbf y}$ are near $1.00$. 
 
 "
@@ -1831,6 +1841,8 @@ version = "1.4.1+1"
 # ╠═a000a71d-eac4-461e-a9fe-06689f11d971
 # ╠═fa275937-5fd4-4b12-a24a-5451d8ac4b14
 # ╟─f185466b-00dd-4ec0-8b48-6ce6220c2278
+# ╟─58658d5d-f33c-45fe-ac7a-742fe740a039
+# ╠═c073425b-4642-4642-882f-4696bf3d079b
 # ╟─5393e8cf-b62c-4bb2-a02b-6655e4b09e63
 # ╠═08057547-8c46-4a8b-bb7e-6d8c1782da40
 # ╠═10452bfa-e744-4823-8a59-aa929ca807cc

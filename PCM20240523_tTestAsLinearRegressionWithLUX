@@ -18,8 +18,16 @@ md"
 =====================================================================================
 #### t-Test as Linear Regression with LUX.jl
 ##### file: PCM20240523_tTestAsLinearRegressionWithLUX.jl
-##### code: Julia/Pluto  by  ***LUX-Team & PCM 2024/05/27 ***
+##### code: Julia/Pluto  by  ***LUX-Team & PCM 2024/05/28 ***
 =====================================================================================
+"
+
+# ╔═╡ c33afab7-9c8c-4b12-b0d4-46b8168ee30e
+md"
+---
+##### 0. Introduction
+We refactored and adapted the corresponding [Linear Regression](https://lux.csail.mit.edu/dev/tutorials/beginner/1_Basics) tutorial to the problem of computing the simple t-test with a simple *1-0-1* neural net. That is a net with *no* hidden layer, *no* bias, and only *one* input and *one* output unit. 
+The refactoring consisted of removing *global* variables in introducing *pure* functions.
 "
 
 # ╔═╡ 7f15bb45-c184-4ba8-aee3-1d1949d8224e
@@ -96,7 +104,7 @@ md"
 ##### 3. t-Test as Linear Regression with $m \in \{1,2\}\;$Inputs and $n=1$ Outputs
 ###### 3.1 Definition of Loss 
 From a set of data-points 
-$\{(\mathbf x_i, y_i); \mathbf x_i \in \mathbb R^m, y_i \in \mathbb R^n, i = 1,...,N,\}$, we try to find in *both* models (*full* and *reduced*) a set of parameters $_n\mathbf W_m$ and $_n\mathbf b_1 = \mathbf 0$ such that $f(\mathbf x_i | \mathbf W) = \hat y_i = \mathbf{W x_i}$ which minimizes the *mse (= mean squared error)*
+$\{(\mathbf x_i, y_i); \mathbf x_i \in \mathbb R^m, y_i \in \mathbb R^n, i = 1,...,N,\}$, we try to find in *both* models (*full* and *reduced*) a set of parameters $_n\mathbf W_m$ and $_n\mathbf b_1 = \mathbf 0$ (*no* bias) such that $f(\mathbf x_i | \mathbf W) = \hat y_i = \mathbf{W x_i}$ which minimizes the *mse (= mean squared error)*
 
 $L_{mse}(\mathbf W) = \frac{1}{N}\sum_{i=1}^N\left(y_i - \hat y_i\right)^2 = \frac{1}{N}\sum_{i=1}^N\left(y_i - \hat y_i\right)'\left(y_i - \hat y_i \right) =$
 
@@ -121,7 +129,7 @@ $\;$
 # ╔═╡ 9ce97b40-8a12-41b2-ab1d-c16422eacb64
 md"
 ---
-###### 3.2 Definition of t-Test as Full Linear Regression as a LUX-Model
+###### 3.2 Definition of t-Test as a Linear Regression Model in LUX.jl
 The parameter vector $\mathbf b$ is hold constant to *zero* ! The estimated weights of vector $\mathbf W$ are the sample means.
 "
 
@@ -140,7 +148,7 @@ md"
 # ╔═╡ 3a96b390-c888-44ab-acb4-7cb2bf170171
 md"
 ---
-##### 4 Optimization: Stochastic Gradient Descent 
+##### 4 Optimization with Stochastic Gradient Descent 
 (SGD) with a learning rate of 0.01.
 ###### 4.1 Definition of Randomness
 "
@@ -178,17 +186,15 @@ begin
 	#---------------------------------------------------------------------------------
 end # begin
 
-# ╔═╡ f5585e0d-b9f5-4071-b25b-b68acdd8585b
+# ╔═╡ 739559b6-8220-4c54-b98a-56d3772680e5
 md"
----
-###### 4.2 Full Model: Iteration Loop
-SSQ-error is 619.3 (see Namboodiri et al, 1975, p.94)
+###### 4.2 Loss Functions
 "
 
-# ╔═╡ c66eb3a0-ba42-44a2-a2ec-305a6ce5712c
-function iterationLoop(model, ps, st, opt_state, xs, ys)
-	#-------------------------------------------------------------------------------- 
-	loss_function(ps, X, y) = 
+# ╔═╡ 69467660-e5b7-4848-9aff-68b99db475db
+begin
+	#---------------------------------------------------------------------------------
+	loss_function(model, ps, st, X, y) = 
 		mse(model, ps, st, X, y)
 	#---------------------------------------------------------------------------------
 	# mse: 1st method (5 parameters)
@@ -202,6 +208,19 @@ function iterationLoop(model, ps, st, opt_state, xs, ys)
 		sum(abs2, weight * X .+ bias .- y)
 	end # function mse
 	#---------------------------------------------------------------------------------
+end # begin
+
+# ╔═╡ f5585e0d-b9f5-4071-b25b-b68acdd8585b
+md"
+---
+###### 4.3 Full Model: Iteration Loop
+SSQ-Full is 619.3 (see Namboodiri et al, 1975, p.94)
+SSQ-Red  is 622.7 (see Namboodiri et al, 1975, p.94)
+"
+
+# ╔═╡ c66eb3a0-ba42-44a2-a2ec-305a6ce5712c
+function iterationLoop(model, ps, st, opt_state, xs, ys)
+	#-------------------------------------------------------------------------------- 
 	# Iteration
 	local lossOld = Inf
 	local loss = 0.0
@@ -211,7 +230,7 @@ function iterationLoop(model, ps, st, opt_state, xs, ys)
 		i += 1                                               # counter
 	    # Compute the gradient using the pullback API to update the states
 	    (loss, stNew), pb_f = 
-			Zygote.pullback(loss_function, ps, xs, ys)
+			Zygote.pullback(loss_function, model, ps, st, xs, ys)
 	    # We pass nothing as the seed for `st`, 
 		#   since we don't want to propagate any gradient for st
 	    gs = pb_f((one(loss), nothing))[1]
@@ -237,7 +256,7 @@ ssqLossRed = iterationLoop(modelRed, psRed, stRed, opt_state_Red, xsRed', ys')
 # ╔═╡ 5040e335-7c49-4c3a-9cfa-e9ca539ae144
 md"
 ---
-##### 4.3 Results: F-Ratio and Parameters
+##### 5. F-Ratio and P-Values
 "
 
 # ╔═╡ 581b3d65-e83b-44d9-92ea-f838dd679dc9
@@ -297,14 +316,14 @@ ccdf(FDist(dfNum, dfDenom), fRatioCrit)
 
 # ╔═╡ 535c3b88-d562-4d32-b622-6e1d35da2192
 md"
-The *F-ratio* with $df_1=1$ and $df_2=28$ would be significant only if it were $F_{0.05} \gt 4.196$. So *we cannot reject the (null $H_0$) hypothesis that the two teaching techniques produce substantially the same results* (Namboodiri et al, 1975, p.94f).
+The *F-ratio* with $df_1=1$ and $df_2=28$ would be significant only if it were $F_{0.05}(df_1, df_2) \gt 4.196$. So *we cannot reject the (null $H_0$) hypothesis that the two teaching techniques produce substantially the same results* (Namboodiri et al, 1975, p.94f).
 "
 
 # ╔═╡ 9ae3a49e-6c31-42b9-bf4d-6988765cd240
 md"
 ---
-###### 5. Summary
-We refactored and adapted the corresponding [Linear Regression](https://lux.csail.mit.edu/dev/tutorials/beginner/1_Basics) tutorial to the problem of computing the simple t-test with a simple *1-0-1* neural net. That is a net with *no* hidden layer and only *one* input and *one* output unit. 
+##### 6. Summary
+The took the t-test as an entry-level demonstration example for the use of the LUX.jl library. The t-test was formulated as a pair of full rank linear regression models without bias term (Namboodiri et al., 1975). We succeeded in replicating all relevant results as published ((Namboodiri et al., 1975), p.94f).
 "
 
 # ╔═╡ 703d7818-d0b3-44f8-93f0-a52370df8deb
@@ -1971,6 +1990,7 @@ version = "1.4.1+1"
 
 # ╔═╡ Cell order:
 # ╟─70e319b0-190f-11ef-332d-69b9d26e5c6a
+# ╟─c33afab7-9c8c-4b12-b0d4-46b8168ee30e
 # ╟─7f15bb45-c184-4ba8-aee3-1d1949d8224e
 # ╠═3d0396f5-81c6-4257-b830-f147ce167825
 # ╟─593d681d-4f26-494f-9252-59d7380286bb
@@ -1988,6 +2008,8 @@ version = "1.4.1+1"
 # ╠═bbcf3cde-01da-4211-ab3f-338b492a0cd0
 # ╟─3a96b390-c888-44ab-acb4-7cb2bf170171
 # ╠═280619ed-479f-44e0-9546-a8b83d7d846f
+# ╟─739559b6-8220-4c54-b98a-56d3772680e5
+# ╠═69467660-e5b7-4848-9aff-68b99db475db
 # ╟─f5585e0d-b9f5-4071-b25b-b68acdd8585b
 # ╠═c66eb3a0-ba42-44a2-a2ec-305a6ce5712c
 # ╠═e484f964-7b2b-4c6b-8787-8c27daabaf4f
