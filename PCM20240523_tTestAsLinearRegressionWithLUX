@@ -18,7 +18,7 @@ md"
 =====================================================================================
 #### t-Test as Linear Regression with LUX.jl
 ##### file: PCM20240523_tTestAsLinearRegressionWithLUX.jl
-##### code: Julia/Pluto  by  ***LUX-Team & PCM 2024/05/28 ***
+##### code: Julia/Pluto  by  ***LUX-Team & PCM 2024/05/29 ***
 =====================================================================================
 "
 
@@ -26,7 +26,7 @@ md"
 md"
 ---
 ##### 0. Introduction
-We refactored and adapted the corresponding [Linear Regression](https://lux.csail.mit.edu/dev/tutorials/beginner/1_Basics) tutorial to the problem of computing the simple t-test with a simple *1-0-1* neural net. That is a net with *no* hidden layer, *no* bias, and only *one* input and *one* output unit. 
+We refactored and adapted the corresponding [Linear Regression Tutorial](https://lux.csail.mit.edu/dev/tutorials/beginner/1_Basics) to the problem of computing the simple t-test with a simple *1-0-1* neural net. That is a net with *no* hidden layer, *no* bias, and only *one* input and *one* output unit. 
 The refactoring consisted of removing *global* variables in introducing *pure* functions.
 "
 
@@ -38,7 +38,7 @@ md"
 # ╔═╡ 593d681d-4f26-494f-9252-59d7380286bb
 md"
 ---
-##### 2 Design Matrices of Full and Reduced Model and Data Vector y
+##### 2. Design Matrices of Full and Reduced Model and Data Vector $ys$
 ###### 2.1 Data 
 The artificial data are paradigmatic for the research question whether *techniques 1 and 2 differ in the amount of change characteristically produced in students' achievement* (Table 3.1, Namboodiri et al, 1975, p.94).
 "
@@ -126,10 +126,23 @@ $\;$
 
 "
 
+# ╔═╡ 31a860ba-878e-46c8-951a-1c9a06adb946
+md"
+---
+###### 3.2 Definition of Randomness
+"
+
+# ╔═╡ 280619ed-479f-44e0-9546-a8b83d7d846f
+begin
+	# Return the default global random number generator (RNG)
+	rng = Random.default_rng()  
+	Random.seed!(rng, 0)
+end # begin
+
 # ╔═╡ 9ce97b40-8a12-41b2-ab1d-c16422eacb64
 md"
 ---
-###### 3.2 Definition of t-Test as a Linear Regression Model in LUX.jl
+###### 3.3 Definition of t-Test as a Linear Regression Model in LUX.jl
 The parameter vector $\mathbf b$ is hold constant to *zero* ! The estimated weights of vector $\mathbf W$ are the sample means.
 "
 
@@ -142,27 +155,12 @@ modelRed = Dense(1 => 1, use_bias=false)
 # ╔═╡ 8643e313-64dd-4dee-a8ff-dd783013c51c
 md"
 ---
-###### 3.3 Set Problem Dimensions and Initialize Full and Reduced Model
+###### 3.4 Set Problem Dimensions and Initialize Full and Reduced Model
 "
-
-# ╔═╡ 3a96b390-c888-44ab-acb4-7cb2bf170171
-md"
----
-##### 4 Optimization with Stochastic Gradient Descent 
-(SGD) with a learning rate of 0.01.
-###### 4.1 Definition of Randomness
-"
-
-# ╔═╡ 280619ed-479f-44e0-9546-a8b83d7d846f
-begin
-	# Return the default global random number generator (RNG)
-	rng = Random.default_rng()  
-	Random.seed!(rng, 0)
-end # begin
 
 # ╔═╡ bbcf3cde-01da-4211-ab3f-338b492a0cd0
 begin
-	const n_samples  = N     = 30            # number of subjects, replications, etc
+	const n_samples  = N     = pIdio = 30    # number of subjects, replications, etc
 	const x_dim_Full = pFull =  2            # number of m inputs in full model
 	const x_dim_Red  = pRed  =  1            # number of m inputs in restricted model
 	const y_dim      = n     =  1            # number of n outputs
@@ -186,40 +184,31 @@ begin
 	#---------------------------------------------------------------------------------
 end # begin
 
-# ╔═╡ 739559b6-8220-4c54-b98a-56d3772680e5
+# ╔═╡ 3a96b390-c888-44ab-acb4-7cb2bf170171
 md"
-###### 4.2 Loss Functions
+---
+##### 4. Optimization and Iteration Loop with Stochastic Gradient Descent 
+(SGD) with a learning rate of 0.01.
+- SSQ-Full is 619.3 (see Namboodiri et al, 1975, p.94)
+- SSQ-Red  is 622.7 (see Namboodiri et al, 1975, p.94)
 "
 
-# ╔═╡ 69467660-e5b7-4848-9aff-68b99db475db
-begin
-	#---------------------------------------------------------------------------------
-	loss_function(model, ps, st, X, y) = 
+# ╔═╡ c66eb3a0-ba42-44a2-a2ec-305a6ce5712c
+function iterationLoop(model, ps, st, opt_state, xs, ys)
+	#-------------------------------------------------------------------------------
+	loss_function(ps, X, y) = 
 		mse(model, ps, st, X, y)
-	#---------------------------------------------------------------------------------
+	#---------------------------------------------------
 	# mse: 1st method (5 parameters)
 	function mse(model, ps, st, X, y)      
 	    y_pred, st_new = model(X, ps, st)
 	    return mean(abs2, y_pred .- y), st_new
 	end # function mse
-	#---------------------------------------------------------------------------------
-	# mse: 2nd method (4 parameters)
+	#---------------------------------------------------
+	# mse: 1st method (4 parameters)
 	function mse(weight, bias, X, y)
-		sum(abs2, weight * X .+ bias .- y)
-	end # function mse
-	#---------------------------------------------------------------------------------
-end # begin
-
-# ╔═╡ f5585e0d-b9f5-4071-b25b-b68acdd8585b
-md"
----
-###### 4.3 Full Model: Iteration Loop
-SSQ-Full is 619.3 (see Namboodiri et al, 1975, p.94)
-SSQ-Red  is 622.7 (see Namboodiri et al, 1975, p.94)
-"
-
-# ╔═╡ c66eb3a0-ba42-44a2-a2ec-305a6ce5712c
-function iterationLoop(model, ps, st, opt_state, xs, ys)
+		mean(abs2, weight * X .+ bias .- y)
+	end # function
 	#-------------------------------------------------------------------------------- 
 	# Iteration
 	local lossOld = Inf
@@ -230,7 +219,7 @@ function iterationLoop(model, ps, st, opt_state, xs, ys)
 		i += 1                                               # counter
 	    # Compute the gradient using the pullback API to update the states
 	    (loss, stNew), pb_f = 
-			Zygote.pullback(loss_function, model, ps, st, xs, ys)
+			Zygote.pullback(loss_function, ps, xs, ys)
 	    # We pass nothing as the seed for `st`, 
 		#   since we don't want to propagate any gradient for st
 	    gs = pb_f((one(loss), nothing))[1]
@@ -241,7 +230,7 @@ function iterationLoop(model, ps, st, opt_state, xs, ys)
 	    (i % 10 == 1 || i == 100) && 
 			println(lazy"MSE-Loss Value after $i iterations: $loss")
 	end # while
-	println(lazy"MSE-Loss Value after $i iterations: $loss") # final ssq result
+	println(lazy"MSE-Loss Value after $i iterations: $loss")    # final ssq result
 	ssqLoss = loss*N
 	println(lazy"SSQ-Loss Value after $i iterations: $ssqLoss") # final mse result)
 	ssqLoss
@@ -256,16 +245,44 @@ ssqLossRed = iterationLoop(modelRed, psRed, stRed, opt_state_Red, xsRed', ys')
 # ╔═╡ 5040e335-7c49-4c3a-9cfa-e9ca539ae144
 md"
 ---
-##### 5. F-Ratio and P-Values
+##### 5. F-Ratios and P-Values
+The heuristic idea
+
+$\;$
+
+###### 5.1 F-Ratio based on Error Sum-of-Squares $SSQ$
+
+$F_{SSQ}(df_1, df_2) = \frac{\left(SSQ_{reduced}-SSQ_{full}\right)/\left(p_{full}-p_{reduced}\right)}{\left(SSQ_{full}-SSQ_{idiographic}\right)/\left(p_{idiographic}-p_{full}\right)}=...$
+
+$\;$
+$\;$
+$\;$
+
+$...=\frac{\left(SSQ_{reduced}-SSQ_{full}\right)/\left(p_{full}-p_{reduced}\right)}{\left(SSQ_{full}-0.0\right)/\left(N-p_{full}\right)}=...$
+
+$\;$
+$\;$
+$\;$
+
+$...=\frac{\left(SSQ_{reduced}-SSQ_{full}\right)/df_1}{SSQ_{full}/df_2}$
+
+$\;$
+$\;$
+$\;$
+$\;$
+
 "
 
 # ╔═╡ 581b3d65-e83b-44d9-92ea-f838dd679dc9
-fRatio, dfNum, dfDenom =
-	let dfNum = (pFull - pRed)
-		dfDenom = (N - pFull)
-		fRatio = ((ssqLossRed - ssqLossFull)/dfNum)/(ssqLossFull/dfDenom)
-		(fRatio=fRatio, df1=dfNum, df2=dfDenom)
-	end # let
+function fRatioSSQ(ssqFull, ssqRed, pIdio, pFull, pRed)
+	df1 = (pFull - pRed)
+	df2 = (pIdio - pFull)
+	fRatio = ((ssqRed - ssqFull)/df1)/(ssqFull/df2)
+	(fRatio=fRatio, df1=df1, df2=df2)
+end # function fRatioSSQ
+
+# ╔═╡ 25c4c006-c12b-414e-b789-863499d3c112
+fRatioErr, df1, df2 = fRatioSSQ(ssqLossFull, ssqLossRed, N, pFull, pRed)
 
 # ╔═╡ 00e0b179-febc-478c-9d6c-63e855771a5f
 md"
@@ -276,7 +293,7 @@ $\;$
 "
 
 # ╔═╡ 970c2a54-3553-4430-8953-5d3334c30c94
-cdf(FDist(dfNum, dfDenom), fRatio)
+cdf(FDist(df1, df2), fRatioErr)
 
 # ╔═╡ fdb9c3d4-eef6-4950-bf8b-e5366aa7c097
 md"
@@ -287,7 +304,7 @@ $\;$
 "
 
 # ╔═╡ f2edd61c-c7fd-4435-8ea7-be887ad99838
-ccdf(FDist(dfNum, dfDenom), fRatio)
+ccdf(FDist(df1, df2), fRatioErr)
 
 # ╔═╡ 5ce02141-dd5d-4869-9f6c-1ed8da2216d2
 fRatioCrit = 4.196
@@ -301,7 +318,7 @@ $\;$
 "
 
 # ╔═╡ 67076b2a-cfb7-49d9-a872-64eb5ca9456e
-cdf(FDist(dfNum, dfDenom), fRatioCrit)
+cdf(FDist(df1, df2), fRatioCrit)
 
 # ╔═╡ c5b5a4fe-3260-4114-8058-169cd57c8798
 md"
@@ -312,12 +329,59 @@ $\;$
 "
 
 # ╔═╡ bfcac452-3a04-40fa-9d27-b503ecca570c
-ccdf(FDist(dfNum, dfDenom), fRatioCrit)
+ccdf(FDist(df1, df2), fRatioCrit)
 
 # ╔═╡ 535c3b88-d562-4d32-b622-6e1d35da2192
 md"
 The *F-ratio* with $df_1=1$ and $df_2=28$ would be significant only if it were $F_{0.05}(df_1, df_2) \gt 4.196$. So *we cannot reject the (null $H_0$) hypothesis that the two teaching techniques produce substantially the same results* (Namboodiri et al, 1975, p.94f).
 "
+
+# ╔═╡ 9554dd35-37c2-45db-bbc7-941aa69496c6
+md"
+---
+###### 5.2 F-Ratio based on Multiple Regression Coefficients $R^2$
+There is an alternative formula for the *F-ratio* based on multiple $R^2$ (Namboodiri, 1975, p.87, (3.2)):
+
+$\;$
+
+$F_{RSQ}(df_1, df_2) = \frac{\left(R^2_{full}-R^2_{reduced}\right)/\left(p_{full}-p_{reduced}\right)}{\left(R^2_{idiographic} - R^2_{full}\right)/\left(p_{idiographic}-p_{full}\right)}=...$
+
+$\;$
+$\;$
+$\;$
+
+$...=  \frac{\left(R^2_{full}-R^2_{reduced}\right)/\left(p_{full}-p_{reduced}\right)}{\left(1.0 - R^2_{full}\right)/\left(N-p_{full}\right)}=...$
+
+$\;$
+$\;$
+$\;$
+
+$...=  \frac{\left(R^2_{full}-R^2_{reduced}\right)/df_1}{\left(1.0 - R^2_{full}\right)/df_2}$
+
+$\;$
+$\;$
+$\;$
+"
+
+# ╔═╡ e2c2ae7f-71e5-4118-8074-8031f27cd4b6
+rFull, rRed = 
+	let ysHatFull = modelFull(xsFull', psFull, stFull)[1]'
+		ysHatRed  = modelRed(xsRed', psRed, stRed)[1]'
+		corrFull  = cor(ys,ysHatFull)
+		corrRed   = cor(ys,ysHatRed)
+		(rFull=corrFull[1], rRed=corrRed[1])
+	end # let
+
+# ╔═╡ 5dcde01a-fe2c-441f-80a3-137dae0ae74c
+function fRatioRSQ(rFull, rRed, pIdio, pFull, pRed)
+	df1 = (pFull - pRed)
+	df2 = (pIdio - pFull)
+	fRatio = ((rFull^2 - rRed^2)/df1)/((1.0 - rFull^2)/df2)
+	(fRatio=fRatio, df1=df1, df2=df2)
+end # function fRatioRSQ
+
+# ╔═╡ 4a13591c-b7e9-4571-85e8-21aa1c17b575
+fRatioR, dfs... = fRatioRSQ(rFull, rRed, N, pFull, pRed)
 
 # ╔═╡ 9ae3a49e-6c31-42b9-bf4d-6988765cd240
 md"
@@ -2001,21 +2065,20 @@ version = "1.4.1+1"
 # ╟─4dc39a41-fbff-45c0-8c68-88b754f6297d
 # ╠═3480f959-31b3-453e-a641-830764146076
 # ╟─96eca473-23ee-4ac9-9c63-18e857d447d1
+# ╟─31a860ba-878e-46c8-951a-1c9a06adb946
+# ╠═280619ed-479f-44e0-9546-a8b83d7d846f
 # ╟─9ce97b40-8a12-41b2-ab1d-c16422eacb64
 # ╠═fc1d3959-22db-42e6-b24e-bf125c0a19e0
 # ╠═b9efb5c2-87b5-461c-a11a-45823119b4df
 # ╟─8643e313-64dd-4dee-a8ff-dd783013c51c
 # ╠═bbcf3cde-01da-4211-ab3f-338b492a0cd0
 # ╟─3a96b390-c888-44ab-acb4-7cb2bf170171
-# ╠═280619ed-479f-44e0-9546-a8b83d7d846f
-# ╟─739559b6-8220-4c54-b98a-56d3772680e5
-# ╠═69467660-e5b7-4848-9aff-68b99db475db
-# ╟─f5585e0d-b9f5-4071-b25b-b68acdd8585b
 # ╠═c66eb3a0-ba42-44a2-a2ec-305a6ce5712c
 # ╠═e484f964-7b2b-4c6b-8787-8c27daabaf4f
 # ╠═af41c722-95e7-4b66-9ccf-d9f881373eab
 # ╟─5040e335-7c49-4c3a-9cfa-e9ca539ae144
 # ╠═581b3d65-e83b-44d9-92ea-f838dd679dc9
+# ╠═25c4c006-c12b-414e-b789-863499d3c112
 # ╟─00e0b179-febc-478c-9d6c-63e855771a5f
 # ╠═970c2a54-3553-4430-8953-5d3334c30c94
 # ╟─fdb9c3d4-eef6-4950-bf8b-e5366aa7c097
@@ -2026,6 +2089,10 @@ version = "1.4.1+1"
 # ╟─c5b5a4fe-3260-4114-8058-169cd57c8798
 # ╠═bfcac452-3a04-40fa-9d27-b503ecca570c
 # ╟─535c3b88-d562-4d32-b622-6e1d35da2192
+# ╟─9554dd35-37c2-45db-bbc7-941aa69496c6
+# ╠═e2c2ae7f-71e5-4118-8074-8031f27cd4b6
+# ╠═5dcde01a-fe2c-441f-80a3-137dae0ae74c
+# ╠═4a13591c-b7e9-4571-85e8-21aa1c17b575
 # ╟─9ae3a49e-6c31-42b9-bf4d-6988765cd240
 # ╟─703d7818-d0b3-44f8-93f0-a52370df8deb
 # ╟─c7b7b7a8-396a-40e4-9165-35ec5bd73bc4

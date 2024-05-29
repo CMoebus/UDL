@@ -109,7 +109,7 @@ b = randn(rng, Float32, py)
 # ╔═╡ 5fd8cd41-81fb-4273-835e-24100bc63c6b
 md"
 ---
-##### 3 Generate Training Data 
+##### 3. Generate Training Data 
 ###### 3.1 Input: $\mathbf x_i \in\ _m\mathbf X_N$ incl. Additional Noise
 "
 
@@ -131,18 +131,13 @@ println("xsTraining shape: ", size(xsTraining), "; ysTraining shape: ", size(ysT
 # ╔═╡ f185466b-00dd-4ec0-8b48-6ce6220c2278
 md"
 ---
-##### 4 Optimization and Iteration Loop
+##### 4. Optimization and Iteration Loop
 (SGD) with a learning rate of 0.01.
 "
 
-# ╔═╡ 58658d5d-f33c-45fe-ac7a-742fe740a039
-md"
-###### 4.1 Loss Functions
-"
-
-# ╔═╡ c073425b-4642-4642-882f-4696bf3d079b
-begin
-	#---------------------------------------------------
+# ╔═╡ 08057547-8c46-4a8b-bb7e-6d8c1782da40
+function iterationLoop(model, ps, st, opt_state, xs, ys) 
+	#---------------------------------------------------------------------------------
 	loss_function(ps, X, y) = 
 		mse(model, ps, st, X, y)
 	#---------------------------------------------------
@@ -156,17 +151,6 @@ begin
 	function mse(weight, bias, X, y)
 		mean(abs2, weight * X .+ bias .- y)
 	end # function
-	#---------------------------------------------------
-end # begin
-
-# ╔═╡ 5393e8cf-b62c-4bb2-a02b-6655e4b09e63
-md"
----
-###### 4.2 Iteration Loop
-"
-
-# ╔═╡ 08057547-8c46-4a8b-bb7e-6d8c1782da40
-function iterationLoop(model, ps, st, opt_state, xs, ys) 
 	#---------------------------------------------------------------------------------
 	# Iteration
 	local lossOld = Inf
@@ -1841,9 +1825,6 @@ version = "1.4.1+1"
 # ╠═a000a71d-eac4-461e-a9fe-06689f11d971
 # ╠═fa275937-5fd4-4b12-a24a-5451d8ac4b14
 # ╟─f185466b-00dd-4ec0-8b48-6ce6220c2278
-# ╟─58658d5d-f33c-45fe-ac7a-742fe740a039
-# ╠═c073425b-4642-4642-882f-4696bf3d079b
-# ╟─5393e8cf-b62c-4bb2-a02b-6655e4b09e63
 # ╠═08057547-8c46-4a8b-bb7e-6d8c1782da40
 # ╠═10452bfa-e744-4823-8a59-aa929ca807cc
 # ╟─93896ff4-7261-47ba-b1f8-7592bb663b01
