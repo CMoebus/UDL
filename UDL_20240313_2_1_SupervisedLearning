@@ -6,7 +6,7 @@ using InteractiveUtils
 
 # ╔═╡ 7e81f408-d482-4312-8852-01c17cab7d28
 begin
-	# Plotting library
+	# Plotting Library
 	using Plots
 	# LateXify Strings
 	using LaTeXStrings, Latexify
@@ -18,93 +18,121 @@ md"
 #### [UDL\_2\_1\_Supervised\_Learning](https://colab.research.google.com/github/udlbook/udlbook/blob/main/Notebooks/Chap02/2_1_Supervised_Learning.ipynb#scrollTo=AkdZdmhHWuVR)
 
 ##### file: UDL\_20240313\_2\_1\_SupervisedLearning
-##### code: Julia 1.10.2/Pluto by *** PCM 2024/03/24 ***
+##### code: Julia 1.10.3/Pluto by  *** PCM 2024/06/01 ***
 
 ====================================================================================
 "
 
+# ╔═╡ c2432679-5cb9-4772-8601-ca8512105a19
+md"
+##### 1. Packages
+"
+
 # ╔═╡ 21b54f33-24d0-4662-b9ce-d18ad6bf5663
 md"
-##### 1 Supervised learning overview
+##### 2. Supervised Learning Overview
 "
 
 # ╔═╡ 83d9dccc-ea1a-4c93-9709-caeb279418ca
 md"
-###### Univariate Function Definition $f: \mathcal X \rightarrow \mathcal Y$
-$$y = f(x)\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;(2.1)$$ 
+###### 2.1 Univariate Function Definition 
+(Prince, 2024,  p.17, (2.1))
 
-$$\;$$
-$$\;$$
+$f: \mathcal X \rightarrow \mathcal Y$
+$\;$
+$f: x \mapsto y \;\;\;; x \in \mathcal X\;;\; y \in \mathcal Y$
+$\;$
+$y = f(x)$ 
 
-###### Univariate Function Definition with Parameter $f: \mathcal X \rightarrow ϕ\mathcal Y$
-$$y = f(x, ϕ)\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;(2.2)$$
+$\;$
 
-$$\;$$
-$$\;$$
+###### 2.2 Univariate Function Definition with Parameters $\mathbf \phi$
+(Prince, 2024,  p.18, (2.2))
 
-###### Estimation of $\hat\phi$ by Minimizing Function Loss $L$:
+$f: x \mapsto \mathbf \phi x$
 
-$$\hat ϕ = arg \underset ϕ min (L (ϕ; y, x_j))\;;\;j=1,...,m \;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;(2.3)$$
+$\;$
 
-$$\;$$
-$$\;$$
+$y = f(ϕ, x)$
 
-"
+$\;$
 
-# ╔═╡ a0946077-17c1-45be-869c-0edb247fbf0f
-md"
----
-##### 2 Univariate Linear Regression within pure Julia
+###### 2.3 Estimation of Parameters $\mathbf \phi$ by Minimizing Function Loss $L$:
+(Prince, 2024,  p.18, (2.3))
+
+$\hat ϕ = arg \underset ϕ min (L (ϕ; x_j, y))\;;\;j=1,...,p_x\;;\;p_x = \text{number of }x$
+
+$\;$
+$\;$
+
 "
 
 # ╔═╡ ca07a355-e4e9-43d9-9005-ce18a5b04209
 md"
-###### 2.1 Model: Straight Line
-$$\hat y = f(ϕ; x) = ϕ_0 + ϕ_1x \;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;(2.4)$$
+---
+##### 3. Definition of Methods for Univariate Linear Regression Model
+###### 3.1 Univariate Linear Regression Model: Straight Line
+(Prince, 2024,  p.18, (2.4))
 
-$$\;$$
-$$\;$$
+$\hat y = f(\mathbf \phi; x) = \phi_0 + \phi_1x$
+
+$\;$
+$\;$
 
 "
 
+# ╔═╡ c9a8f562-d42d-4bee-b7d4-fc7d928ad329
+# Definition of 1st method (for scalar x) for 1D linear regression model 
+f(x::Number, ϕ0, ϕ1) = ϕ0 + ϕ1 * x                # linear regression model (eq 2.4)
+
 # ╔═╡ bfb397cb-3ba2-41db-a886-8ae92758436b
-# Define 1D linear regression model
-function f(xs, ϕ0, ϕ1)
-  ϕ0 .+ ϕ1 .* xs                                # linear regression model (eq 2.4)
-end # function f
+# Define 2nd method (for vector xs) for 1D linear regression model 
+f(xs::Vector, ϕ0, ϕ1) = ϕ0 .+ ϕ1 .* xs             # linear regression model (eq 2.4)
 
 # ╔═╡ 68506386-007e-4e2f-be81-401c761164cc
 let xs  = [x for x in 0.0:0.1:2.0]
 	y1s = f(xs, 0.0,  1.0)
 	y2s = f(xs, 1.0, -0.4)
 	y3s = f(xs, 1.2, -0.1)
-	plot(xs, y1s, title="Univariate Linear Regression Models, UDL, Fig 2.1", label=L"y=0.0+1.0x", lw=2)
-	plot!(xs, y2s, label=L"y=1.0-0.4x", lw=2)
-	plot!(xs, y3s, label=L"y=1.2-0.1x", lw=2)
+	plot(xs, y2s, label=L"y=1.0-0.4x", color=:black, lw=2, title="Univariate Linear Regression Models, UDL, p.19, Fig 2.1", titlefontsize=12)
+	plot!(xs, y3s, label=L"y=1.2-0.1x", color=:blue, lw=2)
+	plot!(xs, y1s, label=L"y=0.0+1.0x", color=:red, lw=2)
 end # let
 
 # ╔═╡ 1e9fd7b9-597a-4f46-a8db-3a7dddf0fb18
 md"
 ---
-###### 2.2 $L^2$-(Sums of Squares)-Loss 
-$$L(ϕ) = ∑_{i=1}^I(\hat y_i − y_i)^2 = ∑_{i=1}^I(f(ϕ; x_i) − y_i)^2 = ∑_{i=1}^I(ϕ_0 + ϕ_1x_i − y_i)^2\;\;\;\;\;\;(2.5)$$
+###### 3.2 $L^2$-(Sums of Squares)-Loss 
+(Prince, 2024,  p.19, (2.5))
 
-$$\;$$
-$$\;$$
-$$\;$$
+$L(ϕ) = \sum_{i=1}^N(y_i − \hat y_i)^2 = \sum_{i=1}^N(y_i - f(ϕ; x_i))^2 = \sum_{i=1}^N(y_i - (ϕ_0 + ϕ_1x_i))^2$
 
-###### 2.3 Parameter Estimation by Loss Minimization
+$\;$
+$\;$
+$\;$
+$\;$
+---
+###### 3.3 Parameter Estimation by Loss Minimization
+(Prince, 2024,  p.21, (2.6))
 
-$$\hat ϕ = arg \underset ϕ min (L (ϕ; y, x)) = arg \underset ϕ min \left(∑_{i=1}^I(\hat y_i − y_i)^2\right)$$
+$\hat ϕ = arg \underset ϕ min \left(L (ϕ; x, y)\right) = arg \underset ϕ min \left(\sum_{i=1}^N(y_i − \hat y_i)^2\right)$
 
-$$\;$$
-$$\;$$
+$\;$
+$\;$
+$\;$
 
-$$= arg \underset ϕ min \left(∑_{i=1}^I(f(ϕ; x_i) − y_i)^2\right) = arg \underset ϕ min \left(∑_{i=1}^I(ϕ_0 + ϕ_1x_i − y_i)^2\right)\;\;\;\;\;\;(2.6)$$
+$= arg \underset ϕ min \left(\sum_{i=1}^N\left(y_i - f(ϕ; x_i)\right)^2\right) = arg \underset ϕ min \left(\sum_{i=1}^N\left(y_i - (ϕ_0 + ϕ_1x_i)\right)^2\right)$
 
-$$\;$$
-$$\;$$
+$\;$
+$\;$
+$\;$
 
+"
+
+# ╔═╡ 3e7e0368-43d6-4a9e-80d8-6eecb761d6a6
+md"
+---
+###### 3.4 Exploring Losses for Selected Parameter Combinations
 "
 
 # ╔═╡ 8e63a9c7-d03a-459b-b816-6cb9b39acb7c
@@ -114,18 +142,24 @@ begin
 	ys = [0.67, 0.85, 1.05, 1.00, 1.40, 1.50, 1.30, 1.54, 1.55, 1.68, 1.73, 1.60]
 end # begin
 
-# ╔═╡ 224590d3-6178-4007-9ffb-68cce8a311f2
-xs
-
-# ╔═╡ e342b635-1aab-45f0-8bf0-c31bc7ba6c0a
-ys
+# ╔═╡ 29524501-9f9f-4470-b93f-371faeba09a0
+typeof(xs)
 
 # ╔═╡ 8a67324e-23e6-4086-afd7-4eac9e28b873
 # Function to calculate the loss (equation 2.5)
 function computeLoss(xs, ys, ϕ0, ϕ1)
-  	fxs = [f(x, ϕ0, ϕ1) for x in xs]
-	sum((fxs - ys).^2)
-end # function
+  	fxs = f(xs, ϕ0, ϕ1)
+	sum((ys - fxs).^2)
+end # function computeLoss
+
+# ╔═╡ a2bc574e-31ed-4b14-bcb2-5832feb2f49b
+computeLoss(xs, ys, 0.4, 0.2)   # Prince, p.20, Fig 2.2b
+
+# ╔═╡ e5139299-967f-476c-93d9-f554b68c36ea
+computeLoss(xs, ys, 1.6, -0.8)  # Prince, p.20, Fig 2.2c
+
+# ╔═╡ 7b7a486c-ae82-4227-be00-84d54c658028
+computeLoss(xs, ys, 0.84, 0.5)  # Prince, p.20, Fig 2.2d
 
 # ╔═╡ 93813ad2-ac6d-4c37-bcab-2e7da18c563d
 let xss = [x for x in 0.0:0.1:2.0]
@@ -151,28 +185,35 @@ let xss = [x for x in 0.0:0.1:2.0]
 	plot2d = 
 		plot(xss, fxs2d, label=L"0.85+0.5\cdot x", color=:red); scatter!(xs, ys, label=" data: (y,x) ", color=:cornflowerblue); annotate!(1.5, 0.8,"loss=$loss2d", 10)
 	#--------------------------------------------------------------------------------
-	plot(plot2a, plot2b, plot2c, plot2d, layout=grid(2, 2, heights=[1/2, 1/2]), title=["UDL, Fig 2.2a" "UDL, Fig 2.2b" "UDL, Fig 2.2c" "UDL, Fig 2.2d"])
+	plot(plot2a, plot2b, plot2c, plot2d, layout=grid(2, 2, heights=[1/2, 1/2]), title=["UDL, Fig 2.2a" "UDL, Fig 2.2b" "UDL, Fig 2.2c" "UDL, Fig 2.2d"], titlefontsize=10)
 	#--------------------------------------------------------------------------------
 end # let
 
 # ╔═╡ 928fb294-1a7d-449a-82fc-2c8f823fcd82
 md"
 ---
-###### 2.1.2.3 Visualizing the loss function
+##### 4. Visualizing Loss Functions
 "
 
-# ╔═╡ 56140402-833f-4dcd-a1a1-5c53808ca4fa
-xs
+# ╔═╡ 04951e44-f06f-4702-b6ed-7f7554bed2a5
+begin
+	ϕ0s  = [ϕ0 for ϕ0 in -2.0:0.1:2.0]
+	ϕ1s  = [ϕ1 for ϕ1 in -2.0:0.1:2.0]
+end # begin
 
-# ╔═╡ e2092869-d8f8-41d1-8cd5-52bbc98bb215
-ys
+# ╔═╡ eba4769c-970d-4b75-9c13-d09432da4bd7
+md"
+---
+###### 4.1 Contour Plot
+"
 
 # ╔═╡ a183be5a-56b5-48fa-8cd1-e32319885783
-let ϕ0s  = [ϕ0 for ϕ0 in -2.0:0.1:2.0]
-	ϕ1s  = [ϕ1 for ϕ1 in -2.0:0.1:2.0]
+function contourPlot(ϕ0s, ϕ1s)
+	#-------------------------------------------------------------------------------
 	minfϕ0ϕ1 = Inf
 	minϕ0    = Inf
 	minϕ1    = Inf
+	#-------------------------------------------------------------------------------
 	for ϕ0 in ϕ0s
 		for ϕ1 in ϕ1s
 			fϕ0ϕ1 = computeLoss(xs, ys, ϕ0, ϕ1)
@@ -183,13 +224,63 @@ let ϕ0s  = [ϕ0 for ϕ0 in -2.0:0.1:2.0]
 			end # if
 		end # for ϕ1
 	end # for ϕ0
-	contour(ϕ0s, ϕ1s, (ϕ0, ϕ1) -> computeLoss(xs, ys, ϕ0, ϕ1), fill=true, xlabel=L"intercept\; ϕ0", ylabel=L"slope\; ϕ1", title=L"loss=f(\phi_0, \phi_1)")
+	#-------------------------------------------------------------------------------
 	println(" min(loss)=$minfϕ0ϕ1; ", " argmin_{ϕ0,ϕ1}(Loss) = ($minϕ0, $minϕ1)")
-	scatter!([minϕ0], [minϕ1], color=:green, label=L"min\phi_0=0.8, min\phi_1=0.5")
-	scatter!([0.40], [ 0.2], color=:red, label=L"\phi_0=0.40, \phi_1= 0.2")
-	scatter!([1.60], [-0.8], color=:red, label=L"\phi_0=1.60, \phi_1=-0.8")
+	#-------------------------------------------------------------------------------
+	contour(ϕ0s, ϕ1s, (ϕ0, ϕ1) -> computeLoss(xs, ys, ϕ0, ϕ1), fill=true, xlabel=L"intercept\; ϕ0", ylabel=L"slope\; ϕ1", title=L"loss=f(\phi_0, \phi_1)", titlefontsize=12)
+	#-------------------------------------------------------------------------------
+	scatter!([0.40], [ 0.2], color=:cyan, label=L"\phi_0=0.40, \phi_1= 0.2")
+	scatter!([1.60], [-0.8], color=:yellow, label=L"\phi_0=1.60, \phi_1=-0.8")
 	scatter!([0.85], [ 0.5], color=:red, label=L"\phi_0=0.85, \phi_1= 0.5")
- end # let
+	scatter!([minϕ0], [minϕ1], color=:green, label=L"min\phi_0=0.8, min\phi_1=0.5")
+	#-------------------------------------------------------------------------------
+ end # function contourPlot
+
+# ╔═╡ eafdad39-14bd-49b8-987f-8b13ef8558bd
+contourPlot(ϕ0s, ϕ1s)
+
+# ╔═╡ bf1d073f-c164-4345-94a3-e8fce08db886
+md"
+---
+###### 4.2 Wireframe
+"
+
+# ╔═╡ af352641-5bac-48e8-bad5-31c9e6488c3d
+function wireframePlot(ϕ0s, ϕ1s)
+	#-------------------------------------------------------------------------------
+	fϕ0ϕ1s = Array{Float64}(undef, (41, 41))
+	minfϕ0ϕ1 = Inf
+	minϕ0    = Inf
+	minϕ1    = Inf
+	i = 0
+	#-------------------------------------------------------------------------------
+	for ϕ0 in ϕ0s
+		i += 1
+		j = 0
+		for ϕ1 in ϕ1s
+			j += 1
+			lossij = fϕ0ϕ1s[i, j] = computeLoss(xs, ys, ϕ0, ϕ1)
+			if 	fϕ0ϕ1s[i, j] < minfϕ0ϕ1
+				minfϕ0ϕ1 = fϕ0ϕ1s[i, j]
+				minϕ0    = ϕ0
+				minϕ1    = ϕ1
+			end # if
+		end # for ϕ1
+	end # for ϕ0
+	#-------------------------------------------------------------------------------
+	println(" min(loss)=$minfϕ0ϕ1; ", " argmin_{ϕ0,ϕ1}(Loss) = ($minϕ0, $minϕ1)")
+	#-------------------------------------------------------------------------------
+	wireframe(ϕ0s, ϕ1s, fϕ0ϕ1s, xlabel=L"intercept\; ϕ0", ylabel=L"slope\; ϕ1", zlabel=L"loss=f(\phi_0, \phi_1)", title=L"loss=f(\phi_0, \phi_1)", titlefontsize=12)
+	#-------------------------------------------------------------------------------
+	scatter!([0.40], [ 0.2], [0.0], color=:cyan, label=L"\phi_0=0.40, \phi_1= 0.2")
+	scatter!([1.60], [-0.8], [0.0], color=:yellow, label=L"\phi_0=1.60, \phi_1=-0.8")
+	scatter!([0.85], [ 0.5], [0.0], color=:red, label=L"\phi_0=0.85, \phi_1= 0.5")
+	scatter!([minϕ0], [minϕ1], [0.0], color=:green, label=L"min\phi_0=0.8, min\phi_1=0.5")
+	#-------------------------------------------------------------------------------
+ end # function wireframePlot
+
+# ╔═╡ 2af7e3e7-3389-4626-a7b5-6d00ddf74a64
+wireframePlot(ϕ0s, ϕ1s)
 
 # ╔═╡ 60a2eddf-612a-480d-b539-7f96e408b2bc
 md"
@@ -198,7 +289,9 @@ md"
 
 - **Bishop, C.M. & Bishop, H.**; *Deep Learning: Foundations and Concepts*, Cham, Swiss: Springer, 2024
 
-- **Prince, S.J.D.**; *Understand Deep Learning*; MIT Press, 2024
+- **Prince, S.J.D.**; [*Understanding Deep Learning*](https://udlbook.github.io/udlbook/); MIT Press, 2024; last visit 2024/06/01
+
+- **Prince, S.J.D.**; [*Notebook 2.1 Supervised Learning*](https://colab.research.google.com/github/udlbook/udlbook/blob/main/Notebooks/Chap02/2_1_Supervised_Learning.ipynb); last visit 2024/06/01
 
 "
 
@@ -228,7 +321,7 @@ Plots = "~1.40.1"
 PLUTO_MANIFEST_TOML_CONTENTS = """
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.10.2"
+julia_version = "1.10.3"
 manifest_format = "2.0"
 project_hash = "329d6cfea912269c1ff0f5029f0e504b16f35d0b"
 
@@ -308,7 +401,7 @@ weakdeps = ["Dates", "LinearAlgebra"]
 [[deps.CompilerSupportLibraries_jll]]
 deps = ["Artifacts", "Libdl"]
 uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
-version = "1.1.0+0"
+version = "1.1.1+0"
 
 [[deps.ConcurrentUtilities]]
 deps = ["Serialization", "Sockets"]
@@ -1280,23 +1373,31 @@ version = "1.4.1+1"
 
 # ╔═╡ Cell order:
 # ╟─bb167160-e144-11ee-13c3-137e1e93b07c
+# ╟─c2432679-5cb9-4772-8601-ca8512105a19
+# ╠═7e81f408-d482-4312-8852-01c17cab7d28
 # ╟─21b54f33-24d0-4662-b9ce-d18ad6bf5663
 # ╟─83d9dccc-ea1a-4c93-9709-caeb279418ca
-# ╟─a0946077-17c1-45be-869c-0edb247fbf0f
 # ╟─ca07a355-e4e9-43d9-9005-ce18a5b04209
+# ╠═c9a8f562-d42d-4bee-b7d4-fc7d928ad329
 # ╠═bfb397cb-3ba2-41db-a886-8ae92758436b
 # ╠═68506386-007e-4e2f-be81-401c761164cc
 # ╟─1e9fd7b9-597a-4f46-a8db-3a7dddf0fb18
-# ╠═7e81f408-d482-4312-8852-01c17cab7d28
+# ╟─3e7e0368-43d6-4a9e-80d8-6eecb761d6a6
 # ╠═8e63a9c7-d03a-459b-b816-6cb9b39acb7c
-# ╠═224590d3-6178-4007-9ffb-68cce8a311f2
-# ╠═e342b635-1aab-45f0-8bf0-c31bc7ba6c0a
+# ╠═29524501-9f9f-4470-b93f-371faeba09a0
 # ╠═8a67324e-23e6-4086-afd7-4eac9e28b873
+# ╠═a2bc574e-31ed-4b14-bcb2-5832feb2f49b
+# ╠═e5139299-967f-476c-93d9-f554b68c36ea
+# ╠═7b7a486c-ae82-4227-be00-84d54c658028
 # ╠═93813ad2-ac6d-4c37-bcab-2e7da18c563d
 # ╟─928fb294-1a7d-449a-82fc-2c8f823fcd82
-# ╠═56140402-833f-4dcd-a1a1-5c53808ca4fa
-# ╠═e2092869-d8f8-41d1-8cd5-52bbc98bb215
+# ╠═04951e44-f06f-4702-b6ed-7f7554bed2a5
+# ╟─eba4769c-970d-4b75-9c13-d09432da4bd7
 # ╠═a183be5a-56b5-48fa-8cd1-e32319885783
+# ╠═eafdad39-14bd-49b8-987f-8b13ef8558bd
+# ╟─bf1d073f-c164-4345-94a3-e8fce08db886
+# ╠═af352641-5bac-48e8-bad5-31c9e6488c3d
+# ╠═2af7e3e7-3389-4626-a7b5-6d00ddf74a64
 # ╟─60a2eddf-612a-480d-b539-7f96e408b2bc
 # ╟─a12ba088-709e-476f-8c75-8b3c5a2661f5
 # ╟─00000000-0000-0000-0000-000000000001
