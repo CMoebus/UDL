@@ -17,7 +17,7 @@ end # begin
 md"
 =====================================================================================
 #### UDL\_2\_1\_Supervised\_Learning with LUX.jl
-##### file: UDL_20240602_2_1_SupervisedLearningWithLux
+##### file: UDL\_20240602\_2\_1\_SupervisedLearningWithLux
 ##### code: Julia 1.10.3/Pluto by *** PCM 2024/06/02 ***
 =====================================================================================
 "
@@ -52,12 +52,10 @@ md"
 # Create some input / output data
 begin
 	#---------------------------------------------------------------------------------
-	xs = 
-		convert(
+	xs = convert(
 			Vector{Float32}, 
 			[0.03, 0.19, 0.34, 0.46, 0.78, 0.81, 1.08, 1.18, 1.39, 1.60, 1.65, 1.90])
-	ys = 
-		convert(
+	ys = convert(
 			Vector{Float32},
 			[0.67, 0.85, 1.05, 1.00, 1.40, 1.50, 1.30, 1.54, 1.55, 1.68, 1.73, 1.60])
 	#---------------------------------------------------------------------------------
@@ -109,9 +107,6 @@ begin
 	opt = Optimisers.Descent(0.01f0)                         # Definition of Optimizer
 	opt_state = Optimisers.setup(opt, parameters)            # Initialization
 	#---------------------------------------------------------------------------------
-	# Stochastic Gradient Descent (SGD) with a learning rate of 0.01.
-	opt_state = Optimisers.setup(opt, parameters)           # Initialization of 
-	#---------------------------------------------------------------------------------
 end # begin
 
 # ╔═╡ d671af92-df18-40f7-ac52-58b05e482154
@@ -160,11 +155,11 @@ function iterationLoop(model, ps, st, opt_state, xs, ys)
 	println(lazy"MSE-Loss Value after $i iterations: $loss")    # final ssq result
 	ssqLoss = loss*N
 	println(lazy"SSQ-Loss Value after $i iterations: $ssqLoss") # final mse result)
-	ssqLoss
+	loss                                     # mse
 end # function iterationLoop
 
 # ╔═╡ 26ab5786-5ceb-411c-a975-333885739100
-ssqLoss = iterationLoop(model, parameters, state, opt_state, xs', ys')
+mseLoss = iterationLoop(model, parameters, state, opt_state, xs', ys')
 
 # ╔═╡ 1236155b-fcca-424c-af00-2524faf0b166
 let
@@ -172,15 +167,17 @@ let
 	# Model Prognosis
 	ysHat = model(xs', parameters, state)[1]'
 	corr  = cor(ys,ysHat)[1]
+	corr2 = corr^2
 	slope = ϕ1 = parameters[1]
 	bias  = ϕ0 = parameters[2]
-	mseLoss = ssqLoss/length(xs)
+	ssqLoss = mseLoss*length(xs)
 	#------------------------------------------------------------------------------
 	# Plots
 	scatter(xs, ys, label=" data: (y,x)", 
 		title="Univariate Linear Lux Model: Optimizing MSE", titlefontsize=12)
 	plot!(xs, ysHat, label="E(y|x)=$bias + $slope x", lw=2)
-    annotate!(1.3, 0.94, "r(´y`, x) = $corr", 12)
+    annotate!(1.3, 1.02, "r(´y`, x) = $corr", 12)
+	annotate!(1.3, 0.94, "r(´y`, x)^2 = $corr2", 12)
 	annotate!(1.3, 0.86, "E(Y|x) = $ϕ0 + $ϕ1 x", 12)
 	annotate!(1.3, 0.78, "SSQ = $ssqLoss", 12)
 	annotate!(1.3, 0.70, "MSE = $mseLoss", 12)
