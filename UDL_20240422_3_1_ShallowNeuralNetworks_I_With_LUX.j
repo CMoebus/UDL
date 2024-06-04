@@ -5,23 +5,14 @@ using Markdown
 using InteractiveUtils
 
 # ╔═╡ 6b54ba57-9528-4f90-ad35-45a6170b555b
-begin
-	#-------------------------------------------------------------------------
-	# Neural Nets
-	using Lux, Optimisers, Random
+begin	
+	using Lux, Random
+	using ComponentArrays
+	using Optimisers, Zygote
 	using ADTypes
-	using Zygote
-	#-------------------------------------------------------------------------
-	# Output
-	using Plots
-	using Printf
-	#-------------------------------------------------------------------------
-	# Statistics
-	using Statistics
-	#-------------------------------------------------------------------------
-	# LateXify Strings
+	using Statistics,Distributions, Plots
 	using LaTeXStrings, Latexify
-	#-------------------------------------------------------------------------
+	using Printf
 end # begin
 
 # ╔═╡ 5937e7e5-c260-47d0-9c46-d5d72656312d
@@ -30,7 +21,7 @@ md"
 #### UDL\_20240422\_3\_1\_ShallowNeuralNetworks\_I\_With\_LUX.j
 ##### title: Fitting a Polynomial using [*MultiLayer Perceptron*](https://lux.csail.mit.edu/dev/tutorials/beginner/2_PolynomialFitting#Fitting-a-Polynomial-using-MLP) (*MLP*)
 ##### file: UDL\_20240422\_3\_1\_ShallowNeuralNetworks\_I\_With\_LUX.j
-##### code: Julia 1.10.3/Pluto by *** PCM 2024/05/10 ***
+##### code: Julia 1.10.3/Pluto by *** LUX.jl team and PCM 2024/06/04 ***
 =====================================================================================
 "
 
@@ -43,11 +34,13 @@ md"
 # ╔═╡ 9026870f-0623-49f2-b6a8-82433157faa0
 md"
 ---
-##### 2. Generation of Training Data with *shallow\_1\_3\_1*-Generator
+##### 2. Generation of Training Data with [*shallow\_1\_3\_1*](https://github.com/udlbook/udlbook/blob/main/Notebooks/Chap03/3_1_Shallow_Networks_I.ipynb)-Generator
 ###### 2.1 Mathematical Model
-Input Vector $\mathbf x$, Hidden Units $\phi_1, \phi_2, \phi_3$, and Output Vector $\mathbf y$:
+((Prince, 2024, p.25, (3.1))
 
-$$y(\mathbf ϕ| \mathbf x) = \hat{\mathbf y}|\mathbf x = \mathbb E(Y=\mathbf y|\mathbf x)\;\;\;\;\;\;\;\;\;\;\;\;\;\;\text{ (Prince, 2024, 3.1) }$$
+Input Vector $\mathbf x$, hidden units with parameters $\phi_1, \phi_2, \phi_3$, and output Vector $\mathbf y$:
+
+$\mathbb E(Y=\mathbf y|\mathbf ϕ, \mathbf x) = y(\mathbf ϕ, \mathbf x)$
 
 $$\;$$
 
@@ -60,19 +53,19 @@ $$y(\mathbf ϕ| \mathbf x) = ϕ_0 + ϕ_1a(θ_{10} + θ_{11}\mathbf x) + ϕ_2a(θ
 $$\;$$
 $$\;$$
 
-with *activation* function $a(\mathbf x,h_j)$ and linear inputs $h_j(a,θ_{j0},θ_{j1},\mathbf x)$:
+with *activation* function $a(\mathbf x,h_j)$ and linear inputs $h_j(a,θ_{j0},θ_{j1},\mathbf x)$ (Prince, 2024, p.27, (3.3)):
 
-$$h_j(a,θ_{j0},θ_{j1},\mathbf x)=a(θ_{j0}+θ_{j1}\mathbf x);j=1,...,3;\;\;\text{(Prince, 2024, 3.3) }$$
+$h_j(a,θ_{j0},θ_{j1},\mathbf x)=a(θ_{j0}+θ_{j1}\mathbf x);j=1,...,3$
 
-$$\;$$
-$$\;$$
+$\;$
+$\;$
 
 "
 
 # ╔═╡ 69869cb1-9afb-49f8-bd03-34045318e8fc
 md"
 ---
-###### 3.2 Number of Parameters
+###### 2.2 Number of Parameters
 The *number of parameters* is:
 
 $\;$
@@ -93,17 +86,17 @@ $\;$
 # ╔═╡ ca32e42f-063b-4895-a867-86207dc4d755
 md"
 ---
-###### 2.2 Specification of *Generator* (= Data Generating Neural Network)
+###### 2.3 Specification of *Generator* (= Data Generating Neural Network)
 Here we reuse the *generating network* from [UDL\_20240328\_3\_1\_ShallowNeuralNetworks\_I\_With\_Flux.j](https://uol.de/f/2/dept/informatik/ag/lks/download/Probabilistic_Programming/JULIA/Pluto.jl/Machine_Learning/UnderstandingDeepLearning/UDL_20240328_3_1_ShallowNeuralNetworks_I_With_Flux.html?v=1711990572).
 "
 
 # ╔═╡ ac4ddb81-978d-4c70-bd45-e217cc5be352
 # Define a shallow neural network with, one input, three hidden units, and one output
-function shallow_1_3_1(xs::Vector{Float64}, activationFn, ϕ0, ϕ1, ϕ2, ϕ3, θ10, θ11, θ20, θ21, θ30, θ31)
+function shallow_1_3_1(xs::Vector{Float32}, activation::Function, ϕ0::Float32, ϕ1::Float32, ϕ2::Float32, ϕ3::Float32, θ10::Float32, θ11::Float32, θ20::Float32, θ21::Float32, θ30::Float32, θ31::Float32)
 	ylims    = (-1, 1)
 	#---------------------------------------------------------------------------------
 	# preactivation (= linear functions of the input data)
-	preactivation(xs::Vector{Float64}, θj0, θj1) = θj0 .+ θj1.*xs
+	preactivation(xs, θj0, θj1) = θj0 .+ θj1.*xs
 	#---------------------------------------------------------------------------------
 	# Three initial lines (similar to figure 3.3a-c) 
 	preact1  = preactivation(xs, θ10, θ11)
@@ -111,88 +104,164 @@ function shallow_1_3_1(xs::Vector{Float64}, activationFn, ϕ0, ϕ1, ϕ2, ϕ3, θ
 	preact3  = preactivation(xs, θ30, θ31)
 	#---------------------------------------------------------------------------------
 	# Pass these through the ReLU function to get activations similar to fig 3.3 d-f
-  	h_active1   = activationFn.(preact1)
-  	h_active2   = activationFn.(preact2)
-  	h_active3   = activationFn.(preact3)
+  	h_activ1   = activation.(preact1)
+  	h_activ2   = activation.(preact2)
+  	h_activ3   = activation.(preact3)
 	#---------------------------------------------------------------------------------
 	# weight the activations using phi1, phi2 and phi3 similar to figure 3.3 g-i
-	w_active1 = ϕ1 .* h_active1
-  	w_active2 = ϕ2 .* h_active2
-  	w_active3 = ϕ3 .* h_active3
+	w_activ1 = ϕ1 .* h_activ1
+  	w_activ2 = ϕ2 .* h_activ2
+  	w_activ3 = ϕ3 .* h_activ3
 	#---------------------------------------------------------------------------------
-	ys = ϕ0 .+ (w_active1 + w_active2 + w_active3)
-	ys, preact1, preact2, preact3, h_active1, h_active2, h_active3, w_active1, w_active2, w_active3
+	ys = ϕ0 .+ (w_activ1 + w_activ2 + w_activ3)  # ys is *not*(!) a function 
+	ys, preact1, preact2, preact3, h_activ1, h_activ2, h_activ3, w_activ1, w_activ2, w_activ3
 	#---------------------------------------------------------------------------------
 end # function shallow_1_3_1
 
 # ╔═╡ 0d06e781-817c-4928-bb50-72da26b692e2
 md"
-###### 2.3  Parameters
+###### 2.4  Parameters
 (obtained from [*Notebook 3.1 -- Shallow neural networks I*](https://github.com/udlbook/udlbook/blob/main/Notebooks/Chap03/3_1_Shallow_Networks_I.ipynb))
 "
 
 # ╔═╡ d4d60fc6-9379-4ea5-aa5b-5b0429139c53
-begin
-	θ10 =  0.3 ; θ11 = -1.0 
-	θ20 = -1.0 ; θ21 =  2.0 
-	θ30 = -0.5 ; θ31 =  0.65
-	ϕ0  = -0.3 ; ϕ1  =  2.0 ; ϕ2  = -1.0 ; ϕ3  = 7.0
+begin                           # number of paremeters = 10
+	#-------------------------------------------------------------------------------
+	θ10 =  0.3f0 ; θ11 = -1.0f0
+	θ20 = -1.0f0 ; θ21 =  2.0f0 
+	θ30 = -0.5f0 ; θ31 =  0.65f0
+	ϕ0  = -0.3f0 ; ϕ1  =  2.0f0 
+	ϕ2  = -1.0f0 ; ϕ3  =  7.0f0
+	#-------------------------------------------------------------------------------
 end # begin
+
+# ╔═╡ 3e55bc45-39d9-4ba1-884e-422436a2213c
+typeof(0.3f0)
 
 # ╔═╡ f022025a-f86b-40e6-b5d8-6ed386606e4d
 md"
 ---
-###### 2.4 2.4 Generator Output $ys$ and Plot $(x, y)$ for *Error-free* Input $xs$
+###### 2.5 Generator Output
+The neural net is used as a data generator. A training set xs is used as input and propagated through the network to generate the *numeric vector* output $ys$. 
+"
+
+# ╔═╡ 1d13bbcb-a4b1-4ba2-9806-ff48c085ffba
+md"
+###### 2.5.1 Generation of Predictor Subspace
 "
 
 # ╔═╡ 87b4aa2a-930d-4348-b090-69920939b9d2
 # generation of input data xs for the neural network generator
-xs = [x for x in 0.0:0.02:1.0]
+xs = convert(Vector{Float32}, [x for x in 0.0:0.02:1.0])
+
+# ╔═╡ 1bdf9513-7a5a-477b-a321-71d625a8d4b5
+md"
+###### 2.5.2 Generator Output
+"
 
 # ╔═╡ 4d37b249-863f-4ed9-998e-d25b1ccc5ce2
 # generation of error-free data with shallow 1-3-1 neural network
-ys, rest... = shallow_1_3_1(xs::Vector{Float64}, relu, ϕ0, ϕ1, ϕ2, ϕ3, θ10, θ11, θ20, θ21, θ30, θ31)
+ys, rest... = 
+	shallow_1_3_1(xs, relu, ϕ0, ϕ1, ϕ2, ϕ3, θ10, θ11, θ20, θ21, θ30, θ31)
+
+# ╔═╡ e5d21be0-b856-4916-a210-eafd3c4bcfa1
+typeof(xs), typeof(ys)
 
 # ╔═╡ 6cc29c41-3bb6-4e16-8a4f-3ef8ee883c2a
 # plot of generated data
-Plots.scatter(xs, ys, title="Error-free Training Data", label=L"data: (x, y)", xlabel=L"x", ylabel=L"y")
+scatter(xs, ys, title="Generator Output: Error-free 2D-Training Data", label=L"data: (x, y)", xlabel=L"x", ylabel=L"y", titlefontsize=12)
 
 # ╔═╡ 657eacc6-8987-4e31-aae9-f47e5c146203
 md"
 ---
-##### 3. Definition of LUX.jl Network *linear\_1\_3\_1\_Model* with *tanh*-Activation
-"
-
-# ╔═╡ 11d1143c-1f2d-4f49-a951-aa9ff0b8ef29
-md"
+##### 3. Neural LUX.jl Network $linear\_1\_3\_1\_Model$
 ###### 3.1 LUX.jl Layers with $tanh$-Activation
 "
 
 # ╔═╡ 48fd38be-fe6a-4fab-9268-749915ebd6dc
 linear_1_3_1_Model = Chain(Dense(1 => 3, tanh), Dense(3 => 1))
 
+# ╔═╡ 6e4ecbc7-f1c5-4ff1-b52e-65dff15c25df
+md"
+---
+###### 3.2 Definition of Randomness
+"
+
+# ╔═╡ 62515c04-e36e-4aef-a28b-920f14dd51a5
+begin
+	# Return the default global random number generator (RNG)
+	rng = Random.default_rng()  
+	Random.seed!(rng, 0)
+end # begin
+
 # ╔═╡ 0f0a0010-3140-4104-9c4a-d794e7e22780
 md"
 ---
-###### 3.2 Optimizer: *ADAM* (*ADA*ptive *M*oment Estimation)
+###### 3.3 Set Problem Dimensions and Initialize Model
+###### [Lux.Experimental.TrainState](https://lux.csail.mit.edu/v0.5.16/api/Lux/contrib.html)
+
 "
 
 
 # ╔═╡ c810cfe9-f686-4983-a690-5776f6b8ac94
 begin
-	maxEpochs = 1.0E4
-	learningRate = 0.03f0 
-	optimizer = Adam(learningRate)
+	const N  = length(xs)                      # number of subjects, replications, etc
+	#---------------------------------------------------------------------------------
+	# Stochastic Gradient Descent (SGD) with a learning rate of 0.01.
+	# Definition of Optimizer
+	η = 0.03f0                                 # learning rate
+	optimizer = Adam(η)
+	#---------------------------------------------------------------------------------
+	# initialize the parameters and states ... for linear_1_3_1_Model
+	trainState = Lux.Experimental.TrainState(rng, linear_1_3_1_Model, optimizer)
+	# parameters = parameters |> ComponentArray
+	#---------------------------------------------------------------------------------
+	model, parameters, states, opt_state, step = 
+		trainState.model, trainState.parameters, trainState.states, trainState.optimizer_state, trainState.step
 end # begin
 
-# ╔═╡ d734461e-97d9-4003-a04d-a5d5e9d6dba0
+# ╔═╡ 225f64ee-8cf3-4817-a82e-629e10932d55
+trainState
+
+# ╔═╡ a11e5539-3598-4aac-8a65-aabd5589c642
+model
+
+# ╔═╡ d247b5cd-29d6-46c8-8dbe-5a201148aa73
+parameters
+
+# ╔═╡ 69000d94-e65c-4480-9c08-bc0a6614ae24
+states
+
+# ╔═╡ 859875c1-87e0-4e16-9c02-c1167d532fdc
+opt_state
+
+# ╔═╡ 62ef2c0c-4238-4f47-b273-197b65ad58bf
+step
+
+# ╔═╡ 16be76a6-cc4e-4623-a497-0300e82e8909
 md"
 ---
-###### 3.3 Loss
+##### 4. Optimization and Iteration Loop with ADAM Optimizer
+
+With learning rate of η = 0.03f0 
+
 "
 
-# ╔═╡ 278ed88f-d6a0-4c3b-a67b-97f7ec1ca562
-function myMSE(model, parameters, states, data)
+# ╔═╡ 4bcce0ee-2f16-4fac-a571-305384bdba45
+md"
+---
+###### 4.1 Preliminaries and mse-Loss
+"
+
+# ╔═╡ 051464bd-d80f-4c59-821f-73f768939a4d
+# struct ADTypes.AutoZygote
+vjp_rule = AutoZygote()                          # vjp = Vector-Jacobian Product Rule
+
+# ╔═╡ 5637c9b4-2898-400b-8a45-4bfe620c5efe
+dev_cpu = cpu_device()
+
+# ╔═╡ e4eba2a8-0cc9-4043-8c14-019ac930071a
+function myMse(model, parameters, states, data)
 	xs = data[1]
 	ys = data[2]
 	# ysPredicted, states = Lux.apply(model, data[1], parameters, states)
@@ -200,103 +269,86 @@ function myMSE(model, parameters, states, data)
 	ysPredicted, states = model(xs, parameters, states)
     mseLoss = mean(abs2, ysPredicted .- ys)
     mseLoss, states, ()
-end # function myMSE
+end # function myMse
 
-# ╔═╡ 16be76a6-cc4e-4623-a497-0300e82e8909
+# ╔═╡ 4d48f470-44c2-42d2-890c-99f5319cc101
 md"
 ---
-##### 4. Training the LUX-Model
-###### 4.1 Definition of TrainState
-First we will create a $Lux.Experimental.TrainState$ which is essentially a convenience wrapper over parameters, states and optimizer states.
-
-Arguments are:
-- *rng*: Random Number Generator
-- *model*: LUX model
-- *optimizer*: Optimizer from Optimisers.jl
-
+###### 4.2 Iteration Loop
 "
 
-# ╔═╡ 74e19ca4-b968-4532-8d25-ef7a04c51e57
-begin 
-	rng = MersenneTwister()
-	Random.seed!(rng, 12345)
-	trainState = Lux.Experimental.TrainState(rng, linear_1_3_1_Model, optimizer)
-end # begin
-
-# ╔═╡ ff856901-2b3d-47cf-824c-a1fbdff304da
-trainState
-
-# ╔═╡ d2d82635-4c61-4416-87ca-c43b6a283f70
-md"
-Now we will use Zygote for our AD requirements.
-"
-
-# ╔═╡ 4c98be17-b989-4a32-8c4d-bada66127076
-# struct ADTypes.AutoZygote
-vjp_rule = AutoZygote()                          # vjp = Vector-Jacobian Product Rule
-
-# ╔═╡ 4b2c0f3c-08f6-4d07-9e10-457142b505c2
-dev_cpu = cpu_device()
-
-# ╔═╡ 0b218572-66e0-4925-bea4-bc2f6534eac8
-dev_gpu = gpu_device()
-
-# ╔═╡ 43411887-53c6-48b3-bb85-c522b3ccf978
+# ╔═╡ 72e5664c-03e6-43c9-9f95-ab2229d4ec9a
 md"
 ---
-###### 4.2 Training Loop
+###### [Training.compute_gradients](https://lux.csail.mit.edu/v0.5.16/api/Lux/contrib.html)
+###### [Training.apply_gradients](https://lux.csail.mit.edu/v0.5.16/api/Lux/contrib.html)
+
 "
 
-# ╔═╡ 83aee5f9-e78b-4aed-af39-12ece1b27581
-function main(trainState, vjp, data, maxEpochs)
-    data = data .|> gpu_device()
-    for epoch in 1:maxEpochs
-        grads, loss, stats, trainState = 
-			Lux.Training.compute_gradients(vjp, myMSE, data, trainState)
-        if epoch % 100 == 1 || epoch == maxEpochs
-            @printf "Epoch: %3d \t Loss: %.5g\n" epoch loss
-        end
-        trainState = Lux.Training.apply_gradients(trainState, grads)
-    end
-    trainState, maxEpochs
-end
 
-# ╔═╡ 744c0467-8154-4c6e-a913-723ac5037bd2
-(xs', ys')
+# ╔═╡ e2944e10-127e-4205-be6c-08db51b8a90d
+function iterationLoop(trainState, vjp, data)
+	lossOld = Inf
+	loss    = 0.0
+	epochs  = 0
+	#--------------------------------------------------------------------------------
+	while !isapprox(abs(lossOld - loss), 0.0)
+		lossOld = loss
+		epochs += 1 
+		grads, loss, stats, trainState = 
+			Lux.Training.compute_gradients(vjp, myMse, data, trainState)
+	    if (epochs % 100) == 0  
+			println(lazy"MSE-Loss Value after $epochs iterations: $loss")
+		end # if
+		trainState = Lux.Training.apply_gradients(trainState, grads)
+	end # while
+	#--------------------------------------------------------------------------------
+	println(lazy"MSE-Loss Value after $epochs iterations: $loss")    # final ssq result
+	ssqLoss = loss*N
+	println(lazy"SSQ-Loss Value after $epochs iterations: $ssqLoss") # final mse result)
+	trainState, loss   
+end # function iterationLoop
 
-# ╔═╡ 1f060041-f56f-453d-9f8c-d98b89757301
-trainStateNew, epochs = main(trainState, vjp_rule, (xs', ys'), maxEpochs)
+# ╔═╡ c8f7506b-54f3-4f6c-90c5-db49d6610745
+trainStateNew, mseLoss = 
+	iterationLoop(trainState, vjp_rule, (xs', ys'))
 
 # ╔═╡ 77cce0de-a15c-4286-bb37-4013a8a631fa
 md"
 ---
-###### 4.3 Model Output $\hat {\mathbf y}| \mathbf x$ and Plot
+###### 4.3 Results
 "
 
-# ╔═╡ ddb3f055-5bb9-48f3-9313-2402b3204961
-ysPredNew =
-	dev_cpu(Lux.apply(trainStateNew.model, dev_gpu(xs'), trainStateNew.parameters, trainStateNew.states)[1])
+# ╔═╡ 83a6e856-5bf8-403d-8a0e-af4eb3d095f1
+mseLoss
 
-# ╔═╡ dc42ac3e-a618-49d8-8388-602fdae94446
-ysPredNew
-
-# ╔═╡ df76389b-cbb1-4d96-a13b-92c419361359
-let myMseLoss = mean(abs2.(ysPredNew' - ys))
-	myCor     = cor(ys, ysPredNew')[1]
-	myCorSq   = myCor^2
-	Plots.scatter(xs, ys, label=L"Data Points", title="Predictions of 1-3-1 LUX.jl-Model")
-	Plots.scatter!(xs, ysPredNew', label=L"Model Predictions", color=:red)
-	annotate!(0.65,  0.08, "mse = $myMseLoss", 11)
-	annotate!(0.65, -0.00, "r(y, y-hat) = $myCor", 11)
-	annotate!(0.65, -0.08, "r(y, y-hat)^2 = $myCorSq", 11)
-	annotate!(0.65, -0.16, "#epochs = $epochs", 11)
+# ╔═╡ f6b3e87c-af62-4d55-8508-401a032be005
+let parameters = trainStateNew.parameters
+	states     = trainStateNew.states
+	#------------------------------------------------------------------------------
+	# Model Prognosis
+	ysHat = model(xs', parameters, states)[1]
+	corr  = cor(ys, ysHat')[1]
+	corr2 = corr^2
+	ssqLoss = mseLoss*length(xs)
+	#------------------------------------------------------------------------------
+	# Plots
+	scatter(xs, ys, label=" data: (y,x)", 
+		title="Univariate Linear Lux Model: Optimizing MSE", titlefontsize=12)
+	scatter!(xs, ysHat', label="E(y|x)", lw=2)
+    annotate!(0.32, -0.56, "r(´y`, x) = $corr", 10)
+	annotate!(0.32, -0.64, "r(´y`, x)^2 = $corr2", 10)
+	annotate!(0.32, -0.72, "SSQ = $ssqLoss", 10)
+	annotate!(0.32, -0.80, "MSE = $mseLoss", 10)
+	#------------------------------------------------------------------------------
 end # let
 
 # ╔═╡ 0e36b733-c2c9-4704-a0b4-132a8888da91
 md"
 ---
 ##### Summary
-This model run demonstrates the nearly perfect prediction quality of the the LUX.jl $linear\_1\_3\_1\_Model$ for the training data $ys$ by including a $tanh$-activation and the $Adam$-optimizer. The *mean-square-error* $mse$ is nearly *zero*, the *Pearson product-moment-correlation* $r$ is nearly *one*, and the proportion of criterion explained variance $r^2\cdot100.0 = 99.69\%$.
+This model run demonstrates the nearly perfect prediction quality of the the LUX.jl $linear\_1\_3\_1\_Model$ for the (error-free) training data $ys$ by including a $tanh$-activation and the *Adam*-optimizer. The *mean-square-error* $mse$ is nearly *zero*, the *Pearson product-moment-correlation*, and the proportion of criterion explained variance $r^2$ are nearly *one*. 
+To obtain these excellent results it was necessary to use the [Adam-optimizer](https://fluxml.ai/Optimisers.jl/dev/api/#Optimisers.Adam). We tried another optimizer, especially the stochastic $descent$-optimizer. The results were very good but not excellent.
 
 "
 
@@ -313,6 +365,8 @@ md"
 
 - **Prince, S.J.D.**; [*Notebook 3.1 -- Shallow neural networks I*](https://github.com/udlbook/udlbook/blob/main/Notebooks/Chap03/3_1_Shallow_Networks_I.ipynb)); last visit 2024/05/10
 
+- **Wikipedia**; [*Stochastic Gradient Descent: ADAM*](https://en.wikipedia.org/wiki/Stochastic_gradient_descent#Adam); last visit 2024/06/04
+
 "
 
 # ╔═╡ 2eb3fe8c-6d0f-47b1-8252-189e81b3ffe7
@@ -328,6 +382,8 @@ This is a **draft** under the Attribution-NonCommercial-ShareAlike 4.0 Internati
 PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
 ADTypes = "47edcb42-4c32-4615-8424-f2b9edc5f35b"
+ComponentArrays = "b0b7db55-cfe3-40fc-9ded-d10e2dbeff66"
+Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
 LaTeXStrings = "b964fa9f-0449-5b57-a5c2-d3ea65f4040f"
 Latexify = "23fbe1c1-3f47-55db-b15f-69d7ec21a316"
 Lux = "b2108857-7c20-44ae-9111-449ecde12c47"
@@ -340,6 +396,8 @@ Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
 
 [compat]
 ADTypes = "~0.2.6"
+ComponentArrays = "~0.15.8"
+Distributions = "~0.25.107"
 LaTeXStrings = "~1.3.1"
 Latexify = "~0.16.1"
 Lux = "~0.5.17"
@@ -354,7 +412,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.10.3"
 manifest_format = "2.0"
-project_hash = "9ac41a42444c50bbc10e33eada2fc0b69ce893cb"
+project_hash = "90cbdf5529a131a436c91ddc5d71be8caa5b906c"
 
 [[deps.ADTypes]]
 git-tree-sha1 = "41c37aa88889c171f1300ceac1313c06e891d245"
@@ -442,6 +500,12 @@ git-tree-sha1 = "4b859a208b2397a7a623a03449e4636bdb17bcf2"
 uuid = "83423d85-b0ee-5818-9007-b63ccbeb887a"
 version = "1.16.1+1"
 
+[[deps.Calculus]]
+deps = ["LinearAlgebra"]
+git-tree-sha1 = "f641eb0a4f00c343bbc32346e1217b86f3ce9dad"
+uuid = "49dc2e85-a5d0-5ad3-a950-438e2897f1b9"
+version = "0.5.1"
+
 [[deps.ChainRules]]
 deps = ["Adapt", "ChainRulesCore", "Compat", "Distributed", "GPUArraysCore", "IrrationalConstants", "LinearAlgebra", "Random", "RealDot", "SparseArrays", "SparseInverseSubset", "Statistics", "StructArrays", "SuiteSparse"]
 git-tree-sha1 = "4e42872be98fa3343c4f8458cbda8c5c6a6fa97c"
@@ -512,6 +576,32 @@ weakdeps = ["Dates", "LinearAlgebra"]
 deps = ["Artifacts", "Libdl"]
 uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
 version = "1.1.1+0"
+
+[[deps.ComponentArrays]]
+deps = ["ArrayInterface", "ChainRulesCore", "ForwardDiff", "Functors", "LinearAlgebra", "PackageExtensionCompat", "StaticArrayInterface", "StaticArraysCore"]
+git-tree-sha1 = "871ddbe6da7d257a2fe983d427c1e8a37f8caaf8"
+uuid = "b0b7db55-cfe3-40fc-9ded-d10e2dbeff66"
+version = "0.15.8"
+
+    [deps.ComponentArrays.extensions]
+    ComponentArraysAdaptExt = "Adapt"
+    ComponentArraysConstructionBaseExt = "ConstructionBase"
+    ComponentArraysGPUArraysExt = "GPUArrays"
+    ComponentArraysRecursiveArrayToolsExt = "RecursiveArrayTools"
+    ComponentArraysReverseDiffExt = "ReverseDiff"
+    ComponentArraysSciMLBaseExt = "SciMLBase"
+    ComponentArraysTrackerExt = "Tracker"
+    ComponentArraysZygoteExt = "Zygote"
+
+    [deps.ComponentArrays.weakdeps]
+    Adapt = "79e6a3ab-5dfb-504d-930d-738a2a938a0e"
+    ConstructionBase = "187b0558-2788-49d3-abe0-74a17ed4e7c9"
+    GPUArrays = "0c68f7d7-f131-5f86-a1c3-88cf8149b2d7"
+    RecursiveArrayTools = "731186ca-8d62-57ce-b412-fbd966d074cd"
+    ReverseDiff = "37e2e3b7-166d-5795-8a7a-e32c996b4267"
+    SciMLBase = "0bca4576-84f4-4d90-8ffe-ffa030f20462"
+    Tracker = "9f7883ad-71c0-57eb-9f7f-b5c9e6d3789c"
+    Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
 
 [[deps.ConcreteStructs]]
 git-tree-sha1 = "f749037478283d372048690eb3b5f92a79432b34"
@@ -585,6 +675,22 @@ version = "1.15.1"
 deps = ["Random", "Serialization", "Sockets"]
 uuid = "8ba89e20-285c-5b6f-9357-94700520ee1b"
 
+[[deps.Distributions]]
+deps = ["FillArrays", "LinearAlgebra", "PDMats", "Printf", "QuadGK", "Random", "SpecialFunctions", "Statistics", "StatsAPI", "StatsBase", "StatsFuns"]
+git-tree-sha1 = "7c302d7a5fec5214eb8a5a4c466dcf7a51fcf169"
+uuid = "31c24e10-a181-5473-b8eb-7969acd0382f"
+version = "0.25.107"
+
+    [deps.Distributions.extensions]
+    DistributionsChainRulesCoreExt = "ChainRulesCore"
+    DistributionsDensityInterfaceExt = "DensityInterface"
+    DistributionsTestExt = "Test"
+
+    [deps.Distributions.weakdeps]
+    ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
+    DensityInterface = "b429d917-457f-4dbc-8f4c-0cc954292b1d"
+    Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
 [[deps.DocStringExtensions]]
 deps = ["LibGit2"]
 git-tree-sha1 = "2fb1e02f2b635d0845df5d7c167fec4dd739b00d"
@@ -595,6 +701,12 @@ version = "0.9.3"
 deps = ["ArgTools", "FileWatching", "LibCURL", "NetworkOptions"]
 uuid = "f43a241f-c20a-4ad4-852c-f6b1247861c6"
 version = "1.6.0"
+
+[[deps.DualNumbers]]
+deps = ["Calculus", "NaNMath", "SpecialFunctions"]
+git-tree-sha1 = "5837a837389fccf076445fce071c8ddaea35a566"
+uuid = "fa6b7ba4-c1ee-5f82-b5fc-ecf0adba8f74"
+version = "0.6.8"
 
 [[deps.EpollShim_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl"]
@@ -634,16 +746,12 @@ deps = ["LinearAlgebra", "Random"]
 git-tree-sha1 = "5b93957f6dcd33fc343044af3d48c215be2562f1"
 uuid = "1a297f60-69ca-5386-bcde-b61e274b549b"
 version = "1.9.3"
+weakdeps = ["PDMats", "SparseArrays", "Statistics"]
 
     [deps.FillArrays.extensions]
     FillArraysPDMatsExt = "PDMats"
     FillArraysSparseArraysExt = "SparseArrays"
     FillArraysStatisticsExt = "Statistics"
-
-    [deps.FillArrays.weakdeps]
-    PDMats = "90014a1f-27ba-587c-ab20-58faa44d9150"
-    SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
-    Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 
 [[deps.FixedPointNumbers]]
 deps = ["Statistics"]
@@ -760,11 +868,22 @@ git-tree-sha1 = "129acf094d168394e80ee1dc4bc06ec835e510a3"
 uuid = "2e76f6c2-a576-52d4-95c1-20adfe4de566"
 version = "2.8.1+1"
 
+[[deps.HypergeometricFunctions]]
+deps = ["DualNumbers", "LinearAlgebra", "OpenLibm_jll", "SpecialFunctions"]
+git-tree-sha1 = "f218fe3736ddf977e0e772bc9a586b2383da2685"
+uuid = "34004b35-14d8-5ef3-9330-4cdb6864b03a"
+version = "0.3.23"
+
 [[deps.IRTools]]
 deps = ["InteractiveUtils", "MacroTools", "Test"]
 git-tree-sha1 = "5d8c5713f38f7bc029e26627b687710ba406d0dd"
 uuid = "7869d1d1-7146-5819-86e3-90919afe41df"
 version = "0.4.12"
+
+[[deps.IfElse]]
+git-tree-sha1 = "debdd00ffef04665ccbb3e150747a77560e8fad1"
+uuid = "615f187c-cbe4-4ef1-ba3b-2fcf58d6d173"
+version = "0.1.1"
 
 [[deps.InteractiveUtils]]
 deps = ["Markdown"]
@@ -1183,6 +1302,18 @@ deps = ["Artifacts", "Libdl"]
 uuid = "efcefdf7-47ab-520b-bdef-62a2eaa19f15"
 version = "10.42.0+1"
 
+[[deps.PDMats]]
+deps = ["LinearAlgebra", "SparseArrays", "SuiteSparse"]
+git-tree-sha1 = "949347156c25054de2db3b166c52ac4728cbad65"
+uuid = "90014a1f-27ba-587c-ab20-58faa44d9150"
+version = "0.11.31"
+
+[[deps.PackageExtensionCompat]]
+git-tree-sha1 = "fb28e33b8a95c4cee25ce296c817d89cc2e53518"
+uuid = "65ce6f38-6b18-4e1d-a461-8949797d7930"
+version = "1.0.2"
+weakdeps = ["Requires", "TOML"]
+
 [[deps.Parsers]]
 deps = ["Dates", "PrecompileTools", "UUIDs"]
 git-tree-sha1 = "8489905bcdbcfac64d1daa51ca07c0d8f0283821"
@@ -1265,6 +1396,12 @@ git-tree-sha1 = "37b7bb7aabf9a085e0044307e1717436117f2b3b"
 uuid = "c0090381-4147-56d7-9ebc-da0b1113ec56"
 version = "6.5.3+1"
 
+[[deps.QuadGK]]
+deps = ["DataStructures", "LinearAlgebra"]
+git-tree-sha1 = "9b23c31e76e333e6fb4c1595ae6afa74966a729e"
+uuid = "1fd47b50-473d-5c70-9696-f719f8f3bcdc"
+version = "2.9.4"
+
 [[deps.REPL]]
 deps = ["InteractiveUtils", "Markdown", "Sockets", "Unicode"]
 uuid = "3fa0cd96-eef1-5676-8a61-b3b8758bbffb"
@@ -1307,6 +1444,18 @@ deps = ["UUIDs"]
 git-tree-sha1 = "838a3a4188e2ded87a4f9f184b4b0d78a1e91cb7"
 uuid = "ae029012-a4dd-5104-9daa-d747884805df"
 version = "1.3.0"
+
+[[deps.Rmath]]
+deps = ["Random", "Rmath_jll"]
+git-tree-sha1 = "f65dcb5fa46aee0cf9ed6274ccbd597adc49aa7b"
+uuid = "79098fc4-a85e-5d69-aa6a-4863f24498fa"
+version = "0.7.1"
+
+[[deps.Rmath_jll]]
+deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
+git-tree-sha1 = "6ed52fdd3382cf21947b15e8870ac0ddbff736da"
+uuid = "f50d1b31-88e8-58de-be2c-1cc44531875f"
+version = "0.4.0+0"
 
 [[deps.SHA]]
 uuid = "ea8e919c-243c-51af-8825-aaa63cd721ce"
@@ -1368,6 +1517,26 @@ weakdeps = ["ChainRulesCore"]
     [deps.SpecialFunctions.extensions]
     SpecialFunctionsChainRulesCoreExt = "ChainRulesCore"
 
+[[deps.Static]]
+deps = ["IfElse"]
+git-tree-sha1 = "d2fdac9ff3906e27f7a618d47b676941baa6c80c"
+uuid = "aedffcd0-7271-4cad-89d0-dc628f76c6d3"
+version = "0.8.10"
+
+[[deps.StaticArrayInterface]]
+deps = ["ArrayInterface", "Compat", "IfElse", "LinearAlgebra", "PrecompileTools", "Requires", "SparseArrays", "Static", "SuiteSparse"]
+git-tree-sha1 = "5d66818a39bb04bf328e92bc933ec5b4ee88e436"
+uuid = "0d7ed370-da01-4f52-bd93-41d350b8b718"
+version = "1.5.0"
+
+    [deps.StaticArrayInterface.extensions]
+    StaticArrayInterfaceOffsetArraysExt = "OffsetArrays"
+    StaticArrayInterfaceStaticArraysExt = "StaticArrays"
+
+    [deps.StaticArrayInterface.weakdeps]
+    OffsetArrays = "6fe1bfb0-de20-5000-8ca7-80f57d26f881"
+    StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
+
 [[deps.StaticArrays]]
 deps = ["LinearAlgebra", "PrecompileTools", "Random", "StaticArraysCore"]
 git-tree-sha1 = "7b0e9c14c624e435076d19aea1e5cbdec2b9ca37"
@@ -1400,6 +1569,20 @@ deps = ["DataAPI", "DataStructures", "LinearAlgebra", "LogExpFunctions", "Missin
 git-tree-sha1 = "1d77abd07f617c4868c33d4f5b9e1dbb2643c9cf"
 uuid = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 version = "0.34.2"
+
+[[deps.StatsFuns]]
+deps = ["HypergeometricFunctions", "IrrationalConstants", "LogExpFunctions", "Reexport", "Rmath", "SpecialFunctions"]
+git-tree-sha1 = "cef0472124fab0695b58ca35a77c6fb942fdab8a"
+uuid = "4c63d2b9-4356-54db-8cca-17b64c39e42c"
+version = "1.3.1"
+
+    [deps.StatsFuns.extensions]
+    StatsFunsChainRulesCoreExt = "ChainRulesCore"
+    StatsFunsInverseFunctionsExt = "InverseFunctions"
+
+    [deps.StatsFuns.weakdeps]
+    ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
+    InverseFunctions = "3587e190-3f89-42d0-90ee-14403ec27112"
 
 [[deps.StructArrays]]
 deps = ["Adapt", "ConstructionBase", "DataAPI", "GPUArraysCore", "StaticArraysCore", "Tables"]
@@ -1852,32 +2035,38 @@ version = "1.4.1+1"
 # ╠═ac4ddb81-978d-4c70-bd45-e217cc5be352
 # ╟─0d06e781-817c-4928-bb50-72da26b692e2
 # ╠═d4d60fc6-9379-4ea5-aa5b-5b0429139c53
+# ╠═3e55bc45-39d9-4ba1-884e-422436a2213c
 # ╟─f022025a-f86b-40e6-b5d8-6ed386606e4d
+# ╟─1d13bbcb-a4b1-4ba2-9806-ff48c085ffba
 # ╠═87b4aa2a-930d-4348-b090-69920939b9d2
+# ╟─1bdf9513-7a5a-477b-a321-71d625a8d4b5
 # ╠═4d37b249-863f-4ed9-998e-d25b1ccc5ce2
+# ╠═e5d21be0-b856-4916-a210-eafd3c4bcfa1
 # ╠═6cc29c41-3bb6-4e16-8a4f-3ef8ee883c2a
 # ╟─657eacc6-8987-4e31-aae9-f47e5c146203
-# ╟─11d1143c-1f2d-4f49-a951-aa9ff0b8ef29
 # ╠═48fd38be-fe6a-4fab-9268-749915ebd6dc
+# ╟─6e4ecbc7-f1c5-4ff1-b52e-65dff15c25df
+# ╠═62515c04-e36e-4aef-a28b-920f14dd51a5
 # ╟─0f0a0010-3140-4104-9c4a-d794e7e22780
 # ╠═c810cfe9-f686-4983-a690-5776f6b8ac94
-# ╟─d734461e-97d9-4003-a04d-a5d5e9d6dba0
-# ╠═278ed88f-d6a0-4c3b-a67b-97f7ec1ca562
+# ╠═225f64ee-8cf3-4817-a82e-629e10932d55
+# ╠═a11e5539-3598-4aac-8a65-aabd5589c642
+# ╠═d247b5cd-29d6-46c8-8dbe-5a201148aa73
+# ╠═69000d94-e65c-4480-9c08-bc0a6614ae24
+# ╠═859875c1-87e0-4e16-9c02-c1167d532fdc
+# ╠═62ef2c0c-4238-4f47-b273-197b65ad58bf
 # ╟─16be76a6-cc4e-4623-a497-0300e82e8909
-# ╠═74e19ca4-b968-4532-8d25-ef7a04c51e57
-# ╠═ff856901-2b3d-47cf-824c-a1fbdff304da
-# ╟─d2d82635-4c61-4416-87ca-c43b6a283f70
-# ╠═4c98be17-b989-4a32-8c4d-bada66127076
-# ╠═4b2c0f3c-08f6-4d07-9e10-457142b505c2
-# ╠═0b218572-66e0-4925-bea4-bc2f6534eac8
-# ╟─43411887-53c6-48b3-bb85-c522b3ccf978
-# ╠═83aee5f9-e78b-4aed-af39-12ece1b27581
-# ╠═744c0467-8154-4c6e-a913-723ac5037bd2
-# ╠═1f060041-f56f-453d-9f8c-d98b89757301
+# ╟─4bcce0ee-2f16-4fac-a571-305384bdba45
+# ╠═051464bd-d80f-4c59-821f-73f768939a4d
+# ╠═5637c9b4-2898-400b-8a45-4bfe620c5efe
+# ╠═e4eba2a8-0cc9-4043-8c14-019ac930071a
+# ╟─4d48f470-44c2-42d2-890c-99f5319cc101
+# ╟─72e5664c-03e6-43c9-9f95-ab2229d4ec9a
+# ╠═e2944e10-127e-4205-be6c-08db51b8a90d
+# ╠═c8f7506b-54f3-4f6c-90c5-db49d6610745
 # ╟─77cce0de-a15c-4286-bb37-4013a8a631fa
-# ╠═ddb3f055-5bb9-48f3-9313-2402b3204961
-# ╠═dc42ac3e-a618-49d8-8388-602fdae94446
-# ╠═df76389b-cbb1-4d96-a13b-92c419361359
+# ╠═83a6e856-5bf8-403d-8a0e-af4eb3d095f1
+# ╠═f6b3e87c-af62-4d55-8508-401a032be005
 # ╟─0e36b733-c2c9-4704-a0b4-132a8888da91
 # ╟─220f633c-db9e-4153-9e82-30f5b91e3b45
 # ╟─2eb3fe8c-6d0f-47b1-8252-189e81b3ffe7
