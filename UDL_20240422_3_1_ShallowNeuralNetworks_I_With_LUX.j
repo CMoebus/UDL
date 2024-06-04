@@ -207,7 +207,6 @@ md"
 begin
 	const N  = length(xs)                      # number of subjects, replications, etc
 	#---------------------------------------------------------------------------------
-	# Stochastic Gradient Descent (SGD) with a learning rate of 0.01.
 	# Definition of Optimizer
 	η = 0.03f0                                 # learning rate
 	optimizer = Adam(η)
