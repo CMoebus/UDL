@@ -21,7 +21,7 @@ md"
 #### UDL\_20240422\_3\_1\_ShallowNeuralNetworks\_I\_With\_LUX.j
 ##### title: Fitting a Polynomial using [*MultiLayer Perceptron*](https://lux.csail.mit.edu/dev/tutorials/beginner/2_PolynomialFitting#Fitting-a-Polynomial-using-MLP) (*MLP*)
 ##### file: UDL\_20240422\_3\_1\_ShallowNeuralNetworks\_I\_With\_LUX.j
-##### code: Julia 1.10.3/Pluto by *** LUX.jl team and PCM 2024/06/04 ***
+##### code: Julia 1.10.4/Pluto by *** LUX.jl team and PCM 2024/06/15 ***
 =====================================================================================
 "
 
@@ -135,9 +135,6 @@ begin                           # number of paremeters = 10
 	#-------------------------------------------------------------------------------
 end # begin
 
-# ╔═╡ 3e55bc45-39d9-4ba1-884e-422436a2213c
-typeof(0.3f0)
-
 # ╔═╡ f022025a-f86b-40e6-b5d8-6ed386606e4d
 md"
 ---
@@ -164,12 +161,16 @@ md"
 ys, rest... = 
 	shallow_1_3_1(xs, relu, ϕ0, ϕ1, ϕ2, ϕ3, θ10, θ11, θ20, θ21, θ30, θ31)
 
-# ╔═╡ e5d21be0-b856-4916-a210-eafd3c4bcfa1
-typeof(xs), typeof(ys)
-
 # ╔═╡ 6cc29c41-3bb6-4e16-8a4f-3ef8ee883c2a
 # plot of generated data
 scatter(xs, ys, title="Generator Output: Error-free 2D-Training Data", label=L"data: (x, y)", xlabel=L"x", ylabel=L"y", titlefontsize=12)
+
+# ╔═╡ 9785eef7-4c8e-4435-a16f-59719bde1a92
+md"
+---
+###### 2.6. Data Preparation for $LUX.jl$
+Fusion of *vectors* $xs, ys$ into matrix $data$.
+"
 
 # ╔═╡ 657eacc6-8987-4e31-aae9-f47e5c146203
 md"
@@ -203,7 +204,7 @@ md"
 "
 
 
-# ╔═╡ c810cfe9-f686-4983-a690-5776f6b8ac94
+# ╔═╡ 576e5636-a42f-4246-81ab-e567d40a03ff
 begin
 	const N  = length(xs)                      # number of subjects, replications, etc
 	#---------------------------------------------------------------------------------
@@ -218,6 +219,20 @@ begin
 	model, parameters, states, opt_state, step = 
 		trainState.model, trainState.parameters, trainState.states, trainState.optimizer_state, trainState.step
 end # begin
+
+# ╔═╡ b46af9c0-a0a7-4721-b4b1-2cfec38d7ab9
+begin 
+	#------------------------------------------------------------------------------
+	data = Array{Float32}(undef, (2, N))
+	#------------------------------------------------------------------------------
+	data[1, :] = xs                    # 1st input (= 1st row) of data matrix
+	data[2, :] = ys                    # output    (= 3rd row) of data matrix
+	#------------------------------------------------------------------------------
+	data, xs, ys                           
+end # begin
+
+# ╔═╡ e5d21be0-b856-4916-a210-eafd3c4bcfa1
+typeof(data), typeof(xs), typeof(ys)
 
 # ╔═╡ 225f64ee-8cf3-4817-a82e-629e10932d55
 trainState
@@ -260,15 +275,31 @@ vjp_rule = AutoZygote()                          # vjp = Vector-Jacobian Product
 dev_cpu = cpu_device()
 
 # ╔═╡ e4eba2a8-0cc9-4043-8c14-019ac930071a
-function myMse(model, parameters, states, data)
-	xs = data[1]
-	ys = data[2]
+function myMse(model, parameters, states, dataTuple)
+	xs = dataTuple[1]                                      # 1st element of tuple
+	ys = dataTuple[2]                                      # 2nd element of tuple
 	# ysPredicted, states = Lux.apply(model, data[1], parameters, states)
 	# Lux.apply(model, data[1], parameters, states) == model(xs, parameters, states)
 	ysPredicted, states = model(xs, parameters, states)
     mseLoss = mean(abs2, ysPredicted .- ys)
     mseLoss, states, ()
 end # function myMse
+
+# ╔═╡ 918126d1-6eae-4d9c-8604-a1e9928cdf52
+data
+
+# ╔═╡ a4a5764a-4811-4852-8304-3b5a554246c3
+data'
+
+# ╔═╡ 5299ef37-b3d4-45b0-8e88-e726536b02d1
+# myMse(model, parameters, states, data)
+myMse(model, parameters, states, (xs', ys'))
+
+# ╔═╡ 89bef32d-4e31-46e0-9014-c21b1e1bb0b0
+size(xs), size(ys)
+
+# ╔═╡ 4de54bff-e410-4785-82b9-9faef8b4c315
+size(xs'), size(ys')
 
 # ╔═╡ 4d48f470-44c2-42d2-890c-99f5319cc101
 md"
@@ -278,39 +309,39 @@ md"
 
 # ╔═╡ 72e5664c-03e6-43c9-9f95-ab2229d4ec9a
 md"
----
 ###### [Training.compute_gradients](https://lux.csail.mit.edu/v0.5.16/api/Lux/contrib.html)
 ###### [Training.apply_gradients](https://lux.csail.mit.edu/v0.5.16/api/Lux/contrib.html)
 
 "
 
 
-# ╔═╡ e2944e10-127e-4205-be6c-08db51b8a90d
+# ╔═╡ 8e6966d0-5f40-4042-84f4-cf2faad2fa3e
 function iterationLoop(trainState, vjp, data)
 	lossOld = Inf
-	loss    = 0.0
+	lossNew = 0.0
 	epochs  = 0
 	#--------------------------------------------------------------------------------
-	while !isapprox(abs(lossOld - loss), 0.0)
-		lossOld = loss
+	while !isapprox(abs(lossOld - lossNew), 0.0)
+		lossOld = lossNew
 		epochs += 1 
-		grads, loss, stats, trainState = 
+		grads, lossNew, stats, trainState = 
 			Lux.Training.compute_gradients(vjp, myMse, data, trainState)
-	    if (epochs % 100) == 0  
-			println(lazy"MSE-Loss Value after $epochs iterations: $loss")
+	    if (epochs % 10) == 0  
+			println(lazy"MSE-Loss Value after $epochs iterations: $lossNew")
 		end # if
 		trainState = Lux.Training.apply_gradients(trainState, grads)
 	end # while
 	#--------------------------------------------------------------------------------
-	println(lazy"MSE-Loss Value after $epochs iterations: $loss")    # final ssq result
-	ssqLoss = loss*N
-	println(lazy"SSQ-Loss Value after $epochs iterations: $ssqLoss") # final mse result)
-	trainState, loss   
+	println(lazy"MSE-Loss Value after $epochs iterations: $lossNew")    # final ssq result
+	ssqLoss = lossNew * N
+	println(lazy"SSQ-Loss Value after $epochs iterations: $ssqLoss")    # final mse result)
+	trainState, lossNew   
 end # function iterationLoop
 
-# ╔═╡ c8f7506b-54f3-4f6c-90c5-db49d6610745
+# ╔═╡ 9c8817f2-ebdd-4680-840f-a365fe82e1ba
 trainStateNew, mseLoss = 
 	iterationLoop(trainState, vjp_rule, (xs', ys'))
+	# iterationLoop(trainState, vjp_rule, data')
 
 # ╔═╡ 77cce0de-a15c-4286-bb37-4013a8a631fa
 md"
@@ -319,7 +350,7 @@ md"
 "
 
 # ╔═╡ 83a6e856-5bf8-403d-8a0e-af4eb3d095f1
-mseLoss
+"final mseLoss = $mseLoss"
 
 # ╔═╡ f6b3e87c-af62-4d55-8508-401a032be005
 let parameters = trainStateNew.parameters
@@ -332,13 +363,13 @@ let parameters = trainStateNew.parameters
 	ssqLoss = mseLoss*length(xs)
 	#------------------------------------------------------------------------------
 	# Plots
-	scatter(xs, ys, label=" data: (y,x)", 
+	scatter(xs, ys, label="data: (y,x)", 
 		title="Univariate Linear Lux Model: Optimizing MSE", titlefontsize=12)
-	scatter!(xs, ysHat', label="E(y|x)", lw=2)
-    annotate!(0.32, -0.56, "r(´y`, x) = $corr", 10)
-	annotate!(0.32, -0.64, "r(´y`, x)^2 = $corr2", 10)
-	annotate!(0.32, -0.72, "SSQ = $ssqLoss", 10)
-	annotate!(0.32, -0.80, "MSE = $mseLoss", 10)
+	scatter!(xs, ysHat', label=L"E(y|\phi x)", lw=2)
+    annotate!(0.75, +.04, "r(yHat, x) = $corr", 10)
+	annotate!(0.75, -.04, "r(yHat, x)^2 = $corr2", 10)
+	annotate!(0.75, -.12, "SSQ = $ssqLoss", 10)
+	annotate!(0.75, -.20, "MSE = $mseLoss", 10)
 	#------------------------------------------------------------------------------
 end # let
 
@@ -409,7 +440,7 @@ Zygote = "~0.6.69"
 PLUTO_MANIFEST_TOML_CONTENTS = """
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.10.3"
+julia_version = "1.10.4"
 manifest_format = "2.0"
 project_hash = "90cbdf5529a131a436c91ddc5d71be8caa5b906c"
 
@@ -2034,20 +2065,21 @@ version = "1.4.1+1"
 # ╠═ac4ddb81-978d-4c70-bd45-e217cc5be352
 # ╟─0d06e781-817c-4928-bb50-72da26b692e2
 # ╠═d4d60fc6-9379-4ea5-aa5b-5b0429139c53
-# ╠═3e55bc45-39d9-4ba1-884e-422436a2213c
 # ╟─f022025a-f86b-40e6-b5d8-6ed386606e4d
 # ╟─1d13bbcb-a4b1-4ba2-9806-ff48c085ffba
 # ╠═87b4aa2a-930d-4348-b090-69920939b9d2
 # ╟─1bdf9513-7a5a-477b-a321-71d625a8d4b5
 # ╠═4d37b249-863f-4ed9-998e-d25b1ccc5ce2
-# ╠═e5d21be0-b856-4916-a210-eafd3c4bcfa1
 # ╠═6cc29c41-3bb6-4e16-8a4f-3ef8ee883c2a
+# ╟─9785eef7-4c8e-4435-a16f-59719bde1a92
+# ╠═b46af9c0-a0a7-4721-b4b1-2cfec38d7ab9
+# ╠═e5d21be0-b856-4916-a210-eafd3c4bcfa1
 # ╟─657eacc6-8987-4e31-aae9-f47e5c146203
 # ╠═48fd38be-fe6a-4fab-9268-749915ebd6dc
 # ╟─6e4ecbc7-f1c5-4ff1-b52e-65dff15c25df
 # ╠═62515c04-e36e-4aef-a28b-920f14dd51a5
 # ╟─0f0a0010-3140-4104-9c4a-d794e7e22780
-# ╠═c810cfe9-f686-4983-a690-5776f6b8ac94
+# ╠═576e5636-a42f-4246-81ab-e567d40a03ff
 # ╠═225f64ee-8cf3-4817-a82e-629e10932d55
 # ╠═a11e5539-3598-4aac-8a65-aabd5589c642
 # ╠═d247b5cd-29d6-46c8-8dbe-5a201148aa73
@@ -2059,10 +2091,15 @@ version = "1.4.1+1"
 # ╠═051464bd-d80f-4c59-821f-73f768939a4d
 # ╠═5637c9b4-2898-400b-8a45-4bfe620c5efe
 # ╠═e4eba2a8-0cc9-4043-8c14-019ac930071a
+# ╠═918126d1-6eae-4d9c-8604-a1e9928cdf52
+# ╠═a4a5764a-4811-4852-8304-3b5a554246c3
+# ╠═5299ef37-b3d4-45b0-8e88-e726536b02d1
+# ╠═89bef32d-4e31-46e0-9014-c21b1e1bb0b0
+# ╠═4de54bff-e410-4785-82b9-9faef8b4c315
 # ╟─4d48f470-44c2-42d2-890c-99f5319cc101
 # ╟─72e5664c-03e6-43c9-9f95-ab2229d4ec9a
-# ╠═e2944e10-127e-4205-be6c-08db51b8a90d
-# ╠═c8f7506b-54f3-4f6c-90c5-db49d6610745
+# ╠═8e6966d0-5f40-4042-84f4-cf2faad2fa3e
+# ╠═9c8817f2-ebdd-4680-840f-a365fe82e1ba
 # ╟─77cce0de-a15c-4286-bb37-4013a8a631fa
 # ╠═83a6e856-5bf8-403d-8a0e-af4eb3d095f1
 # ╠═f6b3e87c-af62-4d55-8508-401a032be005
