@@ -43,7 +43,7 @@ md"
 =====================================================================================
 #### UDL\_20240623\_4\_2\_Clipping\_Functions.jl
 ##### file: UDL\_20240623\_4\_2\_ClippingFunctions.jl
-##### code: Julia 1.10.4/Pluto by *** PCM 2024/06/26 ***
+##### code: Julia 1.10.4/Pluto by *** PCM 2024/06/27 ***
 
 =====================================================================================
 "
@@ -81,9 +81,9 @@ $\;$
 
 $\;$
 
-$h_{21} = a(ψ_{10} + ψ_{11}h_{11} + ψ_{12}h_{12} + ψ_{13}h_{13}$
-$h_{22} = a(ψ_{20} + ψ_{21}h_{11} + ψ_{22}h_{12} + ψ_{23}h_{13}$
-$h_{23} = a(ψ_{30} + ψ_{31}h_{11} + ψ_{32}h_{12} + ψ_{23}h_{13}$
+$h_{21} = a(ψ_{10} + ψ_{11}h_{11} + ψ_{12}h_{12} + ψ_{13}h_{13})$
+$h_{22} = a(ψ_{20} + ψ_{21}h_{11} + ψ_{22}h_{12} + ψ_{23}h_{13})$
+$h_{23} = a(ψ_{30} + ψ_{31}h_{11} + ψ_{32}h_{12} + ψ_{23}h_{13})$
 
 $\;$
 
@@ -191,12 +191,12 @@ shallow_1_3_3_1(xs, relu, θ, ψ, ϕ)
 
 # ╔═╡ 2b71c0f4-08a6-4c55-82d6-b5e10c1a7934
 let plot1  = 
-		plot(xs, layer1_preact1, label=L"lay1\_preact1", title=L"θ_{10}+θ_{11}", titlefontsize=12)
+		plot(xs, layer1_preact1, label=L"lay1\_preact1", title=L"θ_{10}+θ_{11}")
 	plot2  = 
-		plot(xs, layer1_preact2, label=L"lay1\_preact2", title=L"θ_{20}+θ_{21}", titlefontsize=12)
+		plot(xs, layer1_preact2, label=L"lay1\_preact2", title=L"θ_{20}+θ_{21}")
 	plot3  = 
-		plot(xs, layer1_preact3, label=L"lay1\_preact3", title=L"θ_{30}+θ_{31}", titlefontsize=12)
-	plot(plot1, plot2, plot3, ylimit=(-1, 1))
+		plot(xs, layer1_preact3, label=L"lay1\_preact3", title=L"θ_{30}+θ_{31}")
+	plot(plot1, plot2, plot3, ylimit=(-1, 1), lw=2, titlefontsize=12)
 end # let
 
 # ╔═╡ 8bf77016-1e5c-4f38-a6d1-829cb22c31bd
@@ -204,12 +204,12 @@ h11[1], h12[1], h13[1], h11[101], h12[101], h13[101]
 
 # ╔═╡ efc36bd5-f4f7-41df-b752-6eb846b38626
 let plot4  = 
-		plot(xs, h11, label=L"h11", xlabel=L"xs", ylabel=L"h_{11}", title=L"h_{11}=a(θ_{10}+θ_{11})", titlefontsize=12)
+		plot(xs, h11, label=L"h11", xlabel=L"xs", ylabel=L"h_{11}", title=L"h_{11}=a(θ_{10}+θ_{11})")
 	plot5  = 
-		plot(xs, h12, label=L"h12", xlabel=L"xs", ylabel=L"h_{12}", title=L"h_{12}=a(θ_{20}+θ_{21})", titlefontsize=12)
+		plot(xs, h12, label=L"h12", xlabel=L"xs", ylabel=L"h_{12}", title=L"h_{12}=a(θ_{20}+θ_{21})")
 	plot6  = 
-		plot(xs, h13, label=L"h13", xlabel=L"xs", ylabel=L"h_{13}", title=L"h_{13}=a(θ_{30}+θ_{31})", titlefontsize=12)
-	plot(plot4, plot5, plot6, ylimit=(0, 1))
+		plot(xs, h13, label=L"h13", xlabel=L"xs", ylabel=L"h_{13}", title=L"h_{13}=a(θ_{30}+θ_{31})")
+	plot(plot4, plot5, plot6, ylimit=(0, 1), lw=2, titlefontsize=12)
 end # let
 
 # ╔═╡ faee154f-a1d2-41fa-bcc0-9ca1883a4f65
@@ -217,29 +217,26 @@ layer2_preact1[1], layer2_preact2[1], layer2_preact3[1], layer2_preact1[101], la
 
 # ╔═╡ f43c575b-d9aa-499f-ac8f-b4a378b66143
 let plot7  = 
-		plot(xs, layer2_preact1, label=L"lay2\_preact1", title=L"\psi_{10}+\psi_{11}*h_{11}+\psi_{12}*h_{12}+\psi_{13}*h_{13}", titlefontsize=10)
+		plot(xs, layer2_preact1, label=L"lay2\_preact1", title=L"\psi_{10}+\psi_{11}*h_{11}+\psi_{12}*h_{12}+\psi_{13}*h_{13}")
 	plot8  = 
-		plot(xs, layer2_preact2, label=L"lay2\_preact2", title=L"\psi_{20}+\psi_{21}*h_{11}+\psi_{22}*h_{12}+\psi_{23}*h_{13}", titlefontsize=10)
+		plot(xs, layer2_preact2, label=L"lay2\_preact2", title=L"\psi_{20}+\psi_{21}*h_{11}+\psi_{22}*h_{12}+\psi_{23}*h_{13}")
 	plot9  = 
-		plot(xs, layer2_preact3, label=L"lay2\_preact3", title=L"\psi_{30}+\psi_{31}*h_{11}+\psi_{32}*h_{12}+\psi_{33}*h_{13}", titlefontsize=10)
-	plot(plot7, plot8, plot9, ylimit=(-1, 1))
+		plot(xs, layer2_preact3, label=L"lay2\_preact3", title=L"\psi_{30}+\psi_{31}*h_{11}+\psi_{32}*h_{12}+\psi_{33}*h_{13}")
+	plot(plot7, plot8, plot9, ylimit=(-1, 1), lw=2, titlefontsize=10)
 end # let
 
 # ╔═╡ 66b10e96-8c4c-4a1f-a79c-b422776510cb
-let plot10 = plot(xs, h21, label=L"h_{21}", title=L"h_{21}", titlefontsize=10)
-	plot11 = plot(xs, h22, label=L"h_{22}", title=L"h_{22}", titlefontsize=10)
-	plot12 = plot(xs, h23, label=L"h_{23}", title=L"h_{23}", titlefontsize=10)
-	plot(plot10, plot11, plot12, ylimit=(0, 1))
+let plot10 = plot(xs, h21, label=L"h_{21}", title=L"h_{21}")
+	plot11 = plot(xs, h22, label=L"h_{22}", title=L"h_{22}")
+	plot12 = plot(xs, h23, label=L"h_{23}", title=L"h_{23}")
+	plot(plot10, plot11, plot12, ylimit=(0, 1), lw=2, titlefontsize=10)
 end # let
 
 # ╔═╡ 40f2d336-b39c-4163-a568-5c106e36c94c
-let plot13 = 
-		plot(xs, wact1, label=L"\phi_1 h_{21}", title=L"\phi_1 h_{21}", titlefontsize=10)
-	plot14 = 
-		plot(xs, wact2, label=L"\phi_2 h_{22}", title=L"\phi_1 h_{22}", titlefontsize=10)
-	plot15 = 
-		plot(xs, wact3, label=L"\phi_1 h_{23}", title=L"\phi_1 h_{23}", titlefontsize=10)
-	plot(plot13, plot14, plot15, ylimit=(-1, 1))
+let plot13 = plot(xs, wact1, label=L"\phi_1 h_{21}", title=L"\phi_1 h_{21}")
+	plot14 = plot(xs, wact2, label=L"\phi_2 h_{22}", title=L"\phi_1 h_{22}")
+	plot15 = plot(xs, wact3, label=L"\phi_1 h_{23}", title=L"\phi_1 h_{23}")
+	plot(plot13, plot14, plot15, ylimit=(-1, 1), lw=2, titlefontsize=10)
 end # let
 
 # ╔═╡ e85ba136-02a6-436b-af56-839ef7110169
