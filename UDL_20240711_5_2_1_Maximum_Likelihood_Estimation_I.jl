@@ -450,30 +450,32 @@ Very plausible parameter values should have a high likelihood and less plausible
 
 $\;$
 
-$\hat{\mathbb \phi} = \underset{\mathbb \phi}{\operatorname{argmax}}\mathcal\ L(\mathbb \phi|x, y) = \underset{\mathbb \phi}{\operatorname{argmax}}\ log\left(\mathcal L(\mathbb \phi|x, y)\right) = \underset{\mathbb \phi}{\operatorname{argmax}}\mathcal\ l(\mathbb \phi|x, y)$
+The MLE is invariant against logarithmic transformations which have algebraic and numeric advantages:
+
+$\hat{\mathbb \phi}_{MLE} = \underset{\mathbb \phi}{\operatorname{argmax}}\mathcal\ L(\mathbb \phi|x, y) = \underset{\mathbb \phi}{\operatorname{argmax}}\ log\left(\mathcal L(\mathbb \phi|x, y)\right) = \underset{\mathbb \phi}{\operatorname{argmax}}\mathcal\ l(\mathbb \phi|x, y)$
 
 $\;$
 $\;$
 
-$\hat{\mathbb \phi} = \underset{\mathbb \phi}{\operatorname{argmax}} \mathcal\  L(\mathbb \phi|x, y) = \underset{\mathbb \phi}{\operatorname{argmax}}\left(\prod_{i=1}^N f\left(y_i| E(Y | x_i, \mathbb \phi)\right)\right) = \underset{\mathbb \phi}{\operatorname{argmax}}\left(\prod_{i=1}^N f(y_i|h(x_i,\mathbb \phi))\right)$
-
-$\;$
-$\;$
-$\;$
-
-$\hat{\mathbb \phi} = \underset{\mathbb \phi}{\operatorname{argmax}}\ log\left(\mathcal L(\mathbb \phi|x, y)\right) = \underset{\mathbb \phi}{\operatorname{argmax}}\ \mathcal l(\mathbb \phi|x, y) = \underset{\mathbb \phi}{\operatorname{argmax}}\left(log \prod_{i=1}^N f(y_i|h(x_i,\mathbb \phi))\right)$
+$\hat{\mathbb \phi}_{MLE} = \underset{\mathbb \phi}{\operatorname{argmax}} \mathcal\  L(\mathbb \phi|x, y) = \underset{\mathbb \phi}{\operatorname{argmax}}\left(\prod_{i=1}^N f(y_i|h(x_i,\mathbb \phi))\right)$
 
 $\;$
 $\;$
 $\;$
 
-$\hat{\mathbb \phi} = \underset{\mathbb \phi}{\operatorname{argmax}}\left(\sum_{i=1}^N log \left(f(y_i|h(x_i,\mathbb \phi)\right)\right)$
+$\hat{\mathbb \phi}_{MLE} = \underset{\mathbb \phi}{\operatorname{argmax}}\ log\left(\mathcal L(\mathbb \phi|x, y)\right) = \underset{\mathbb \phi}{\operatorname{argmax}}\ \mathcal l(\mathbb \phi|x, y) = \underset{\mathbb \phi}{\operatorname{argmax}}\left(log \prod_{i=1}^N f(y_i|h(x_i,\mathbb \phi))\right)$
 
 $\;$
 $\;$
 $\;$
 
-$\hat{\mathbb \phi} = \underset{\mathbb \phi}{\operatorname{argmin}}\left(-\sum_{i=1}^N log \left(f(y_i|h(x_i,\mathbb \phi)\right)\right)$
+$\hat{\mathbb \phi}_{MLE} =  \underset{\mathbb \phi}{\operatorname{argmax}}\ \mathcal l(\mathbb \phi|x, y) = \underset{\mathbb \phi}{\operatorname{argmax}}\left(\sum_{i=1}^N log \left(f(y_i|h(x_i,\mathbb \phi)\right)\right)$
+
+$\;$
+$\;$
+$\;$
+
+$\hat{\mathbb \phi}_{MLE} = \underset{\mathbb \phi}{\operatorname{argmin}}\left(-\sum_{i=1}^N log \left(f(y_i|h(x_i,\mathbb \phi)\right)\right)$
 
 $\;$
 $\;$
@@ -481,7 +483,7 @@ $\;$
 
 where:
 
-$\hat{\phi} = \text{ ML estimator of parameter vector }\mathbb \phi$
+$\hat{\phi}_{MLE} = \text{ ML estimator of parameter vector }\mathbb \phi$
 
 $\;$
 $\;$
@@ -495,11 +497,11 @@ $\;$
 # ╔═╡ fdf4c2ab-ba85-43c9-a33d-402979add2ab
 md"
 ---
-###### 3.2 MLE Grid Search of $\mu$ in Gaussian *log-likelihood*
+###### 3.2 Grid Search of $\mu$ by Finding Extrema of Gaussian *log-likelihood*
 
-###### 3.2.1 Search for Maximum in Gaussian *log-likelihood*
+###### 3.2.1 Search for Extremum in Negative Gaussian *log-likelihood*
 
-$\hat \mu = \underset{\mathbb \mu}{\operatorname{argmax}}\mathcal\ l(\mathbb \mu; x, y, \sigma) = \underset{\mathbb \mu}{\operatorname{argmax}}\left(- N \cdot log(\sqrt{2\pi\sigma^2}) - \frac{1}{2\sigma^2}\sum_{i=1}^N (x_i-\mu)^2\right)=$
+$\hat \mu_{MLE} = \underset{\mathbb \mu}{\operatorname{argmax}}\mathcal\ l(\mathbb \mu; x, y, \sigma) = \underset{\mathbb \mu}{\operatorname{argmax}}\left(- N \cdot log(\sqrt{2\pi\sigma^2}) - \frac{1}{2\sigma^2}\sum_{i=1}^N (x_i-\mu)^2\right)=$
 
 $\;$
 $\;$
@@ -537,7 +539,7 @@ So we see that under the assumption of some assumptions the MLE and the Least Sq
 md"
 ###### 3.2.2 Equality of Estimates by Maximzing and Minimizing Likelihood Kernels
 
-$\hat \mu = \underset{\mathbb \mu}{\operatorname{argmax}}\mathcal\ l(\mathbb \mu; x, y, \sigma) =$
+$\hat \mu_{MLE} = \underset{\mathbb \mu}{\operatorname{argmax}}\mathcal\ l(\mu;x,y,\sigma)=$
 
 $\;$
 $\;$
@@ -574,9 +576,9 @@ end # function findMinMax
 
 # ╔═╡ c14d7419-6c3f-4b0f-8f01-bc94d69feece
 md"
-###### 3.2.3 Minima and Maximum of - Log-Likelihood Kernels of Gaussian Sample
+###### 3.2.3 Minima and Maximum of *Negative* Gaussian Log-Likelihood Kernels
 
-$\hat \mu = \underset{\mathbb \mu}{\operatorname{argmax}}\mathcal\ l(\mathbb \mu; x, y, \sigma) = \underset{\mathbb \mu}{\operatorname{argmax}}\left(- \frac{1}{2\sigma^2}\sum_{i=1}^N (x_i-\mu)^2\right)$
+$\hat \mu_{MLE} = \underset{\mathbb \mu}{\operatorname{argmax}}\mathcal\ l(\mathbb \mu; x, y, \sigma) = \underset{\mathbb \mu}{\operatorname{argmax}}\left(- \sum_{i=1}^N (x_i-\mu)^2\right)$
 
 $\;$
 $\;$
@@ -595,9 +597,9 @@ findMinMax(μ -> minLogLikelihoodGaussianKernel(xs::Vector, μ), μs)
 
 # ╔═╡ 9c739f70-c972-4f5a-b587-ca40328b2549
 md"
-###### 3.2.4 Minima and Maximum of + Log-Likelihood Kernels of Gaussian Sample
+###### 3.2.4 Minima and Maximum of Positive Gaussian Log-Likelihood Kernels
 
-$\hat \mu = \underset{\mathbb \mu}{\operatorname{argmax}}\mathcal\ l(\mathbb \mu; x, y, \sigma) = \underset{\mathbb \mu}{\operatorname{argmin}}\left(\frac{1}{2\sigma^2}\sum_{i=1}^N (x_i-\mu)^2\right)$
+$\hat \mu_{MLE} = \underset{\mathbb \mu}{\operatorname{argmax}}\mathcal\ l(\mathbb \mu; x, y, \sigma) = \underset{\mathbb \mu}{\operatorname{argmin}}\left(\sum_{i=1}^N (x_i-\mu)^2\right)$
 
 $\;$
 $\;$
@@ -613,6 +615,85 @@ end # function plusLogLikelihoodGaussianKernel
 
 # ╔═╡ 0bed8c9b-80fc-4d34-b221-fc5c0096a084
 findMinMax(μ -> plusLogLikelihoodGaussianKernel(xs::Vector, μ), μs)
+
+# ╔═╡ 3b0e43e8-f851-4fe7-a854-b05d0b252e26
+md"
+---
+###### 3.3 Calculus Guided Search of $\mu$ by Finding Extrema of Gaussian *log-likelihood*
+
+###### 3.3.1 Calculus Guided Solution: Fisher's *Score* Function
+The first derivative of the log-likelihood function is called Fisher's *score* $S(\phi)$ function (Held & Bove, 2020, p.27).
+
+Now, we want to use the score function to obtain the $\mu_{MLE}$. Under the assumption of known $\sigma$ it is sufficient to minimze the log-likelhood kernel:  
+
+$\hat \mu_{MLE} = \underset{\mathbb \mu}{\operatorname{argmax}}\mathcal\ l(\mathbb \mu; x, y, \sigma) = \underset{\mathbb \mu}{\operatorname{argmin}}\left(\sum_{i=1}^N (x_i-\mu)^2\right)$
+
+$\;$
+$\;$
+$\;$
+$\;$
+
+We set the derivate of $\frac{d \mathcal l}{d\mu} = 0$, solve the resultant equation, and get the MLE which is identical to the LSE or OLS estimator:
+
+$\frac{d \mathcal l}{d \mu} = S(\mathbb \mu; x, y, \sigma) = \frac{d \left(\sum_{i=1}^N (x_i-\mu)^2\right)}{d \mu} = \frac{d \left(\sum_{i=1}^N (x_i^2-2x_i\mu+\mu^2)\right)}{d \mu} = 0$
+
+$\;$
+$\;$
+$\;$
+$\;$
+
+$\frac{d \mathcal l}{d \mu} = S(\mathbb \mu; x, y, \sigma) = \frac{d \left(\sum_{i=1}^N x_i^2\right)}{d \mu} - \frac{d \left(\sum_{i=1}^N 2x_i\mu\right)}{d \mu} + \frac{d \left(\sum_{i=1}^N \mu^2\right)}{d \mu} = 0$ 
+
+$\;$
+$\;$
+$\;$
+$\;$
+
+$\frac{d \mathcal\ l}{d \mu} = 0 - 2\left(\sum_{i=1}^N x_i\right) + 2N\mu = 0$
+
+$\;$
+$\;$
+$\;$
+$\;$
+
+$\frac{d \mathcal\ l}{d \mu} = - \left(\sum_{i=1}^N x_i\right) + N\mu = 0$
+
+$\;$
+$\;$
+$\;$
+$\;$
+
+$\hat \mu_{MLE} = \frac{\left(\sum_{i=1}^N x_i\right)}{N} = \bar x$
+
+$\;$
+$\;$
+
+where: 
+
+$\;$
+
+$\bar x = \text{ the sample mean }$
+
+$\;$
+$\;$
+$\;$
+$\;$
+
+"
+
+# ╔═╡ 05795f15-a763-4420-a6fb-14a4edc97f31
+md"
+###### 3.3.2 The Sample Mean auf Gaussian $X$ is equal to $\mu_{MLE}$ 
+"
+
+# ╔═╡ a7f242ca-0d1a-460d-aed1-911be4cd6ae0
+mean(μs)
+
+# ╔═╡ 4943eec5-b299-4e70-a80a-bcf407c35074
+md"
+---
+##### 4. Summary
+"
 
 # ╔═╡ d6051c16-4b38-4784-a7b8-0150027294cb
 md"
@@ -1878,6 +1959,10 @@ version = "1.4.1+1"
 # ╟─9c739f70-c972-4f5a-b587-ca40328b2549
 # ╠═5f579379-7d13-4db9-a9e0-6fd2093fd8f9
 # ╠═0bed8c9b-80fc-4d34-b221-fc5c0096a084
+# ╟─3b0e43e8-f851-4fe7-a854-b05d0b252e26
+# ╟─05795f15-a763-4420-a6fb-14a4edc97f31
+# ╠═a7f242ca-0d1a-460d-aed1-911be4cd6ae0
+# ╟─4943eec5-b299-4e70-a80a-bcf407c35074
 # ╟─d6051c16-4b38-4784-a7b8-0150027294cb
 # ╟─afb4fc4d-8d81-40c7-bd3d-40575f881a34
 # ╟─00000000-0000-0000-0000-000000000001
