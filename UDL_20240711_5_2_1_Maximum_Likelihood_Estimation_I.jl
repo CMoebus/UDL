@@ -17,7 +17,7 @@ md"
 =====================================================================================
 #### UDL\_20240711\_5\_2\_1\_Maximum\_Likelihood\_Estimation\_I.jl
 ##### file: UDL\_20240711\_5\_2\_1\_Maximum\_Likelihood\_Estimation\_I.jl
-##### code: Julia 1.10.4/Pluto by *** PCM 2024/07/16 ***
+##### code: Julia 1.10.4/Pluto by *** PCM 2024/07/17 ***
 
 =====================================================================================
 "
@@ -112,16 +112,18 @@ end # function myGaussianPDF
 myGaussianPDF(0.0)
 
 # ╔═╡ 7c4bd2ef-b479-4708-ac63-90ee118bea47
-# exercise in Prince's notebook 5.2
-myGaussianPDF(1.0, μ=-1.0, σ=2.0), myGaussianPDF(1.0, μ=1.0, σ=2.0) 
-
-# ╔═╡ bb1978ae-795a-4273-a831-4bbbcfb955b6
-# Julia's Gaussian PDF from package Distributions.jl
-myGaussianMin12, myGaussianPlus12 = Normal(-1.0, 2.0), Normal(1.0, 2.0)
+begin 
+	# exercise in Prince's notebook 5.2
+	@printf("myGaussianPDF(1.0, μ=-1.0, σ=2.3) = %4.3f", myGaussianPDF(1.0, μ=-1.0, σ=2.3))
+	myGaussianPDF(1.0, μ=-1.0, σ=2.3)
+end # begin
 
 # ╔═╡ f94fc7fb-9f21-4c99-a0f4-ddf4a4df37c9
-# exercise in Prince's notebook 5.2
-pdf.(myGaussianMin12, 1.0), pdf.(myGaussianPlus12, 1.0)
+begin
+	# exercise in Prince's notebook 5.2
+	@printf("pdf.(Normal(-1.0, 2.3), 1.0) = %4.3f", pdf.(Normal(-1.0, 2.3), 1.0))
+	pdf.(Normal(-1.0, 2.3), 1.0)
+end # begin
 
 # ╔═╡ 95af722f-9675-4562-a115-166bb5e27679
 let zs = [z for z in -5.0:0.1:+5.0]
@@ -1910,7 +1912,6 @@ version = "1.4.1+1"
 # ╠═f56ef177-68fc-4cb0-94aa-4b8254b62406
 # ╠═e116bbe9-bca6-4f7b-94cb-fdafa52f6ddd
 # ╠═7c4bd2ef-b479-4708-ac63-90ee118bea47
-# ╠═bb1978ae-795a-4273-a831-4bbbcfb955b6
 # ╠═f94fc7fb-9f21-4c99-a0f4-ddf4a4df37c9
 # ╠═95af722f-9675-4562-a115-166bb5e27679
 # ╠═25584038-b162-438c-acc7-597fb5b65b0d
