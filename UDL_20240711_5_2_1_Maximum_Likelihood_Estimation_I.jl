@@ -17,7 +17,7 @@ md"
 =====================================================================================
 #### UDL\_20240711\_5\_2\_1\_Maximum\_Likelihood\_Estimation\_I.jl
 ##### file: UDL\_20240711\_5\_2\_1\_Maximum\_Likelihood\_Estimation\_I.jl
-##### code: Julia 1.10.4/Pluto by *** PCM 2024/07/17 ***
+##### code: Julia 1.10.4/Pluto by *** PCM 2024/07/19 ***
 
 =====================================================================================
 "
@@ -34,27 +34,19 @@ md"
 
 ###### 2.1 Model Function of Statistical Model
 
-$\hat y | x, \mathbb \phi = E(Y | x, \mathbb \phi) = h(x, \mathbb \phi)$
+$\theta = h(x, \mathbb \phi)$
 
 where:
+
+$h = \text{input-output function of (e.g. regression or neural-net) model}$
+
+$\;$
 
 $x = \text{ input datum (e.g. realization)}\ x \text{ of independent random variable } X:\ X=x$
 
 $\;$
 
-$h = \text{input-output function of (e.g. neural-net) model}$
-
-$\;$
-
-$\mathbb \phi = \text{ vector of (unknown) model parameters (eg. regression coefficients)}$
-
-$\;$
-
-$Y = \text{ dependent random variable }$
-
-$\;$
-
-$\hat y = \text{ output of model (eg. prediction of neural net or regression model)}$
+$\mathbb \phi = \text{ vector of (unknown) model parameters (eg. regression or neural net coefficients)}$
 
 $\;$
 $\;$
@@ -67,17 +59,9 @@ md"
 ###### 2.2 Probability Density Function (PDF) and Probability Mass Function (PMF)
 
 ###### 2.2.1 Definition
-Definitions of the *continuous density function (PDF)* can be found [here](https://en.wikipedia.org/wiki/Probability_density_function) and that of the *discrete probability (density) function (PMF)* can be found [here](https://en.wikipedia.org/wiki/Probability_mass_function). Both can be denoted by the symbol $f$ if its clear from the context what its semantics is meant.
+Definitions of the *continuous density function (PDF)* can be found [here](https://en.wikipedia.org/wiki/Probability_density_function) and that of the *discrete probability (density) function (PMF)* can be found [here](https://en.wikipedia.org/wiki/Probability_mass_function). Both can be denoted by the symbol $f$ if its clear from the context which semantics is meant. In the context of statistical models the model function $h(x, \phi)$ predicts the classical parameter $\theta$ in $f(x; \theta)$ so that we replace $\theta$ by the model function $h(x, \phi)$:
 
-$f\left(y; E(Y | x, \mathbb \phi)\right) = f\left(y;h(x,\phi)\right)$
-
-$\;$
-
-$f(x;\phi) = \text{PMF or PDF of random } X=x \text{ for fixed parameter } \phi$
-
-$\;$
-
-$f(y; h(x, \phi)) = \begin{cases} \text{ PDF } & \text{ if defined on a real random variable } X \\
+$f(y; h(x, \phi), x, \phi) = \begin{cases} \text{ PDF } & \text{ if defined on a real random variable } X \\
 \text{ PMF } & \text{ if defined on a discrete random variable } X \\ 
 \end{cases}$
 
@@ -88,16 +72,22 @@ $\;$
 
 # ╔═╡ 85caf5f0-d836-4cb8-a078-0894ae07016d
 md"
-###### 2.2.2 Example: PDF of [Gaussian Distribution](https://en.wikipedia.org/wiki/Normal_distribution)
+###### 2.2.2 Example: PDF of [Gaussian Distributions](https://en.wikipedia.org/wiki/Normal_distribution) (with Model Function as Parameter Substitute)
 
-$f_N(x; h(\phi)) = N(x; h(\phi)) = \frac{1}{\sqrt{2 \pi \sigma^2}}\exp\left(-\frac{1}{2}\left(\frac{x-\mu}{\sigma}\right)^2\right)$
+$f_{\mathcal N}(y; h(\phi)) = \mathcal N(y; h(\phi)) = \frac{1}{\sqrt{2 \pi \sigma^2}}\exp\left(-\frac{1}{2}\left(\frac{y-\mu}{\sigma}\right)^2\right)$
 
 $\;$
 $\;$
 
 where: 
 
-$h(\phi) = [\mu, \sigma]$
+$\mathbf \phi = (\mu, \sigma), I(\phi) = h(\phi) = (\mu, \sigma)$ 
+
+$\;$
+
+and
+
+$I = \text{ the identity function }$
 
 $\;$
 $\;$
@@ -112,43 +102,56 @@ end # function myGaussianPDF
 myGaussianPDF(0.0)
 
 # ╔═╡ 7c4bd2ef-b479-4708-ac63-90ee118bea47
-begin 
-	# exercise in Prince's notebook 5.2
-	@printf("myGaussianPDF(1.0, μ=-1.0, σ=2.3) = %4.3f", myGaussianPDF(1.0, μ=-1.0, σ=2.3))
+begin # exercise in Prince's notebook 5.2 with own code
+	@printf("myGaussianPDF(1.0, μ=-1.0, σ=2.3) = %4.3f", 
+		myGaussianPDF(1.0, μ=-1.0, σ=2.3))
 	myGaussianPDF(1.0, μ=-1.0, σ=2.3)
 end # begin
 
 # ╔═╡ f94fc7fb-9f21-4c99-a0f4-ddf4a4df37c9
-begin
-	# exercise in Prince's notebook 5.2
-	@printf("pdf.(Normal(-1.0, 2.3), 1.0) = %4.3f", pdf.(Normal(-1.0, 2.3), 1.0))
+begin # exercise in Prince's notebook 5.2 with library functions pdf, Normal
+	@printf("pdf.(Normal(-1.0, 2.3), 1.0) = %4.3f", 
+		pdf.(Normal(-1.0, 2.3), 1.0))
 	pdf.(Normal(-1.0, 2.3), 1.0)
 end # begin
 
 # ╔═╡ 95af722f-9675-4562-a115-166bb5e27679
 let zs = [z for z in -5.0:0.1:+5.0]
 	myGaussianPDFs = [myGaussianPDF(z) for z in zs] 
-	plot(zs, myGaussianPDFs, label=L"(z, N(z;\mu=0.0, \sigma=1.0))", xlabel=L"z", ylabel=L"N(z;\mu=0.0, \sigma=1.0)", title="Density of Standard Gaussian", titlefontsize=12)
+	plot(zs, myGaussianPDFs, label=L"(z, N(z;\mu=0.0, \sigma=1.0))", xlabel=L"z", ylabel=L"N(z;\mu=0, \sigma=1)", title="Density of Standard Gaussian", titlefontsize=12)
+	plot!([0.0, 0.0], [0.0, myGaussianPDF(0.0)], label=L"(0, N(0;\mu=0, \sigma=1))")
 end # let
 
 # ╔═╡ 25584038-b162-438c-acc7-597fb5b65b0d
-let zs = [z for z in -5.0:0.1:+5.0]
-	myGaussianPDFs = [pdf.(Normal(), z) for z in zs] 
-	plot(zs, myGaussianPDFs, label=L"(z, N(z;\mu=0.0, \sigma=1.0))", xlabel=L"z", ylabel=L"N(z;\mu=0.0, \sigma=1.0)", title="Density of Distributions.Normal(0.0, 1.0)", titlefontsize=12)
+let ys = [y for y in -7.0:0.1:+5.0]
+	myGaussianPDFs = [pdf.(Normal(-1.0, 2.3), y) for y in ys] 
+	plot(ys, myGaussianPDFs, label=L"(y, N(y;\mu=-1, \sigma=2.3))", xlabel=L"y", ylabel=L"N(y;\mu=0.0, \sigma=1.0)", title="Density of Distributions.Normal(-1.0, 2.3)", titlefontsize=12)
+	plot!([1.0, 1.0],[0.0, pdf.(Normal(-1.0, 2.3), 1.0)], label=L"(1, N(1;\mu=-1, \sigma=2.3)")
 end # let
 
+# ╔═╡ 479adfc6-00da-4279-b64d-9f8ef68d7619
+md"
+---
+###### 2.2.3 Small Sample of Gaussian Distributed Random Variable
+"
+
 # ╔═╡ 303aaffa-09aa-4c80-a92d-90045a7b688f
-# Brown, 2014, p.70, Fig 3.1
-xs = [75, 87, 89, 90, 93, 99, 100, 101, 103, 112, 116, 135] 
+begin # Brown, 2014, p.70, Fig 3.1
+	ys = [75, 87, 89, 90, 93, 99, 100, 101, 103, 112, 116, 135] 
+	n = length(ys)
+	ybar = mean(ys)
+	ystddev  = std(ys)
+	n, ybar, ystddev
+end # begin
 
 # ╔═╡ 127347fa-1ac3-4306-acc9-61091538ad71
 let norm_100_15PDF = Normal(100, 15)
-	xsPDFs = [pdf(norm_100_15PDF, x) for x in xs]
-	for l in 1:length(xs)
-		@printf "density(%3i) = %5.4F \n" xs[l] xsPDFs[l]
+	ysPDFs = [pdf(norm_100_15PDF, y) for y in ys]  # densities N(y; μ=100, σ=15)
+	for l in 1:length(ys)
+		@printf "density(%3i) = %5.4F \n" ys[l] ysPDFs[l]
 	end # for
-	scatter(xs, xsPDFs, label=L"density: (x,N(x;100,15))", xlabel=L"x", ylabel=L"N(x; 100, 15)", title="Sample of Density Heights (cf. Brown, 2014, p.70, Fig. 3.1)", titlefontsize=12)
-	plot!(xs, xsPDFs, label=L"density: (x,N(x;100,15))", lw=2)
+	scatter(ys, ysPDFs, label=L"density: (x,N(x;100,15))", xlabel=L"x", ylabel=L"N(y; 100, 15)", title="Sample of Density Heights (cf. Brown, 2014, p.70, Fig. 3.1)", titlefontsize=12)
+	plot!(ys, ysPDFs, label=L"density: (y,N(y;100,15))", lw=2)
 end # let
 
 # ╔═╡ 23e54ade-e9b0-47ae-91d4-fde9b5e3ec67
@@ -157,15 +160,15 @@ md"
 
 ###### 2.3 Likelihood Function and Likelihood Kernel
 ###### 2.3.1 Definition
-The *likelihood function* $\mathcal L$ is an indicator of the *plausbility* of various trial or guess values $x$ for the *fixed, unknown* parameter $\phi$. In comparison to the *density* function $f$ the *conceptual* roles of $x$ and $\phi$ are now *reversed* (Held & Bove, 2020, p.14). Now, data are *fixed* (after their observation) and $\mathbb \phi$ is *mutable*. This is due to their hypothetical nature in the optimization process, where we are looking for that value of $\phi$ under which the *plausability* of the data is maximized.
+The *likelihood function* $\mathcal L$ is an indicator of the *plausbility* of various trial or guess values $x$ for the *fixed, unknown* parameter $\phi$. In comparison to the *density* function $f$ the *conceptual* roles of $x$ and $\phi$ are now *reversed* (Held & Bove, 2020, p.14). Now, data are *fixed* (after their observation) and $\mathbb \phi$ is *hypthetical* and *mutable*. This is due to the *counterfactual reasoning* process: we are looking for that value of $\phi$ for which the *plausability* of the data is maximized.
 
-$\mathcal L(\phi; f, h, x, y) = f(y;h(x,\phi))$
+$\mathcal L(\phi; f, h, x, y) = f(y;h(x,\phi), x, \phi)$
 
 $\;$
 
-The likelihood of $N$ realizations $x$ of a random variable $X$ is their joint density. This is true under the assumption of *i.i.d. (= independent identical distributed)* random realizations $X=x_i$.
+The likelihood of $N$ realizations $x$ of a random variable $X$ is the product of their single densities. This is true under the assumption of *i.i.d. (= independent identical distributed)* random realizations $X=x_i$.
 
-$\mathcal L(\phi; f, h, \mathbf{x, y}) = \prod_{i=1}^N f\left(y_i; h(x_i, \mathbb \phi)\right)$
+$\mathcal L(\phi; f, h, \mathbf{x, y}) = \prod_{i=1}^n f\left(y_i; h(x_i, \mathbb \phi), x_i, \phi \right)$
 
 $\;$
 $\;$
@@ -180,27 +183,27 @@ $\;$
 
 # ╔═╡ 54e75a6a-8ea9-41dc-ae12-e3691e0f893e
 md"
-###### 2.3.2 Example: Likelihood Function of a Set of Gaussian Distributed Realizations $X=x_i$
+###### 2.3.2 Example: Likelihood Function of a Set of Gaussian Distributed Realizations $Y=y_i$
 
-$f_N(x; \phi=[\mu, \sigma]) = N(x; \mu, \sigma) = \frac{1}{\sqrt{2 \pi \sigma^2}}\exp\left(-\frac{1}{2}\left(\frac{x-\mu}{\sigma}\right)^2\right)$
-
-$\;$
-$\;$
-$\;$
-
-$\mathcal L = \prod_{i=1}^N \left\{\frac{1}{\sqrt{2 \pi \sigma^2}}\exp\left(-\frac{1}{2}\left(\frac{x-\mu}{\sigma}\right)^2\right)\right\}=$
+$f_{\mathcal N}\left(y; \phi=h(\mu, \sigma)=(\mu, \sigma)\right) = \mathcal N(y; \mu, \sigma) = \frac{1}{\sqrt{2 \pi \sigma^2}}\exp\left(-\frac{1}{2}\left(\frac{y-\mu}{\sigma}\right)^2\right)$
 
 $\;$
 $\;$
 $\;$
 
-$=\left(\frac{1}{\sqrt{2 \pi \sigma^2}}\right)^N exp\left(-\frac{1}{2}\sum_{i=1}^N \left(\frac{x_i-\mu}{\sigma}\right)^2\right) =$
+$\mathcal L = \prod_{i=1}^n \left\{\frac{1}{\sqrt{2 \pi \sigma^2}}\exp\left(-\frac{1}{2}\left(\frac{y-\mu}{\sigma}\right)^2\right)\right\}=$
 
 $\;$
 $\;$
 $\;$
 
-$= \left(\frac{1}{\sqrt{2\pi\sigma^2}}\right)^N exp\left(-\frac{1}{2\sigma^2}\sum_{i=1}^N (x_i-\mu)^2\right)$
+$=\left(\frac{1}{\sqrt{2 \pi \sigma^2}}\right)^n exp\left(-\frac{1}{2}\sum_{i=1}^n \left(\frac{y_i-\mu}{\sigma}\right)^2\right) =$
+
+$\;$
+$\;$
+$\;$
+
+$= \left(\frac{1}{\sqrt{2\pi\sigma^2}}\right)^n exp\left(-\frac{1}{2\sigma^2}\sum_{i=1}^n (y_i-\mu)^2\right)$
 
 $\;$
 $\;$
@@ -217,13 +220,13 @@ md"
 ###### 2.3.3 Gaussian Likelihood as *Product of  Densities*.
 Gaussian likelihood under the assumption of known $\sigma$: 
 
-$\mathcal L_N(μ; x, σ) = \prod_{i=1}^N f_N(\mu; x, \sigma) =$ 
+$\mathcal L_{\mathcal N}(μ; y, σ) = \prod_{i=1}^n f_{\mathcal N}(\mu; y, \sigma) =$ 
 
 $\;$
 $\;$
 $\;$
 
-$= \prod_{i=1}^N \left\{\frac{1}{\sqrt{2 \pi \sigma^2}}\exp\left(-\frac{1}{2}\left(\frac{x-\mu}{\sigma}\right)^2\right)\right\}$
+$= \prod_{i=1}^n \left\{\frac{1}{\sqrt{2 \pi \sigma^2}}\exp\left(-\frac{1}{2}\left(\frac{y-\mu}{\sigma}\right)^2\right)\right\}$
 
 $\;$
 $\;$
@@ -233,18 +236,17 @@ $\;$
 
 # ╔═╡ 2ea367b2-cedd-4720-a487-1dfacd1ed91a
 function likelihoodGaussianProductVersion(xs::Vector, gaussianPDF::Function)
-	N = length(xs)
 	# product of single densities or likelihoods
-	prod(gaussianPDF, xs, init=1.0)  
+	prod(gaussianPDF, ys, init=1.0)  
 end # function likelihoodGaussianProductVersion
 
 # ╔═╡ bbb2c7b7-1f2a-4daf-9bc3-dff8e7eb5e22
 let μs1  = [μ for μ in 98.0:1:102.0]
 	μs2  = [μ for μ in 98.0:0.1:102.0]
-	ls1 = [likelihoodGaussianProductVersion(xs::Vector, x -> myGaussianPDF(x; μ=μ, σ=15.0)) for μ in μs1]
-	ls2 = [likelihoodGaussianProductVersion(xs::Vector, x -> myGaussianPDF(x; μ=μ, σ=15.0)) for μ in μs2]
+	ls1 = [likelihoodGaussianProductVersion(ys::Vector, y -> myGaussianPDF(y; μ=μ, σ=15.0)) for μ in μs1]
+	ls2 = [likelihoodGaussianProductVersion(ys::Vector, y -> myGaussianPDF(y; μ=μ, σ=15.0)) for μ in μs2]
 	plot(μs2, ls2, label=L"(μ, L(\mu\;x,\sigma))", xlabel=L"\mu", ylabel=L"L(\mu;x,\sigma)", title="Product of Likelihoods (cf. Brown, 2014, Tab.3.1, p.72)", titlefontsize=12)
-	scatter!(μs1, ls1, label=L"(μ, L(\mu\;x,\sigma))")
+	scatter!(μs1, ls1, label=L"(μ, L(\mu\;y,\sigma))")
 end # let
 
 # ╔═╡ 50c9f7e8-1e09-4718-b012-aad4031bbfa0
@@ -255,33 +257,33 @@ The following values of Gaussian likelihood are identical to those in Brown's Ta
 "
 
 # ╔═╡ 3b93960e-1f23-4be1-a1e9-05761d6bd263
-likelihoodGaussianProductVersion(xs::Vector, x -> myGaussianPDF(x; μ=98.0, σ=15.0))
+likelihoodGaussianProductVersion(ys::Vector, y -> myGaussianPDF(y; μ=98.0, σ=15.0))
 
 # ╔═╡ 1e0f445a-4bf1-41db-b0c8-9f31b734cf8e
-likelihoodGaussianProductVersion(xs::Vector, x -> myGaussianPDF(x; μ=99.0, σ=15.0))
+likelihoodGaussianProductVersion(ys::Vector, y -> myGaussianPDF(y; μ=99.0, σ=15.0))
 
 # ╔═╡ 4957f59d-eaff-4719-b3a2-b4b4b785411c
-likelihoodGaussianProductVersion(xs::Vector, x -> myGaussianPDF(x; μ=100.0, σ=15.0))
+likelihoodGaussianProductVersion(ys::Vector, y -> myGaussianPDF(y; μ=100.0, σ=15.0))
 
 # ╔═╡ c747204a-9ffe-4344-a5b6-214a30e95bb0
-likelihoodGaussianProductVersion(xs::Vector, x -> myGaussianPDF(x; μ=101.0, σ=15.0))
+likelihoodGaussianProductVersion(ys::Vector, y -> myGaussianPDF(y; μ=101.0, σ=15.0))
 
 # ╔═╡ 00467aab-cfbc-4ce3-a02e-620eb32251cc
-likelihoodGaussianProductVersion(xs::Vector, x -> myGaussianPDF(x; μ=102.0, σ=15.0))
+likelihoodGaussianProductVersion(ys::Vector, y -> myGaussianPDF(y; μ=102.0, σ=15.0))
 
 # ╔═╡ 6b5c88e9-4869-4820-972f-71f0988bed35
 md"
-###### 2.3.4 Gaussian Likelihood as *Sum of Squares* in $exp$
+###### 2.3.4 Gaussian Likelihood as Weighted *Sum of Squares* in Argument of $exp$
 A further simplified of the Gaussian likelihood contains a *sum of squares* expression in the exponent:
 
 
-$\mathcal L_N(μ; x, σ) = \prod_{i=1}^N f_N(\mu; x, \sigma) =$ 
+$\mathcal L_{\mathcal N}(μ; y, σ) = \prod_{i=1}^n f_{\mathcal N}(\mu; y, \sigma) =$ 
 
 $\;$
 $\;$
 $\;$
 
-$= \left(\frac{1}{\sqrt{2\pi\sigma^2}}\right)^N exp\left(-\frac{1}{2\sigma^2}\sum_{i=1}^N (x_i-\mu)^2\right)$
+$= \left(\frac{1}{\sqrt{2\pi\sigma^2}}\right)^n exp\left(-\frac{1}{2\sigma^2}\sum_{i=1}^n (y_i-\mu)^2\right)$
 
 $\;$
 $\;$
@@ -290,17 +292,16 @@ $\;$
 
 # ╔═╡ 546d9ae5-3104-4124-862c-f09f16d61806
 function likelihoodOfGaussianSumVersion(xs::Vector; μ=0.0, σ=1.0)
-	N = length(xs)
-	(1.0/√(2.0*π*σ^2))^N * exp((-1.0/(2.0*σ^2)) * sum((xs .- μ).^2))
+	(1.0/√(2.0*π*σ^2))^n * exp((-1.0/(2.0*σ^2)) * sum((xs .- μ).^2))
 end # function likelihoodOfGaussianSumVersion
 
 # ╔═╡ 77f301fc-1e9e-49a4-8549-9d0918a2bd6e
 let μs1  = [μ for μ in 98.0:1:102.0]
 	μs2  = [μ for μ in 98.0:0.1:102.0]
-	ls1 = [likelihoodOfGaussianSumVersion(xs::Vector, μ=μ, σ=15.0) for μ in μs1]
-	ls2 = [likelihoodOfGaussianSumVersion(xs::Vector, μ=μ, σ=15.0) for μ in μs2]
-	plot(μs2, ls2, label=L"(μ, L(\mu\;x,\sigma))", xlabel=L"\mu", ylabel=L"L(\mu;x,\sigma)", title="Sum Formula for Likelihoods (cf. Brown, 2014, Tab.3.1, p.72)", titlefontsize=10)
-	scatter!(μs1, ls1, label=L"(μ, L(\mu\;x,\sigma))")
+	ls1 = [likelihoodOfGaussianSumVersion(ys::Vector, μ=μ, σ=15.0) for μ in μs1]
+	ls2 = [likelihoodOfGaussianSumVersion(ys::Vector, μ=μ, σ=15.0) for μ in μs2]
+	plot(μs2, ls2, label=L"(μ, L(\mu\;y,\sigma))", xlabel=L"\mu", ylabel=L"L(\mu;y,\sigma)", title="Sum Formula for Likelihoods (cf. Brown, 2014, Tab.3.1, p.72)", titlefontsize=10)
+	scatter!(μs1, ls1, label=L"(μ, L(\mu\;y,\sigma))")
 end # let
 
 # ╔═╡ a94453a2-7724-4a47-a952-9efed4bdd197
@@ -309,19 +310,19 @@ The following values of Gaussian likelihood are identical to those in Brown's Ta
 "
 
 # ╔═╡ 6d01b17d-7a2a-4689-91aa-3a941c22fdfa
-likelihoodOfGaussianSumVersion(xs::Vector, μ=98.0, σ=15.0)
+likelihoodOfGaussianSumVersion(ys::Vector, μ=98.0, σ=15.0)
 
 # ╔═╡ 79527167-096e-47f3-b67f-38724ab7bab3
-likelihoodOfGaussianSumVersion(xs::Vector, μ=99.0, σ=15.0)
+likelihoodOfGaussianSumVersion(ys::Vector, μ=99.0, σ=15.0)
 
 # ╔═╡ 67daba69-328e-4792-b6cc-65ab9de4096a
-likelihoodOfGaussianSumVersion(xs::Vector, μ=100.0, σ=15.0)
+likelihoodOfGaussianSumVersion(ys::Vector, μ=100.0, σ=15.0)
 
 # ╔═╡ 213fc124-d74e-44aa-9c6e-e5b314908c2f
-likelihoodOfGaussianSumVersion(xs::Vector, μ=101.0, σ=15.0)
+likelihoodOfGaussianSumVersion(ys::Vector, μ=101.0, σ=15.0)
 
 # ╔═╡ 97b79e30-1531-4cc9-887b-5b8549387b0f
-likelihoodOfGaussianSumVersion(xs::Vector, μ=102.0, σ=15.0)
+likelihoodOfGaussianSumVersion(ys::Vector, μ=102.0, σ=15.0)
 
 # ╔═╡ 856646cb-6fdc-4acf-bfe1-ba4c110b7710
 md"
@@ -330,42 +331,42 @@ md"
 
 ###### 2.4.1 Definition
 
-$log\left(\mathcal L(\mathbb \phi|x, y)\right) = \mathcal l(\mathbb \phi|x, y)$
+$log\left(\mathcal L(\mathbb \phi|h, x, y)\right) = \mathcal l(\mathbb \phi|h, x, y)$
 
 $\;$
 $\;$
 
 ###### 2.4.2 Log-Likelihood of Hypothesized $\mu$ in Gaussians with Known σ
 
-$log\left(\mathcal L_N(\mathbb \mu;x, \sigma)\right) = \mathcal l_N(\mathbb \mu;x, \sigma)$
+$log\left(\mathcal L_N(\mathbb \mu;y, \sigma)\right) = \mathcal l_N(\mathbb \mu;y, \sigma)$
 
 $\;$
 
-$= log\left(\left(\frac{1}{\sqrt{2\pi\sigma^2}}\right)^N exp\left(-\frac{1}{2\sigma^2}\sum_{i=1}^N (x_i-\mu)^2\right)\right) =$
-
-$\;$
-$\;$
-$\;$
-
-$= N\cdot\left(log\left(\frac{1}{\sqrt{2\pi\sigma^2}}\right)\right) - \frac{1}{2\sigma^2}\sum_{i=1}^N (x_i-\mu)^2 =$
+$= log\left(\left(\frac{1}{\sqrt{2\pi\sigma^2}}\right)^n exp\left(-\frac{1}{2\sigma^2}\sum_{i=1}^n (y_i-\mu)^2\right)\right) =$
 
 $\;$
 $\;$
 $\;$
 
-$= N\cdot \left(log(1) - log(\sqrt{2\pi\sigma^2})\right) - \frac{1}{2\sigma^2}\sum_{i=1}^N (x_i-\mu)^2 =$
+$= N\cdot\left(log\left(\frac{1}{\sqrt{2\pi\sigma^2}}\right)\right) - \frac{1}{2\sigma^2}\sum_{i=1}^n (y_i-\mu)^2 =$
 
 $\;$
 $\;$
 $\;$
 
-$= N\cdot \left(0 - log(\sqrt{2\pi\sigma^2})\right) - \frac{1}{2\sigma^2}\sum_{i=1}^N (x_i-\mu)^2 =$
+$= N\cdot \left(log(1) - log(\sqrt{2\pi\sigma^2})\right) - \frac{1}{2\sigma^2}\sum_{i=1}^n (y_i-\mu)^2 =$
 
 $\;$
 $\;$
 $\;$
 
-$= - N \cdot log(\sqrt{2\pi\sigma^2}) - \frac{1}{2\sigma^2}\sum_{i=1}^N (x_i-\mu)^2$
+$= N\cdot \left(0 - log(\sqrt{2\pi\sigma^2})\right) - \frac{1}{2\sigma^2}\sum_{i=1}^n (y_i-\mu)^2 =$
+
+$\;$
+$\;$
+$\;$
+
+$= - N \cdot log(\sqrt{2\pi\sigma^2}) - \frac{1}{2\sigma^2}\sum_{i=1}^n (y_i-\mu)^2$
 
 $\;$
 $\;$
@@ -373,30 +374,21 @@ $\;$
 
 The second term from above is the *log-likelihood kernel*: 
 
-$- \frac{1}{2\sigma^2}\sum_{i=1}^N (x_i-\mu)^2$ 
+$- \frac{1}{2\sigma^2}\sum_{i=1}^n (y_i-\mu)^2$ 
 
 $\;$
 $\;$
 $\;$
 
-Under the assumption of known $\sigma$ the kernel can be further simplified to:
-
-$- \sum_{i=1}^N (x_i-\mu)^2$ 
-
-$\;$
-$\;$
-$\;$
-
-It is obvious that the log-likelihood $\mathcal l_N$ is maximized when the *sum-of-squares* in the *log-likelihood kernel* is minimized.
+It is obvious that the log-likelihood $\mathcal l_N$ is *maximized* when the *sum-of-squares* in the *log-likelihood kernel* is *minimized*.
 
 $\;$
 
 "
 
 # ╔═╡ 84bc6149-3c9f-467e-9383-219b6b8a9ac6
-function logLikelihoodOfGaussianSumVersion(xs::Vector; μ=0.0, σ=1.0)
-	N = length(xs)
-	-N*log(√(2.0*π*σ^2)) - (1/(2*σ^2))*sum((xs .- μ).^2)
+function logLikelihoodOfGaussianSumVersion(ys::Vector; μ=0.0, σ=1.0)
+	-n*log(√(2.0*π*σ^2)) - (1/(2*σ^2))*sum((ys .- μ).^2)
 end # function logLikelihoodOfGaussianSumVersion
 
 # ╔═╡ dee1689b-191b-44a2-8fd4-767e2a3d4f63
@@ -406,20 +398,20 @@ This log-likelihood value is identical to the value in Brown, 2014, p.73, Table 
 
 # ╔═╡ 229dba96-9b89-4f98-970a-62b21823d912
 # cf. Brown, 2014, p.73, Table 3.2
-logLikelihoodOfGaussianSumVersion(xs::Vector, μ=98.0, σ=15.0) 
+logLikelihoodOfGaussianSumVersion(ys::Vector, μ=98.0, σ=15.0) 
 
 # ╔═╡ 98cb5124-dfd6-456d-b72d-24fd8732cebb
 # ###### log-likelihood-function using Distributions.jl
 # cf. Brown, 2014, p.73, Table 3.2
-sum(loglikelihood.(Normal(98.0, 15.0), xs))
+sum(loglikelihood.(Normal(98.0, 15.0), ys))
 
 # ╔═╡ aff7988f-b8e5-4207-905b-a29bc4ddae9a
 let μs1  = [μ for μ in 98.0:1:102.0]
 	μs2  = [μ for μ in 98.0:0.1:102.0]
-	ls1 = [logLikelihoodOfGaussianSumVersion(xs::Vector, μ=μ, σ=15.0) for μ in μs1]
-	ls2 = [logLikelihoodOfGaussianSumVersion(xs::Vector, μ=μ, σ=15.0) for μ in μs2]
-	plot(μs2, ls2, label=L"(μ, logL(\mu\;x,\sigma))", xlabel=L"\mu", ylabel=L"logL(\mu;x,\sigma)", title="log-Likelihoods (cf. Brown, 2014, Fig. 3.2, p.74)", titlefontsize=10)
-	scatter!(μs1, ls1, label=L"(μ, logL(\mu\;x,\sigma))")
+	ls1 = [logLikelihoodOfGaussianSumVersion(ys::Vector, μ=μ, σ=15.0) for μ in μs1]
+	ls2 = [logLikelihoodOfGaussianSumVersion(ys::Vector, μ=μ, σ=15.0) for μ in μs2]
+	plot(μs2, ls2, label=L"(μ, logL(\mu\;y,\sigma))", xlabel=L"\mu", ylabel=L"logL(\mu;y,\sigma)", title="log-Likelihoods (cf. Brown, 2014, Fig. 3.2, p.74)", titlefontsize=10)
+	scatter!(μs1, ls1, label=L"(μ, logL(\mu\;y,\sigma))")
 end # let
 
 # ╔═╡ da81d6b1-ff8a-4928-923a-5041334389b9
@@ -428,19 +420,19 @@ The following values of Gaussian log-likelihood are identical to those in Brown'
 "
 
 # ╔═╡ 18dff2c8-0b08-46ec-9db4-cd684f19203a
-logLikelihoodOfGaussianSumVersion(xs::Vector, μ=98.0, σ=15.0) 
+logLikelihoodOfGaussianSumVersion(ys::Vector, μ=98.0, σ=15.0) 
 
 # ╔═╡ 2c921e6e-8a79-4fd8-8ac4-1da4163eccbc
-logLikelihoodOfGaussianSumVersion(xs::Vector, μ=99.0, σ=15.0) 
+logLikelihoodOfGaussianSumVersion(ys::Vector, μ=99.0, σ=15.0) 
 
 # ╔═╡ 5cb139c4-8fa4-4304-a7d0-7f3ea9f47811
-logLikelihoodOfGaussianSumVersion(xs::Vector, μ=100.0, σ=15.0) 
+logLikelihoodOfGaussianSumVersion(ys::Vector, μ=100.0, σ=15.0) 
 
 # ╔═╡ 78adacdb-279f-4221-a1dc-dc3152e4fd2c
-logLikelihoodOfGaussianSumVersion(xs::Vector, μ=101.0, σ=15.0) 
+logLikelihoodOfGaussianSumVersion(ys::Vector, μ=101.0, σ=15.0) 
 
 # ╔═╡ 95cc2784-7230-4d13-9ebc-6642b3609ff8
-logLikelihoodOfGaussianSumVersion(xs::Vector, μ=102.0, σ=15.0) 
+logLikelihoodOfGaussianSumVersion(ys::Vector, μ=102.0, σ=15.0) 
 
 # ╔═╡ e45e1658-2ec0-48f8-9d4a-64a4806eafc4
 md"
@@ -454,30 +446,30 @@ $\;$
 
 The MLE is invariant against logarithmic transformations which have algebraic and numeric advantages:
 
-$\hat{\mathbb \phi}_{MLE} = \underset{\mathbb \phi}{\operatorname{argmax}}\mathcal\ L(\mathbb \phi|x, y) = \underset{\mathbb \phi}{\operatorname{argmax}}\ log\left(\mathcal L(\mathbb \phi|x, y)\right) = \underset{\mathbb \phi}{\operatorname{argmax}}\mathcal\ l(\mathbb \phi|x, y)$
+$\hat{\mathbb \phi}_{MLE} = \underset{\mathbb \phi}{\operatorname{argmax}}\mathcal\ L(\mathbb \phi|h, x, y) = \underset{\mathbb \phi}{\operatorname{argmax}}\ log\left(\mathcal L(\mathbb \phi|h, x, y)\right) = \underset{\mathbb \phi}{\operatorname{argmax}}\mathcal\ l(\mathbb \phi|h, x, y)$
 
 $\;$
 $\;$
 
-$\hat{\mathbb \phi}_{MLE} = \underset{\mathbb \phi}{\operatorname{argmax}} \mathcal\  L(\mathbb \phi|x, y) = \underset{\mathbb \phi}{\operatorname{argmax}}\left(\prod_{i=1}^N f(y_i|h(x_i,\mathbb \phi))\right)$
-
-$\;$
-$\;$
-$\;$
-
-$\hat{\mathbb \phi}_{MLE} = \underset{\mathbb \phi}{\operatorname{argmax}}\ log\left(\mathcal L(\mathbb \phi|x, y)\right) = \underset{\mathbb \phi}{\operatorname{argmax}}\ \mathcal l(\mathbb \phi|x, y) = \underset{\mathbb \phi}{\operatorname{argmax}}\left(log \prod_{i=1}^N f(y_i|h(x_i,\mathbb \phi))\right)$
+$\hat{\mathbb \phi}_{MLE} = \underset{\mathbb \phi}{\operatorname{argmax}} \mathcal\  L(\mathbb \phi|h, x, y) = \underset{\mathbb \phi}{\operatorname{argmax}}\left(\prod_{i=1}^n f(y_i|h(x_i,\mathbb \phi), x_i, \phi)\right)$
 
 $\;$
 $\;$
 $\;$
 
-$\hat{\mathbb \phi}_{MLE} =  \underset{\mathbb \phi}{\operatorname{argmax}}\ \mathcal l(\mathbb \phi|x, y) = \underset{\mathbb \phi}{\operatorname{argmax}}\left(\sum_{i=1}^N log \left(f(y_i|h(x_i,\mathbb \phi)\right)\right)$
+$\hat{\mathbb \phi}_{MLE} = \underset{\mathbb \phi}{\operatorname{argmax}}\ \mathcal l(\mathbb \phi|h, x, y) = \underset{\mathbb \phi}{\operatorname{argmax}}\left(log \prod_{i=1}^n f(y_i|h(x_i,\mathbb \phi), x_i, \phi)\right)$
 
 $\;$
 $\;$
 $\;$
 
-$\hat{\mathbb \phi}_{MLE} = \underset{\mathbb \phi}{\operatorname{argmin}}\left(-\sum_{i=1}^N log \left(f(y_i|h(x_i,\mathbb \phi)\right)\right)$
+$\hat{\mathbb \phi}_{MLE} =  \underset{\mathbb \phi}{\operatorname{argmax}}\ \mathcal l(\mathbb \phi|h, x, y) = \underset{\mathbb \phi}{\operatorname{argmax}}\left(\sum_{i=1}^n log \left(f(y_i|h(x_i,\mathbb \phi), x_i, \phi\right)\right)$
+
+$\;$
+$\;$
+$\;$
+
+$\hat{\mathbb \phi}_{MLE} = \underset{\mathbb \phi}{\operatorname{argmin}}\left(-\sum_{i=1}^n log \left(f(y_i|h(x_i,\mathbb \phi), x_i, \phi\right)\right)$
 
 $\;$
 $\;$
@@ -501,32 +493,23 @@ md"
 ---
 ###### 3.2 Grid Search of $\mu$ by Finding Extrema of Gaussian *log-likelihood*
 
-###### 3.2.1 Search for Extremum in Negative Gaussian *log-likelihood*
+###### 3.2.1 Search for Extrema in Negative Gaussian *log-likelihood*
 
-$\hat \mu_{MLE} = \underset{\mathbb \mu}{\operatorname{argmax}}\mathcal\ l(\mathbb \mu; x, y, \sigma) = \underset{\mathbb \mu}{\operatorname{argmax}}\left(- N \cdot log(\sqrt{2\pi\sigma^2}) - \frac{1}{2\sigma^2}\sum_{i=1}^N (x_i-\mu)^2\right)=$
-
-$\;$
-$\;$
-$\;$
-$\;$
-
-$= \underset{\mathbb \mu}{\operatorname{argmin}}\left(N \cdot log(\sqrt{2\pi\sigma^2}) + \frac{1}{2\sigma^2}\sum_{i=1}^N (x_i-\mu)^2\right)=$
+$\hat \mu_{MLE} = \underset{\mathbb \mu}{\operatorname{argmax}}\mathcal\ l(\mathbb \mu; y, \sigma) = \underset{\mathbb \mu}{\operatorname{argmax}}\left(- n \cdot log(\sqrt{2\pi\sigma^2}) - \frac{1}{2\sigma^2}\sum_{i=1}^n (y_i-\mu)^2\right)=$
 
 $\;$
 $\;$
 $\;$
 $\;$
 
-$= \underset{\mathbb \mu}{\operatorname{argmin}}\left(\frac{1}{2\sigma^2}\sum_{i=1}^N (x_i-\mu)^2\right)$
+$= \underset{\mathbb \mu}{\operatorname{argmin}}\left(n \cdot log(\sqrt{2\pi\sigma^2}) + \frac{1}{2\sigma^2}\sum_{i=1}^n (y_i-\mu)^2\right)=$
 
 $\;$
 $\;$
 $\;$
 $\;$
 
-Under the assumption of known $\sigma$ we can further simplify:
-
-$= \underset{\mathbb \mu}{\operatorname{argmin}}\left(\sum_{i=1}^N (x_i-\mu)^2\right)$
+$= \underset{\mathbb \mu}{\operatorname{argmin}}\left(\frac{1}{2\sigma^2}\sum_{i=1}^n (y_i-\mu)^2\right)$
 
 $\;$
 $\;$
@@ -541,12 +524,12 @@ So we see that under the assumption of some assumptions the MLE and the Least Sq
 md"
 ###### 3.2.2 Equality of Estimates by Maximzing and Minimizing Likelihood Kernels
 
-$\hat \mu_{MLE} = \underset{\mathbb \mu}{\operatorname{argmax}}\mathcal\ l(\mu;x,y,\sigma)=$
+$\hat \mu_{MLE} = \underset{\mathbb \mu}{\operatorname{argmax}}\mathcal\ l(\mu;y,\sigma)=$
 
 $\;$
 $\;$
 
-$\underset{\mathbb \mu}{\operatorname{argmax}}\left(- \sum_{i=1}^N (x_i-\mu)^2\right) = \underset{\mathbb \mu}{\operatorname{argmin}}\left(\sum_{i=1}^N (x_i-\mu)^2\right)$
+$\underset{\mathbb \mu}{\operatorname{argmax}}\left(- \frac{1}{2\sigma^2}\sum_{i=1}^N (y_i-\mu)^2\right) = \underset{\mathbb \mu}{\operatorname{argmin}}\left(\frac{1}{2\sigma^2}\sum_{i=1}^N (y_i-\mu)^2\right)$
 
 $\;$
 $\;$
@@ -556,7 +539,8 @@ $\;$
 "
 
 # ╔═╡ 6e33b662-98a7-463f-9720-92bc571f026c
-μs = [μ for μ in 98.0:0.1:102.0]  # hypthesized values for fixed parameter μ
+# hypthesized (guess) values for fixed (unknown) parameter μ
+μs = [μ for μ in 98.0:0.1:102.0]  
 
 # ╔═╡ 812cc0ff-765d-4fc7-9668-ecf2fcc50321
 function findMinMax(foo::Function, ϕs::Array{Float64})
@@ -580,7 +564,7 @@ end # function findMinMax
 md"
 ###### 3.2.3 Minima and Maximum of *Negative* Gaussian Log-Likelihood Kernels
 
-$\hat \mu_{MLE} = \underset{\mathbb \mu}{\operatorname{argmax}}\mathcal\ l(\mathbb \mu; x, y, \sigma) = \underset{\mathbb \mu}{\operatorname{argmax}}\left(- \sum_{i=1}^N (x_i-\mu)^2\right)$
+$\hat \mu_{MLE} = \underset{\mathbb \mu}{\operatorname{argmax}}\mathcal\ l(\mathbb \mu; y, \sigma) = \underset{\mathbb \mu}{\operatorname{argmax}}\left(- \frac{1}{2\sigma^2}\sum_{i=1}^n (y_i-\mu)^2\right)$
 
 $\;$
 $\;$
@@ -591,17 +575,17 @@ $\;$
 
 # ╔═╡ cb602acc-7e5d-4cbc-9e75-bddce5e60258
 function minLogLikelihoodGaussianKernel(xs, μ; σ=15.0)
-	- sum((xs .- μ).^2)
+	- 1/(2.0*σ^2) * sum((xs .- μ).^2)
 end # function minLogLikelihoodGaussianKernel
 
 # ╔═╡ 159a50b6-f89f-4ef4-8986-1906cb6ba1b0
-findMinMax(μ -> minLogLikelihoodGaussianKernel(xs::Vector, μ), μs)
+findMinMax(μ -> minLogLikelihoodGaussianKernel(ys::Vector, μ), μs)
 
 # ╔═╡ 9c739f70-c972-4f5a-b587-ca40328b2549
 md"
 ###### 3.2.4 Minima and Maximum of Positive Gaussian Log-Likelihood Kernels
 
-$\hat \mu_{MLE} = \underset{\mathbb \mu}{\operatorname{argmax}}\mathcal\ l(\mathbb \mu; x, y, \sigma) = \underset{\mathbb \mu}{\operatorname{argmin}}\left(\sum_{i=1}^N (x_i-\mu)^2\right)$
+$\hat \mu_{MLE} = \underset{\mathbb \mu}{\operatorname{argmax}}\mathcal\ l(\mathbb \mu; y, \sigma) = \underset{\mathbb \mu}{\operatorname{argmin}}\left(\frac{1}{2\sigma^2}\sum_{i=1}^n (y_i-\mu)^2\right)$
 
 $\;$
 $\;$
@@ -611,61 +595,75 @@ $\;$
 "
 
 # ╔═╡ 5f579379-7d13-4db9-a9e0-6fd2093fd8f9
-function plusLogLikelihoodGaussianKernel(xs, μ; σ=15.0)
-	sum((xs .- μ).^2)
+function plusLogLikelihoodGaussianKernel(ys, μ; σ=15.0)
+	1/(2.0*σ^2) * sum((ys .- μ).^2)
 end # function plusLogLikelihoodGaussianKernel
 
 # ╔═╡ 0bed8c9b-80fc-4d34-b221-fc5c0096a084
-findMinMax(μ -> plusLogLikelihoodGaussianKernel(xs::Vector, μ), μs)
+findMinMax(μ -> plusLogLikelihoodGaussianKernel(ys::Vector, μ), μs)
 
 # ╔═╡ 3b0e43e8-f851-4fe7-a854-b05d0b252e26
 md"
 ---
 ###### 3.3 Calculus Guided Search of $\mu$ by Finding Extrema of Gaussian *log-likelihood*
 
-###### 3.3.1 Calculus Guided Solution: Fisher's *Score* Function
-The first derivative of the log-likelihood function is called Fisher's *score* $S(\phi)$ function (Held & Bove, 2020, p.27).
+###### 3.3.1 Calculus Guided Solution: Fisher's *Score* Function $S(\phi)$
+The first derivative of the log-likelihood function is called Fisher's *score* $S(\phi)$ function (Held & Bové, 2020, p.27).
 
-Now, we want to use the score function to obtain the $\mu_{MLE}$. Under the assumption of known $\sigma$ it is sufficient to minimze the log-likelhood kernel:  
+Now, we want to use the score function to obtain the $\mu_{MLE}$. Under the assumption of known $\sigma$ it is sufficient to *minimze* the log-likelhood kernel:  
 
-$\hat \mu_{MLE} = \underset{\mathbb \mu}{\operatorname{argmax}}\mathcal\ l(\mathbb \mu; x, y, \sigma) = \underset{\mathbb \mu}{\operatorname{argmin}}\left(\sum_{i=1}^N (x_i-\mu)^2\right)$
-
-$\;$
-$\;$
-$\;$
-$\;$
-
-We set the derivate of $\frac{d \mathcal l}{d\mu} = 0$, solve the resultant equation, and get the MLE which is identical to the LSE or OLS estimator:
-
-$\frac{d \mathcal l}{d \mu} = S(\mathbb \mu; x, y, \sigma) = \frac{d \left(\sum_{i=1}^N (x_i-\mu)^2\right)}{d \mu} = \frac{d \left(\sum_{i=1}^N (x_i^2-2x_i\mu+\mu^2)\right)}{d \mu} = 0$
+$\hat \mu_{MLE} = \underset{\mathbb \mu}{\operatorname{argmax}}\mathcal\ l(\mathbb \mu; y, \sigma) = \underset{\mathbb \mu}{\operatorname{argmin}}\left(\frac{1}{2\sigma^2}\sum_{i=1}^n (y_i-\mu)^2\right)$
 
 $\;$
 $\;$
 $\;$
 $\;$
 
-$\frac{d \mathcal l}{d \mu} = S(\mathbb \mu; x, y, \sigma) = \frac{d \left(\sum_{i=1}^N x_i^2\right)}{d \mu} - \frac{d \left(\sum_{i=1}^N 2x_i\mu\right)}{d \mu} + \frac{d \left(\sum_{i=1}^N \mu^2\right)}{d \mu} = 0$ 
+We set the derivate of $\frac{d \mathcal l}{d\mu} = 0$, solve the resulting equation, and get the MLE which is identical to the LSE or OLS estimator:
+
+$S(\mathbb \mu; y, \sigma) = \frac{d \mathcal l}{d \mu} = \frac{d \left(\frac{1}{2\sigma^2}\sum_{i=1}^n (y_i-\mu)^2\right)}{d \mu} = \frac{d \left(\frac{1}{2\sigma^2}\sum_{i=1}^n (y_i^2-2y_i\mu+\mu^2)\right)}{d \mu}$
 
 $\;$
 $\;$
 $\;$
 $\;$
 
-$\frac{d \mathcal\ l}{d \mu} = 0 - 2\left(\sum_{i=1}^N x_i\right) + 2N\mu = 0$
+$S(\mathbb \mu; y, \sigma) = \frac{d \mathcal l}{d \mu} = \frac{d \left(\frac{1}{2\sigma^2}\sum_{i=1}^n y_i^2\right)}{d \mu} - \frac{d \left(\frac{1}{2\sigma^2}\sum_{i=1}^n 2y_i\mu\right)}{d \mu} + \frac{d \left(\frac{1}{2\sigma^2}\sum_{i=1}^n \mu^2\right)}{d \mu}$ 
 
 $\;$
 $\;$
 $\;$
 $\;$
 
-$\frac{d \mathcal\ l}{d \mu} = - \left(\sum_{i=1}^N x_i\right) + N\mu = 0$
+$S(\mathbb \mu; y, \sigma) = \frac{d \mathcal\ l}{d \mu} = 0 - 2\frac{1}{2\sigma^2}\left(\sum_{i=1}^n y_i\right) + 2\frac{1}{2\sigma^2}n\mu = - \frac{1}{\sigma^2}\left(\sum_{i=1}^n y_i\right) + \frac{1}{\sigma^2}n\mu$
 
 $\;$
 $\;$
 $\;$
 $\;$
 
-$\hat \mu_{MLE} = \frac{\left(\sum_{i=1}^N x_i\right)}{N} = \bar x$
+"
+
+# ╔═╡ 010000b3-dbbd-4614-a7ad-242ac2697155
+md"
+---
+###### 3.3.2 Solving the Score Equation $S(ϕ) = 0$
+
+$\frac{d \mathcal\ l}{d \mu} = - \frac{1}{\sigma^2}\sum_{i=1}^n y_i + N\frac{1}{\sigma^2}\mu = 0$ 
+
+$\;$
+$\;$
+$\;$
+$\;$
+
+$- \sum_{i=1}^n y_i + n\mu = 0$
+
+$\;$
+$\;$
+$\;$
+$\;$
+
+$\hat \mu_{MLE} = \frac{\sum_{i=1}^n y_i}{n} = \bar x$
 
 $\;$
 $\;$
@@ -674,22 +672,111 @@ where:
 
 $\;$
 
-$\bar x = \text{ the sample mean }$
+$\bar y = \text{ the sample mean }$
 
 $\;$
 $\;$
 $\;$
-$\;$
-
 "
 
-# ╔═╡ 05795f15-a763-4420-a6fb-14a4edc97f31
+# ╔═╡ 3b0f3cbd-0604-44bf-a6d4-ea4d9db43107
 md"
-###### 3.3.2 The Sample Mean auf Gaussian $X$ is equal to $\mu_{MLE}$ 
+---
+###### 3.3.3 Negative Derivative of the Score Function and Fisher Information
+The negative second derivative of the log-likelihood and the negative first derivative of the score function is called the *Fisher information* (Helde & Bové, 2020, p.27):
+
+Fisher's *score* function:
+
+$S(\mathbb \mu; y, \sigma) = \frac{d \mathcal\ l}{d \mu} = - \frac{1}{\sigma^2}\sum_{i=1}^n y_i + \frac{1}{\sigma^2}n\mu$
+
+$\;$
+$\;$
+$\;$
+$\;$
+
+the negative *Fisher Information* is:
+
+$- I(\mu) = \frac{d S(\mathbb \mu; y, \sigma)}{d \mu} = \frac{d^2 \mathcal\ l}{d^2 \mu} = \frac{d\left(- \frac{1}{\sigma^2}\sum_{i=1}^n y_i + \frac{1}{\sigma^2}n\mu\right)}{d \mu} =  0 - \frac{1}{\sigma^2}n = -\frac{1}{\sigma^2}n$
+
+$\;$
+$\;$
+$\;$
+$\;$
+
+and the (positive) *Fisher Information* is:
+
+$I(\mu) = I(\hat \mu) = \frac{1}{\sigma^2}n$
+
+$\;$
+$\;$
+
+where:
+
+$I(\hat \mu) = \text{ is the *observed* Information }$ 
+
+$\;$
+$\;$
+
+The information $I(\mu)$ is *independent* of $\mu$ so it is independent of any statistic $\hat \mu$. In this case both *information* and *observed information* are identical.
+
+$\;$
+
 "
 
-# ╔═╡ a7f242ca-0d1a-460d-aed1-911be4cd6ae0
-mean(μs)
+# ╔═╡ bc2f43b5-edc8-471a-aac8-3f8c0bbf9f0e
+md"
+---
+###### 3.3.5 Fisher Information and Standard Error of $\mu$
+
+$std_{error}(\hat \mu) = \sqrt{(I(\mu)^{-1})} = \sqrt{(I(\hat \mu)^{-1})} = \sqrt{\frac{\sigma^2}{n}}$
+
+$\;$
+$\;$
+$\;$
+$\;$
+"
+
+# ╔═╡ 5558ef1e-2d5b-4397-bdaf-c593b0f421d4
+begin 
+	ystderror_σ = sqrt(15^2/n)
+	ystderror_s = sqrt(ystddev^2/n)
+	ystderror_σ, ystderror_s
+end # begin
+
+# ╔═╡ cbfcf521-1a2d-41c9-a796-39c5ffc13fc4
+md"
+---
+###### 3.3.6 Standard Error and Confidence Limits $CL$ for $\mu$
+
+Definition: *For repeated random samples from a distribution with unknown parameter $\phi$, a $\gamma \cdot 100 \%$ confidence interval will cover parameter $\phi$ in $\gamma \cdot 100 \%$ of all cases* (Held & Bové, 2020, p.57) $(\gamma \in (0,1))$:
+
+$P(CL_{low} \le \phi \le CL_{high}) = \gamma$
+
+$\;$
+$\;$
+
+$(CL_{low}, CL_{high}) = \hat \mu \pm t_{two-tailed, 0.05}*std_{error}(\hat \mu)$
+
+$\;$
+$\;$
+
+The *confidence level* $\gamma$ is called the *coverage probability* for *fixed* (!) parameter $\phi$ and *random* $CL_{low}, \phi \le CL_{high}$:
+
+$P(CL_{low} \le \mu \le CL_{high}) = \gamma = 0.95$
+
+$\;$
+$\;$
+
+"
+
+# ╔═╡ 41a626a6-1616-40ee-859f-ba323ae621f1
+cdf(TDist(12), -2.1788), cdf(TDist(12), 2.1788)
+
+# ╔═╡ 94391f3b-22f8-40c0-b0dd-66dbcc9d0d34
+cl_σ = (ybar - 2.1788 * ystderror_σ, ybar + 2.1788 * ystderror_σ)
+
+# ╔═╡ b3574040-fd96-43cd-b3c9-05d1d36956c8
+cl_s = (ybar - 2.1788 * ystderror_s, ybar + 2.1788 * ystderror_s)
 
 # ╔═╡ 4943eec5-b299-4e70-a80a-bcf407c35074
 md"
@@ -1915,6 +2002,7 @@ version = "1.4.1+1"
 # ╠═f94fc7fb-9f21-4c99-a0f4-ddf4a4df37c9
 # ╠═95af722f-9675-4562-a115-166bb5e27679
 # ╠═25584038-b162-438c-acc7-597fb5b65b0d
+# ╟─479adfc6-00da-4279-b64d-9f8ef68d7619
 # ╠═303aaffa-09aa-4c80-a92d-90045a7b688f
 # ╠═127347fa-1ac3-4306-acc9-61091538ad71
 # ╟─23e54ade-e9b0-47ae-91d4-fde9b5e3ec67
@@ -1961,8 +2049,14 @@ version = "1.4.1+1"
 # ╠═5f579379-7d13-4db9-a9e0-6fd2093fd8f9
 # ╠═0bed8c9b-80fc-4d34-b221-fc5c0096a084
 # ╟─3b0e43e8-f851-4fe7-a854-b05d0b252e26
-# ╟─05795f15-a763-4420-a6fb-14a4edc97f31
-# ╠═a7f242ca-0d1a-460d-aed1-911be4cd6ae0
+# ╟─010000b3-dbbd-4614-a7ad-242ac2697155
+# ╟─3b0f3cbd-0604-44bf-a6d4-ea4d9db43107
+# ╟─bc2f43b5-edc8-471a-aac8-3f8c0bbf9f0e
+# ╠═5558ef1e-2d5b-4397-bdaf-c593b0f421d4
+# ╟─cbfcf521-1a2d-41c9-a796-39c5ffc13fc4
+# ╠═41a626a6-1616-40ee-859f-ba323ae621f1
+# ╠═94391f3b-22f8-40c0-b0dd-66dbcc9d0d34
+# ╠═b3574040-fd96-43cd-b3c9-05d1d36956c8
 # ╟─4943eec5-b299-4e70-a80a-bcf407c35074
 # ╟─d6051c16-4b38-4784-a7b8-0150027294cb
 # ╟─afb4fc4d-8d81-40c7-bd3d-40575f881a34
