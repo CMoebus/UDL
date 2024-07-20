@@ -17,7 +17,7 @@ md"
 =====================================================================================
 #### UDL\_20240711\_5\_2\_1\_Maximum\_Likelihood\_Estimation\_I.jl
 ##### file: UDL\_20240711\_5\_2\_1\_Maximum\_Likelihood\_Estimation\_I.jl
-##### code: Julia 1.10.4/Pluto by *** PCM 2024/07/19 ***
+##### code: Julia 1.10.4/Pluto by *** PCM 2024/07/20 ***
 
 =====================================================================================
 "
@@ -81,13 +81,13 @@ $\;$
 
 where: 
 
-$\mathbf \phi = (\mu, \sigma), I(\phi) = h(\phi) = (\mu, \sigma)$ 
+$\mathbf \phi = (\mu, \sigma)$ 
 
 $\;$
 
-and
+and here:
 
-$I = \text{ the identity function }$
+$h(\phi) := I(\phi) = \phi \text{; the identity function }$
 
 $\;$
 $\;$
@@ -185,13 +185,13 @@ $\;$
 md"
 ###### 2.3.2 Example: Likelihood Function of a Set of Gaussian Distributed Realizations $Y=y_i$
 
-$f_{\mathcal N}\left(y; \phi=h(\mu, \sigma)=(\mu, \sigma)\right) = \mathcal N(y; \mu, \sigma) = \frac{1}{\sqrt{2 \pi \sigma^2}}\exp\left(-\frac{1}{2}\left(\frac{y-\mu}{\sigma}\right)^2\right)$
+$f_{\mathcal N}\left(y; h(\mu, \sigma)\right) = \mathcal N(y; \mu, \sigma) = \frac{1}{\sqrt{2 \pi \sigma^2}}\exp\left(-\frac{1}{2}\left(\frac{y-\mu}{\sigma}\right)^2\right)$
 
 $\;$
 $\;$
 $\;$
 
-$\mathcal L = \prod_{i=1}^n \left\{\frac{1}{\sqrt{2 \pi \sigma^2}}\exp\left(-\frac{1}{2}\left(\frac{y-\mu}{\sigma}\right)^2\right)\right\}=$
+$\mathcal L(\mu;f_{\mathcal N}, \sigma, y_{1:n}) = \prod_{i=1}^n \mathcal N(y_i; \mu, \sigma)= \prod_{i=1}^n \left\{\frac{1}{\sqrt{2 \pi \sigma^2}}\exp\left(-\frac{1}{2}\left(\frac{y-\mu}{\sigma}\right)^2\right)\right\}=$
 
 $\;$
 $\;$
@@ -203,7 +203,7 @@ $\;$
 $\;$
 $\;$
 
-$= \left(\frac{1}{\sqrt{2\pi\sigma^2}}\right)^n exp\left(-\frac{1}{2\sigma^2}\sum_{i=1}^n (y_i-\mu)^2\right)$
+$= \left(\frac{1}{\sqrt{2\pi\sigma^2}}\right)^n exp\left(-\frac{1}{2\sigma^2}\sum_{i=1}^n (y_i-\mu)^2\right).$
 
 $\;$
 $\;$
@@ -217,16 +217,10 @@ $\;$
 
 # ╔═╡ 38ac97c9-4a83-4740-8444-2fac23fe31ce
 md"
-###### 2.3.3 Gaussian Likelihood as *Product of  Densities*.
+###### 2.3.3 Example: Gaussian Likelihood as *Product of  Densities*.
 Gaussian likelihood under the assumption of known $\sigma$: 
 
-$\mathcal L_{\mathcal N}(μ; y, σ) = \prod_{i=1}^n f_{\mathcal N}(\mu; y, \sigma) =$ 
-
-$\;$
-$\;$
-$\;$
-
-$= \prod_{i=1}^n \left\{\frac{1}{\sqrt{2 \pi \sigma^2}}\exp\left(-\frac{1}{2}\left(\frac{y-\mu}{\sigma}\right)^2\right)\right\}$
+$\mathcal L_{\mathcal N}(μ; f_{\mathcal N}, \sigma, y_{1:n}) = \prod_{i=1}^n f_{\mathcal N}(\mu; y_i, \sigma) = \prod_{i=1}^n \left\{\frac{1}{\sqrt{2 \pi \sigma^2}}\exp\left(-\frac{1}{2}\left(\frac{y_i-\mu}{\sigma}\right)^2\right)\right\}$
 
 $\;$
 $\;$
@@ -273,17 +267,11 @@ likelihoodGaussianProductVersion(ys::Vector, y -> myGaussianPDF(y; μ=102.0, σ=
 
 # ╔═╡ 6b5c88e9-4869-4820-972f-71f0988bed35
 md"
-###### 2.3.4 Gaussian Likelihood as Weighted *Sum of Squares* in Argument of $exp$
+###### 2.3.4 Example: Gaussian Likelihood as Weighted *Sum of Squares* in Argument of $exp$
 A further simplified of the Gaussian likelihood contains a *sum of squares* expression in the exponent:
 
 
-$\mathcal L_{\mathcal N}(μ; y, σ) = \prod_{i=1}^n f_{\mathcal N}(\mu; y, \sigma) =$ 
-
-$\;$
-$\;$
-$\;$
-
-$= \left(\frac{1}{\sqrt{2\pi\sigma^2}}\right)^n exp\left(-\frac{1}{2\sigma^2}\sum_{i=1}^n (y_i-\mu)^2\right)$
+$\mathcal L(μ; f_{\mathcal N}, \sigma, y_{1:n}) = \prod_{i=1}^n f_{\mathcal N}(\mu; y_i, \sigma) = \left(\frac{1}{\sqrt{2\pi\sigma^2}}\right)^n exp\left(-\frac{1}{2\sigma^2}\sum_{i=1}^n (y_i-\mu)^2\right)$
 
 $\;$
 $\;$
@@ -331,14 +319,14 @@ md"
 
 ###### 2.4.1 Definition
 
-$log\left(\mathcal L(\mathbb \phi|h, x, y)\right) = \mathcal l(\mathbb \phi|h, x, y)$
+$log\left(\mathcal L(\mathbb \phi|h, x_{1:n}, y_{1:n})\right) = \mathcal l(\mathbb \phi|h, x_{1:n}, y_{1:n})$
 
 $\;$
 $\;$
 
-###### 2.4.2 Log-Likelihood of Hypothesized $\mu$ in Gaussians with Known σ
+###### 2.4.2 Example: Log-Likelihood of Hypothesized $\mu$ in Gaussians with Known σ
 
-$log\left(\mathcal L_N(\mathbb \mu;y, \sigma)\right) = \mathcal l_N(\mathbb \mu;y, \sigma)$
+$log\left(\mathcal L_N(\mathbb \mu;\sigma, y_{1:n})\right) = \mathcal l_N(\mathbb \mu;\sigma, y_{1:n})$
 
 $\;$
 
@@ -437,33 +425,31 @@ logLikelihoodOfGaussianSumVersion(ys::Vector, μ=102.0, σ=15.0)
 # ╔═╡ e45e1658-2ec0-48f8-9d4a-64a4806eafc4
 md"
 ---
-##### 3. ML (= Maximum Likelihood) Estimator $\hat{\mathbb \phi}$
+##### 3. ML (= Maximum Likelihood) Estimator $\hat{\mathbb \phi}_{MLE}$
 Very plausible parameter values should have a high likelihood and less plausible a low likelihood. The most plausible value is the *maximum likelihood* value. In Bayesian statistics this is the *Maximum Aposterior (MAP)* value when the prior is uniform. 
 
 ###### 3.1 Definition
 
-$\;$
-
 The MLE is invariant against logarithmic transformations which have algebraic and numeric advantages:
 
-$\hat{\mathbb \phi}_{MLE} = \underset{\mathbb \phi}{\operatorname{argmax}}\mathcal\ L(\mathbb \phi|h, x, y) = \underset{\mathbb \phi}{\operatorname{argmax}}\ log\left(\mathcal L(\mathbb \phi|h, x, y)\right) = \underset{\mathbb \phi}{\operatorname{argmax}}\mathcal\ l(\mathbb \phi|h, x, y)$
+$\hat{\mathbb \phi}_{MLE} = \underset{\mathbb \phi}{\operatorname{argmax}}\mathcal\ L(\mathbb \phi|h, x_{1:n}, y_{1:n}) = \underset{\mathbb \phi}{\operatorname{argmax}}\mathcal\ l(\mathbb \phi|h, x_{1:n}, y_{1:n})$
 
 $\;$
 $\;$
 
-$\hat{\mathbb \phi}_{MLE} = \underset{\mathbb \phi}{\operatorname{argmax}} \mathcal\  L(\mathbb \phi|h, x, y) = \underset{\mathbb \phi}{\operatorname{argmax}}\left(\prod_{i=1}^n f(y_i|h(x_i,\mathbb \phi), x_i, \phi)\right)$
-
-$\;$
-$\;$
-$\;$
-
-$\hat{\mathbb \phi}_{MLE} = \underset{\mathbb \phi}{\operatorname{argmax}}\ \mathcal l(\mathbb \phi|h, x, y) = \underset{\mathbb \phi}{\operatorname{argmax}}\left(log \prod_{i=1}^n f(y_i|h(x_i,\mathbb \phi), x_i, \phi)\right)$
+$\hat{\mathbb \phi}_{MLE} = \underset{\mathbb \phi}{\operatorname{argmax}} \mathcal\  L(\mathbb \phi|h, x_{1:n}, y_{1:n}) = \underset{\mathbb \phi}{\operatorname{argmax}}\left(\prod_{i=1}^n f(y_i|h(x_i,\mathbb \phi), x_i, \phi)\right)$
 
 $\;$
 $\;$
 $\;$
 
-$\hat{\mathbb \phi}_{MLE} =  \underset{\mathbb \phi}{\operatorname{argmax}}\ \mathcal l(\mathbb \phi|h, x, y) = \underset{\mathbb \phi}{\operatorname{argmax}}\left(\sum_{i=1}^n log \left(f(y_i|h(x_i,\mathbb \phi), x_i, \phi\right)\right)$
+$\hat{\mathbb \phi}_{MLE} = \underset{\mathbb \phi}{\operatorname{argmax}}\ \mathcal l(\mathbb \phi|h, x_{1:n}, y_{1:n}) = \underset{\mathbb \phi}{\operatorname{argmax}}\left(log \prod_{i=1}^n f(y_i|h(x_i,\mathbb \phi), x_i, \phi)\right)$
+
+$\;$
+$\;$
+$\;$
+
+$\hat{\mathbb \phi}_{MLE} =  \underset{\mathbb \phi}{\operatorname{argmax}}\ \mathcal l(\mathbb \phi|h, x_{1:n}, y_{1:n}) = \underset{\mathbb \phi}{\operatorname{argmax}}\left(\sum_{i=1}^n log \left(f(y_i|h(x_i,\mathbb \phi), x_i, \phi\right)\right)$
 
 $\;$
 $\;$
@@ -491,11 +477,11 @@ $\;$
 # ╔═╡ fdf4c2ab-ba85-43c9-a33d-402979add2ab
 md"
 ---
-###### 3.2 Grid Search of $\mu$ by Finding Extrema of Gaussian *log-likelihood*
+###### 3.2 Example: Grid Search of $\mu$ by Finding Extrema of Gaussian *log-likelihood*
 
-###### 3.2.1 Search for Extrema in Negative Gaussian *log-likelihood*
+###### 3.2.1 Example: Search for Extrema in Negative Gaussian *log-likelihood*
 
-$\hat \mu_{MLE} = \underset{\mathbb \mu}{\operatorname{argmax}}\mathcal\ l(\mathbb \mu; y, \sigma) = \underset{\mathbb \mu}{\operatorname{argmax}}\left(- n \cdot log(\sqrt{2\pi\sigma^2}) - \frac{1}{2\sigma^2}\sum_{i=1}^n (y_i-\mu)^2\right)=$
+$\hat \mu_{MLE} = \underset{\mathbb \mu}{\operatorname{argmax}}\mathcal\ l(\mathbb \mu; f_{\mathcal N}, \sigma, y_{1:n}) = \underset{\mathbb \mu}{\operatorname{argmax}}\left(- n \cdot log(\sqrt{2\pi\sigma^2}) - \frac{1}{2\sigma^2}\sum_{i=1}^n (y_i-\mu)^2\right)=$
 
 $\;$
 $\;$
@@ -524,7 +510,7 @@ So we see that under the assumption of some assumptions the MLE and the Least Sq
 md"
 ###### 3.2.2 Equality of Estimates by Maximzing and Minimizing Likelihood Kernels
 
-$\hat \mu_{MLE} = \underset{\mathbb \mu}{\operatorname{argmax}}\mathcal\ l(\mu;y,\sigma)=$
+$\hat \mu_{MLE} = \underset{\mathbb \mu}{\operatorname{argmax}}\mathcal\ l(\mu;f_{\mathcal N}, \sigma, y_{1:n})=$
 
 $\;$
 $\;$
@@ -562,9 +548,9 @@ end # function findMinMax
 
 # ╔═╡ c14d7419-6c3f-4b0f-8f01-bc94d69feece
 md"
-###### 3.2.3 Minima and Maximum of *Negative* Gaussian Log-Likelihood Kernels
+###### 3.2.3 Example: Minima and Maximum of *Negative* Gaussian Log-Likelihood Kernels
 
-$\hat \mu_{MLE} = \underset{\mathbb \mu}{\operatorname{argmax}}\mathcal\ l(\mathbb \mu; y, \sigma) = \underset{\mathbb \mu}{\operatorname{argmax}}\left(- \frac{1}{2\sigma^2}\sum_{i=1}^n (y_i-\mu)^2\right)$
+$\hat \mu_{MLE} = \underset{\mathbb \mu}{\operatorname{argmax}}\mathcal\ l(\mathbb \mu; f_{\mathcal N}, \sigma, y_{1:n}) = \underset{\mathbb \mu}{\operatorname{argmax}}\left(- \frac{1}{2\sigma^2}\sum_{i=1}^n (y_i-\mu)^2\right)$
 
 $\;$
 $\;$
@@ -583,9 +569,9 @@ findMinMax(μ -> minLogLikelihoodGaussianKernel(ys::Vector, μ), μs)
 
 # ╔═╡ 9c739f70-c972-4f5a-b587-ca40328b2549
 md"
-###### 3.2.4 Minima and Maximum of Positive Gaussian Log-Likelihood Kernels
+###### 3.2.4 Example: Minima and Maximum of Positive Gaussian Log-Likelihood Kernels
 
-$\hat \mu_{MLE} = \underset{\mathbb \mu}{\operatorname{argmax}}\mathcal\ l(\mathbb \mu; y, \sigma) = \underset{\mathbb \mu}{\operatorname{argmin}}\left(\frac{1}{2\sigma^2}\sum_{i=1}^n (y_i-\mu)^2\right)$
+$\hat \mu_{MLE} = \underset{\mathbb \mu}{\operatorname{argmax}}\mathcal\ l(\mathbb \mu; f_{\mathcal N}, \sigma, y_{1:n}) = \underset{\mathbb \mu}{\operatorname{argmin}}\left(\frac{1}{2\sigma^2}\sum_{i=1}^n (y_i-\mu)^2\right)$
 
 $\;$
 $\;$
@@ -605,14 +591,14 @@ findMinMax(μ -> plusLogLikelihoodGaussianKernel(ys::Vector, μ), μs)
 # ╔═╡ 3b0e43e8-f851-4fe7-a854-b05d0b252e26
 md"
 ---
-###### 3.3 Calculus Guided Search of $\mu$ by Finding Extrema of Gaussian *log-likelihood*
+###### 3.3 Example: Calculus Guided Search of $\mu$ by Finding Extrema of Gaussian *log-likelihood*
 
-###### 3.3.1 Calculus Guided Solution: Fisher's *Score* Function $S(\phi)$
+###### 3.3.1 Example: Calculus Guided Solution: Fisher's *Score* Function $S(\phi)$
 The first derivative of the log-likelihood function is called Fisher's *score* $S(\phi)$ function (Held & Bové, 2020, p.27).
 
 Now, we want to use the score function to obtain the $\mu_{MLE}$. Under the assumption of known $\sigma$ it is sufficient to *minimze* the log-likelhood kernel:  
 
-$\hat \mu_{MLE} = \underset{\mathbb \mu}{\operatorname{argmax}}\mathcal\ l(\mathbb \mu; y, \sigma) = \underset{\mathbb \mu}{\operatorname{argmin}}\left(\frac{1}{2\sigma^2}\sum_{i=1}^n (y_i-\mu)^2\right)$
+$\hat \mu_{MLE} = \underset{\mathbb \mu}{\operatorname{argmax}}\mathcal\ l(\mathbb \mu; f_{\mathcal N}, \sigma, y_{1:n}) = \underset{\mathbb \mu}{\operatorname{argmin}}\left(\frac{1}{2\sigma^2}\sum_{i=1}^n (y_i-\mu)^2\right)$
 
 $\;$
 $\;$
@@ -621,21 +607,21 @@ $\;$
 
 We set the derivate of $\frac{d \mathcal l}{d\mu} = 0$, solve the resulting equation, and get the MLE which is identical to the LSE or OLS estimator:
 
-$S(\mathbb \mu; y, \sigma) = \frac{d \mathcal l}{d \mu} = \frac{d \left(\frac{1}{2\sigma^2}\sum_{i=1}^n (y_i-\mu)^2\right)}{d \mu} = \frac{d \left(\frac{1}{2\sigma^2}\sum_{i=1}^n (y_i^2-2y_i\mu+\mu^2)\right)}{d \mu}$
+$S(\mathbb \mu; \mathcal l_{\mathcal N}, \sigma, y_{1:n}) = \frac{d \mathcal l}{d \mu} = \frac{d \left(\frac{1}{2\sigma^2}\sum_{i=1}^n (y_i-\mu)^2\right)}{d \mu} = \frac{d \left(\frac{1}{2\sigma^2}\sum_{i=1}^n (y_i^2-2y_i\mu+\mu^2)\right)}{d \mu}$
 
 $\;$
 $\;$
 $\;$
 $\;$
 
-$S(\mathbb \mu; y, \sigma) = \frac{d \mathcal l}{d \mu} = \frac{d \left(\frac{1}{2\sigma^2}\sum_{i=1}^n y_i^2\right)}{d \mu} - \frac{d \left(\frac{1}{2\sigma^2}\sum_{i=1}^n 2y_i\mu\right)}{d \mu} + \frac{d \left(\frac{1}{2\sigma^2}\sum_{i=1}^n \mu^2\right)}{d \mu}$ 
+$S(\mathbb \mu; \mathcal l_{\mathcal N}, \sigma, y_{1:n}) = \frac{d \mathcal l}{d \mu} = \frac{d \left(\frac{1}{2\sigma^2}\sum_{i=1}^n y_i^2\right)}{d \mu} - \frac{d \left(\frac{1}{2\sigma^2}\sum_{i=1}^n 2y_i\mu\right)}{d \mu} + \frac{d \left(\frac{1}{2\sigma^2}\sum_{i=1}^n \mu^2\right)}{d \mu}$ 
 
 $\;$
 $\;$
 $\;$
 $\;$
 
-$S(\mathbb \mu; y, \sigma) = \frac{d \mathcal\ l}{d \mu} = 0 - 2\frac{1}{2\sigma^2}\left(\sum_{i=1}^n y_i\right) + 2\frac{1}{2\sigma^2}n\mu = - \frac{1}{\sigma^2}\left(\sum_{i=1}^n y_i\right) + \frac{1}{\sigma^2}n\mu$
+$S(\mathbb \mu; \mathcal l_{\mathcal N}, \sigma, y_{1:n}) = \frac{d \mathcal l}{d \mu} = 0 - 2\frac{1}{2\sigma^2}\left(\sum_{i=1}^n y_i\right) + 2\frac{1}{2\sigma^2}n\mu = - \frac{1}{\sigma^2}\left(\sum_{i=1}^n y_i\right) + \frac{1}{\sigma^2}n\mu$
 
 $\;$
 $\;$
@@ -647,9 +633,9 @@ $\;$
 # ╔═╡ 010000b3-dbbd-4614-a7ad-242ac2697155
 md"
 ---
-###### 3.3.2 Solving the Score Equation $S(ϕ) = 0$
+###### 3.3.2 Example: Solving the Score Equation $S(ϕ) = 0$
 
-$\frac{d \mathcal\ l}{d \mu} = - \frac{1}{\sigma^2}\sum_{i=1}^n y_i + N\frac{1}{\sigma^2}\mu = 0$ 
+$S(\mathbb \mu; \mathcal l_{\mathcal N}, \sigma, y_{1:n}) = \frac{d \mathcal l}{d \mu} = - \frac{1}{\sigma^2}\sum_{i=1}^n y_i + N\frac{1}{\sigma^2}\mu = 0$ 
 
 $\;$
 $\;$
@@ -687,7 +673,7 @@ The negative second derivative of the log-likelihood and the negative first deri
 
 Fisher's *score* function:
 
-$S(\mathbb \mu; y, \sigma) = \frac{d \mathcal\ l}{d \mu} = - \frac{1}{\sigma^2}\sum_{i=1}^n y_i + \frac{1}{\sigma^2}n\mu$
+$S(\mathbb \mu; \mathcal l_{\mathcal N}, \sigma, y_{1:n}) = \frac{d \mathcal l}{d \mu}  = - \frac{1}{\sigma^2}\sum_{i=1}^n y_i + \frac{1}{\sigma^2}n\mu$
 
 $\;$
 $\;$
@@ -696,7 +682,7 @@ $\;$
 
 the negative *Fisher Information* is:
 
-$- I(\mu) = \frac{d S(\mathbb \mu; y, \sigma)}{d \mu} = \frac{d^2 \mathcal\ l}{d^2 \mu} = \frac{d\left(- \frac{1}{\sigma^2}\sum_{i=1}^n y_i + \frac{1}{\sigma^2}n\mu\right)}{d \mu} =  0 - \frac{1}{\sigma^2}n = -\frac{1}{\sigma^2}n$
+$- I(\mu) = \frac{d S(\mathbb \mu; \mathcal l_{\mathcal N}, \sigma, y_{1:n})}{d \mu} = \frac{d^2 \mathcal\ l}{d^2 \mu} = \frac{d\left(- \frac{1}{\sigma^2}\sum_{i=1}^n y_i + \frac{1}{\sigma^2}n\mu\right)}{d \mu} =  0 - \frac{1}{\sigma^2}n = -\frac{1}{\sigma^2}n$
 
 $\;$
 $\;$
@@ -705,14 +691,14 @@ $\;$
 
 and the (positive) *Fisher Information* is:
 
-$I(\mu) = I(\hat \mu) = \frac{1}{\sigma^2}n$
+$I(\mu) = I(\hat \mu) = \frac{1}{\sigma^2}n = \frac{n}{\sigma^2}$
 
 $\;$
 $\;$
 
 where:
 
-$I(\hat \mu) = \text{ is the *observed* Information }$ 
+$I(\hat \mu) = \text{ is the }\textit{observed}\text{ Information }$ 
 
 $\;$
 $\;$
@@ -728,7 +714,7 @@ md"
 ---
 ###### 3.3.5 Fisher Information and Standard Error of $\mu$
 
-$std_{error}(\hat \mu) = \sqrt{(I(\mu)^{-1})} = \sqrt{(I(\hat \mu)^{-1})} = \sqrt{\frac{\sigma^2}{n}}$
+$std_{error}(\hat \mu) = \sqrt{\frac{1}{I(\mu)}} = \sqrt{\frac{1}{I(\hat \mu)}} = \sqrt{\frac{\sigma^2}{n}}= \frac{\sigma}{\sqrt n}$
 
 $\;$
 $\;$
@@ -738,8 +724,9 @@ $\;$
 
 # ╔═╡ 5558ef1e-2d5b-4397-bdaf-c593b0f421d4
 begin 
-	ystderror_σ = sqrt(15^2/n)
-	ystderror_s = sqrt(ystddev^2/n)
+	sqrtn = sqrt(n)
+	ystderror_σ = 15.0/sqrtn
+	ystderror_s = ystddev/sqrtn
 	ystderror_σ, ystderror_s
 end # begin
 
