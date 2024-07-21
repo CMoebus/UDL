@@ -10,6 +10,8 @@ begin
 	using Distributions
 	using Printf
 	using LaTeXStrings, Latexify
+	using Optim
+	using Optimization, OptimizationOptimJL
 end # begin
 
 # ╔═╡ 400e7456-8a3b-44cc-ac77-5b28087b81fb
@@ -17,7 +19,7 @@ md"
 =====================================================================================
 #### UDL\_20240711\_5\_2\_1\_Maximum\_Likelihood\_Estimation\_I.jl
 ##### file: UDL\_20240711\_5\_2\_1\_Maximum\_Likelihood\_Estimation\_I.jl
-##### code: Julia 1.10.4/Pluto by *** PCM 2024/07/20 ***
+##### code: Julia 1.10.4/Pluto by *** PCM 2024/07/21 ***
 
 =====================================================================================
 "
@@ -119,14 +121,16 @@ end # begin
 let zs = [z for z in -5.0:0.1:+5.0]
 	myGaussianPDFs = [myGaussianPDF(z) for z in zs] 
 	plot(zs, myGaussianPDFs, label=L"(z, N(z;\mu=0.0, \sigma=1.0))", xlabel=L"z", ylabel=L"N(z;\mu=0, \sigma=1)", title="Density of Standard Gaussian", titlefontsize=12)
-	plot!([0.0, 0.0], [0.0, myGaussianPDF(0.0)], label=L"(0, N(0;\mu=0, \sigma=1))")
+	plot!([0.0, 0.0], [0.0, myGaussianPDF(0.0)], ls=:dash, label=L"(0, N(0;\mu=0, \sigma=1))")
+	plot!([-5.0, 5.0],[0.0, 0.0], color=:black, label=L"(z, 0.0)")
 end # let
 
 # ╔═╡ 25584038-b162-438c-acc7-597fb5b65b0d
 let ys = [y for y in -7.0:0.1:+5.0]
 	myGaussianPDFs = [pdf.(Normal(-1.0, 2.3), y) for y in ys] 
 	plot(ys, myGaussianPDFs, label=L"(y, N(y;\mu=-1, \sigma=2.3))", xlabel=L"y", ylabel=L"N(y;\mu=0.0, \sigma=1.0)", title="Density of Distributions.Normal(-1.0, 2.3)", titlefontsize=12)
-	plot!([1.0, 1.0],[0.0, pdf.(Normal(-1.0, 2.3), 1.0)], label=L"(1, N(1;\mu=-1, \sigma=2.3)")
+	plot!([1.0, 1.0],[0.0, pdf.(Normal(-1.0, 2.3), 1.0)], ls=:dash, label=L"(1, N(1;\mu=-1, \sigma=2.3)")
+	plot!([-7.0, 5.0],[0.0, 0.0], color=:black, label=L"(z, 0.0)")
 end # let
 
 # ╔═╡ 479adfc6-00da-4279-b64d-9f8ef68d7619
@@ -326,7 +330,7 @@ $\;$
 
 ###### 2.4.2 Example: Log-Likelihood of Hypothesized $\mu$ in Gaussians with Known σ
 
-$log\left(\mathcal L_N(\mathbb \mu;\sigma, y_{1:n})\right) = \mathcal l_N(\mathbb \mu;\sigma, y_{1:n})$
+$log\left(\mathcal L_{\mathcal N}(\mathbb \mu;\sigma, y_{1:n})\right) = \mathcal l_{\mathcal N}(\mathbb \mu;\sigma, y_{1:n})$
 
 $\;$
 
@@ -336,25 +340,25 @@ $\;$
 $\;$
 $\;$
 
-$= N\cdot\left(log\left(\frac{1}{\sqrt{2\pi\sigma^2}}\right)\right) - \frac{1}{2\sigma^2}\sum_{i=1}^n (y_i-\mu)^2 =$
+$= n\cdot log\left(\frac{1}{\sqrt{2\pi\sigma^2}}\right) - \frac{1}{2\sigma^2}\sum_{i=1}^n (y_i-\mu)^2 =$
 
 $\;$
 $\;$
 $\;$
 
-$= N\cdot \left(log(1) - log(\sqrt{2\pi\sigma^2})\right) - \frac{1}{2\sigma^2}\sum_{i=1}^n (y_i-\mu)^2 =$
+$= n\cdot \left(log(1) - log(\sqrt{2\pi\sigma^2})\right) - \frac{1}{2\sigma^2}\sum_{i=1}^n (y_i-\mu)^2 =$
 
 $\;$
 $\;$
 $\;$
 
-$= N\cdot \left(0 - log(\sqrt{2\pi\sigma^2})\right) - \frac{1}{2\sigma^2}\sum_{i=1}^n (y_i-\mu)^2 =$
+$= n\cdot \left(0 - log(\sqrt{2\pi\sigma^2})\right) - \frac{1}{2\sigma^2}\sum_{i=1}^n (y_i-\mu)^2 =$
 
 $\;$
 $\;$
 $\;$
 
-$= - N \cdot log(\sqrt{2\pi\sigma^2}) - \frac{1}{2\sigma^2}\sum_{i=1}^n (y_i-\mu)^2$
+$= - n \cdot log(\sqrt{2\pi\sigma^2}) - \frac{1}{2\sigma^2}\sum_{i=1}^n (y_i-\mu)^2$
 
 $\;$
 $\;$
@@ -368,7 +372,15 @@ $\;$
 $\;$
 $\;$
 
-It is obvious that the log-likelihood $\mathcal l_N$ is *maximized* when the *sum-of-squares* in the *log-likelihood kernel* is *minimized*.
+It is obvious that the log-likelihood $\mathcal l_N$ is *maximized* when the *sum-of-squares* 
+
+$\sum_{i=1}^n (y_i-\mu)^2$
+
+$\;$
+$\;$
+$\;$
+
+in the *log-likelihood kernel* is *minimized*.
 
 $\;$
 
@@ -480,6 +492,7 @@ md"
 ###### 3.2 Example: Grid Search of $\mu$ by Finding Extrema of Gaussian *log-likelihood*
 
 ###### 3.2.1 Example: Search for Extrema in Negative Gaussian *log-likelihood*
+Either we look for the maximum or the minimum of relevant expressions.
 
 $\hat \mu_{MLE} = \underset{\mathbb \mu}{\operatorname{argmax}}\mathcal\ l(\mathbb \mu; f_{\mathcal N}, \sigma, y_{1:n}) = \underset{\mathbb \mu}{\operatorname{argmax}}\left(- n \cdot log(\sqrt{2\pi\sigma^2}) - \frac{1}{2\sigma^2}\sum_{i=1}^n (y_i-\mu)^2\right)=$
 
@@ -502,6 +515,13 @@ $\;$
 $\;$
 $\;$
 
+$= \underset{\mathbb \mu}{\operatorname{argmin}}\left(\sum_{i=1}^n (y_i-\mu)^2\right).$
+
+$\;$
+$\;$
+$\;$
+$\;$
+
 So we see that under the assumption of some assumptions the MLE and the Least Squares Estimator (LSE) are identical.
 
 "
@@ -510,12 +530,18 @@ So we see that under the assumption of some assumptions the MLE and the Least Sq
 md"
 ###### 3.2.2 Equality of Estimates by Maximzing and Minimizing Likelihood Kernels
 
-$\hat \mu_{MLE} = \underset{\mathbb \mu}{\operatorname{argmax}}\mathcal\ l(\mu;f_{\mathcal N}, \sigma, y_{1:n})=$
+The *log-likelhood kernel* is:
+
+$l(\mu;f_{\mathcal N}, \sigma, y_{1:n})=- \frac{1}{2\sigma^2}\sum_{i=1}^N (y_i-\mu)^2$
 
 $\;$
 $\;$
+$\;$
+$\;$
 
-$\underset{\mathbb \mu}{\operatorname{argmax}}\left(- \frac{1}{2\sigma^2}\sum_{i=1}^N (y_i-\mu)^2\right) = \underset{\mathbb \mu}{\operatorname{argmin}}\left(\frac{1}{2\sigma^2}\sum_{i=1}^N (y_i-\mu)^2\right)$
+and the *MLE*-estimator can be obtained by either maximizing the *log-likelihood kernel* or minimizing the *sum-of-squares*:
+
+$\hat \mu_{MLE} = \underset{\mathbb \mu}{\operatorname{argmax}}\left(- \frac{1}{2\sigma^2}\sum_{i=1}^N (y_i-\mu)^2\right) = \underset{\mathbb \mu}{\operatorname{argmin}}\left(\frac{1}{2\sigma^2}\sum_{i=1}^N (y_i-\mu)^2\right)$
 
 $\;$
 $\;$
@@ -548,7 +574,7 @@ end # function findMinMax
 
 # ╔═╡ c14d7419-6c3f-4b0f-8f01-bc94d69feece
 md"
-###### 3.2.3 Example: Minima and Maximum of *Negative* Gaussian Log-Likelihood Kernels
+###### 3.2.3 Example: Minima and Maximum of Gaussian Log-Likelihood Kernel
 
 $\hat \mu_{MLE} = \underset{\mathbb \mu}{\operatorname{argmax}}\mathcal\ l(\mathbb \mu; f_{\mathcal N}, \sigma, y_{1:n}) = \underset{\mathbb \mu}{\operatorname{argmax}}\left(- \frac{1}{2\sigma^2}\sum_{i=1}^n (y_i-\mu)^2\right)$
 
@@ -569,7 +595,7 @@ findMinMax(μ -> minLogLikelihoodGaussianKernel(ys::Vector, μ), μs)
 
 # ╔═╡ 9c739f70-c972-4f5a-b587-ca40328b2549
 md"
-###### 3.2.4 Example: Minima and Maximum of Positive Gaussian Log-Likelihood Kernels
+###### 3.2.4 Example: Minima and Maximum of Negative Gaussian Log-Likelihood Kernels
 
 $\hat \mu_{MLE} = \underset{\mathbb \mu}{\operatorname{argmax}}\mathcal\ l(\mathbb \mu; f_{\mathcal N}, \sigma, y_{1:n}) = \underset{\mathbb \mu}{\operatorname{argmin}}\left(\frac{1}{2\sigma^2}\sum_{i=1}^n (y_i-\mu)^2\right)$
 
@@ -591,37 +617,46 @@ findMinMax(μ -> plusLogLikelihoodGaussianKernel(ys::Vector, μ), μs)
 # ╔═╡ 3b0e43e8-f851-4fe7-a854-b05d0b252e26
 md"
 ---
-###### 3.3 Example: Calculus Guided Search of $\mu$ by Finding Extrema of Gaussian *log-likelihood*
+###### 3.3 Example: Calculus Guided Search of $\mu_{MLE}$
 
 ###### 3.3.1 Example: Calculus Guided Solution: Fisher's *Score* Function $S(\phi)$
 The first derivative of the log-likelihood function is called Fisher's *score* $S(\phi)$ function (Held & Bové, 2020, p.27).
 
-Now, we want to use the score function to obtain the $\mu_{MLE}$. Under the assumption of known $\sigma$ it is sufficient to *minimze* the log-likelhood kernel:  
+Now, we want to use the score function to obtain the $\mu_{MLE}$. Under the assumption of known $\sigma$ it is sufficient to *maximize* the *log-likelhood kernel* or *minimize* the *sum-of-squares*:  
 
-$\hat \mu_{MLE} = \underset{\mathbb \mu}{\operatorname{argmax}}\mathcal\ l(\mathbb \mu; f_{\mathcal N}, \sigma, y_{1:n}) = \underset{\mathbb \mu}{\operatorname{argmin}}\left(\frac{1}{2\sigma^2}\sum_{i=1}^n (y_i-\mu)^2\right)$
-
-$\;$
-$\;$
-$\;$
-$\;$
-
-We set the derivate of $\frac{d \mathcal l}{d\mu} = 0$, solve the resulting equation, and get the MLE which is identical to the LSE or OLS estimator:
-
-$S(\mathbb \mu; \mathcal l_{\mathcal N}, \sigma, y_{1:n}) = \frac{d \mathcal l}{d \mu} = \frac{d \left(\frac{1}{2\sigma^2}\sum_{i=1}^n (y_i-\mu)^2\right)}{d \mu} = \frac{d \left(\frac{1}{2\sigma^2}\sum_{i=1}^n (y_i^2-2y_i\mu+\mu^2)\right)}{d \mu}$
+$\hat \mu_{MLE} = \underset{\mathbb \mu}{\operatorname{argmax}}\left(- \frac{1}{2\sigma^2}\sum_{i=1}^n (y_i-\mu)^2\right) = \underset{\mathbb \mu}{\operatorname{argmin}}\left(\frac{1}{2\sigma^2}\sum_{i=1}^n (y_i-\mu)^2\right)$
 
 $\;$
 $\;$
 $\;$
 $\;$
 
-$S(\mathbb \mu; \mathcal l_{\mathcal N}, \sigma, y_{1:n}) = \frac{d \mathcal l}{d \mu} = \frac{d \left(\frac{1}{2\sigma^2}\sum_{i=1}^n y_i^2\right)}{d \mu} - \frac{d \left(\frac{1}{2\sigma^2}\sum_{i=1}^n 2y_i\mu\right)}{d \mu} + \frac{d \left(\frac{1}{2\sigma^2}\sum_{i=1}^n \mu^2\right)}{d \mu}$ 
+We determine the derivate of $S(\phi) = \frac{d \mathcal l(\phi)}{d\mu}$, set $S(\phi)=0$, solve the resulting equation to get $\mu_{MLE}$ which is identical to the LSE or OLS estimator:
+
+$S(\mathbb \mu; \mathcal l_{\mathcal N}, \sigma, y_{1:n}) = \frac{d \mathcal l}{d \mu} = \frac{d \left(-\frac{1}{2\sigma^2}\sum_{i=1}^n (y_i-\mu)^2\right)}{d \mu} = \frac{d \left(-\frac{1}{2\sigma^2}\sum_{i=1}^n (y_i^2-2y_i\mu+\mu^2)\right)}{d \mu}$
 
 $\;$
 $\;$
 $\;$
 $\;$
 
-$S(\mathbb \mu; \mathcal l_{\mathcal N}, \sigma, y_{1:n}) = \frac{d \mathcal l}{d \mu} = 0 - 2\frac{1}{2\sigma^2}\left(\sum_{i=1}^n y_i\right) + 2\frac{1}{2\sigma^2}n\mu = - \frac{1}{\sigma^2}\left(\sum_{i=1}^n y_i\right) + \frac{1}{\sigma^2}n\mu$
+$S(\mathbb \mu; \mathcal l_{\mathcal N}, \sigma, y_{1:n}) = \frac{d \mathcal l}{d \mu} = \frac{d \left(-\frac{1}{2\sigma^2}\sum_{i=1}^n y_i^2\right)}{d \mu} + \frac{d \left(\frac{1}{2\sigma^2}\sum_{i=1}^n 2y_i\mu\right)}{d \mu} + \frac{d \left(-\frac{1}{2\sigma^2}\sum_{i=1}^n \mu^2\right)}{d \mu}$ 
+
+$\;$
+$\;$
+$\;$
+$\;$
+
+$S(\mathbb \mu; \mathcal l_{\mathcal N}, \sigma, y_{1:n}) = \frac{d \mathcal l}{d \mu} = - 0 + 2\frac{1}{2\sigma^2}\left(\sum_{i=1}^n y_i\right) - 2\frac{1}{2\sigma^2}\sum_{i=1}^n\mu = \frac{1}{\sigma^2}\left(\sum_{i=1}^n y_i - μ\right)$
+
+$\;$
+$\;$
+$\;$
+$\;$
+
+So the *score* is (Held & Bove, 2020, p.28):
+
+$S(\mathbb \mu; \mathcal l_{\mathcal N}, \sigma, y_{1:n}) = \frac{d \mathcal l}{d \mu} = \frac{1}{\sigma^2}\left(\sum_{i=1}^n y_i - μ\right).$
 
 $\;$
 $\;$
@@ -635,21 +670,25 @@ md"
 ---
 ###### 3.3.2 Example: Solving the Score Equation $S(ϕ) = 0$
 
-$S(\mathbb \mu; \mathcal l_{\mathcal N}, \sigma, y_{1:n}) = \frac{d \mathcal l}{d \mu} = - \frac{1}{\sigma^2}\sum_{i=1}^n y_i + N\frac{1}{\sigma^2}\mu = 0$ 
+$S(\mathbb \mu; \mathcal l_{\mathcal N}, \sigma, y_{1:n}) = \frac{d \mathcal l}{d \mu} =\frac{1}{\sigma^2}\left(\sum_{i=1}^n y_i - μ\right) = 0$ 
 
 $\;$
 $\;$
 $\;$
-$\;$
 
-$- \sum_{i=1}^n y_i + n\mu = 0$
+$\sum_{i=1}^n y_i - nμ = 0$
 
-$\;$
 $\;$
 $\;$
 $\;$
 
-$\hat \mu_{MLE} = \frac{\sum_{i=1}^n y_i}{n} = \bar x$
+$\sum_{i=1}^n y_i = nμ$
+
+$\;$
+$\;$
+$\;$
+
+$\hat \mu_{MLE} = \frac{1}{n}\sum_{i=1}^n y_i = \bar y$
 
 $\;$
 $\;$
@@ -668,44 +707,79 @@ $\;$
 # ╔═╡ 3b0f3cbd-0604-44bf-a6d4-ea4d9db43107
 md"
 ---
-###### 3.3.3 Negative Derivative of the Score Function and Fisher Information
-The negative second derivative of the log-likelihood and the negative first derivative of the score function is called the *Fisher information* (Helde & Bové, 2020, p.27):
+###### 3.3.3 Score Function, Hessian, and Fisher Information
 
-Fisher's *score* function:
+The *log-likelhood kernel* is:
 
-$S(\mathbb \mu; \mathcal l_{\mathcal N}, \sigma, y_{1:n}) = \frac{d \mathcal l}{d \mu}  = - \frac{1}{\sigma^2}\sum_{i=1}^n y_i + \frac{1}{\sigma^2}n\mu$
+$l(\mu;f_{\mathcal N}, \sigma, y_{1:n})=- \frac{1}{2\sigma^2}\sum_{i=1}^N (y_i-\mu)^2$
+
+$\;$
+$\;$
+$\;$
+
+and the *MLE*-estimator $\mu_{MLE}$ is:
+
+$\hat \mu_{MLE} = \underset{\mathbb \mu}{\operatorname{argmax}}\left(- \frac{1}{2\sigma^2}\sum_{i=1}^N (y_i-\mu)^2\right) = \underset{\mathbb \mu}{\operatorname{argmin}}\left(\frac{1}{2\sigma^2}\sum_{i=1}^N (y_i-\mu)^2\right)$
 
 $\;$
 $\;$
 $\;$
 $\;$
 
-the negative *Fisher Information* is:
+Fisher's *score* function is the first derivate of the log-likelihood function  (Held & Bove, 2020, p.28):
 
-$- I(\mu) = \frac{d S(\mathbb \mu; \mathcal l_{\mathcal N}, \sigma, y_{1:n})}{d \mu} = \frac{d^2 \mathcal\ l}{d^2 \mu} = \frac{d\left(- \frac{1}{\sigma^2}\sum_{i=1}^n y_i + \frac{1}{\sigma^2}n\mu\right)}{d \mu} =  0 - \frac{1}{\sigma^2}n = -\frac{1}{\sigma^2}n$
+$S(\mathbb \mu; \mathcal l_{\mathcal N}, \sigma, y_{1:n}) = \frac{d \mathcal l}{d \mu} = \frac{1}{\sigma^2}\left(\sum_{i=1}^n y_i - μ\right).$
+
+$\;$
+$\;$
+$\;$
+
+The negative second derivative of the *log-likelihood* and the negative first derivative of the *score* function are called the *Fisher information*. The value of the Fisher information at the $\phi_{MLE}$ is called the *observed Fisher information* (Helde & Bové, 2020, p.27).
+
+$I(\mu) = - \frac{d S(\mathbb \mu; \mathcal l_{\mathcal N}, \sigma, y_{1:n})}{d \mu} = -\frac{d^2 \mathcal l}{d^2 \mu} = \frac{d\left(- \frac{1}{\sigma^2}\left(\sum_{i=1}^n y_i - \mu\right)\right)}{d \mu} =  - 0 + \frac{1}{\sigma^2}n = \frac{n}{\sigma^2}$
 
 $\;$
 $\;$
 $\;$
-$\;$
 
-and the (positive) *Fisher Information* is:
-
-$I(\mu) = I(\hat \mu) = \frac{1}{\sigma^2}n = \frac{n}{\sigma^2}$
+$I(\mu) = \frac{n}{\sigma^2}\;;\;\text{ (Held \& Bovè, 2020, p.28)}$ 
 
 $\;$
 $\;$
+$\;$
 
-where:
+and here:
 
-$I(\hat \mu) = \text{ is the }\textit{observed}\text{ Information }$ 
+$I(\mu) = I(\hat \mu) = \text{ is the }\textit{observed}\text{ Information }$ 
 
 $\;$
 $\;$
 
 The information $I(\mu)$ is *independent* of $\mu$ so it is independent of any statistic $\hat \mu$. In this case both *information* and *observed information* are identical.
 
+The *Hessian* is the matrix with second derivatives (Brown, 2014, p.89). By taking expectations you can derive the *Fisher information*: 
+
+$I = -E(H)$
+
 $\;$
+
+In this case the *Hessian* consists only of one element:
+
+$H = \left[\frac{d^2 \mathcal l}{d^2 \mu}\right] = \left[-\frac{n}{\sigma^2}\right]$
+
+$\;$
+$\;$
+$\;$
+
+and
+
+$I = -E(H) = -E\left(\left[-\frac{n}{\sigma^2}\right]\right)=\frac{n}{\sigma^2}$
+
+$\;$
+$\;$
+$\;$
+
+Here the Hessian is for all values $n,\sigma^2$ *negative definite* so the extremum is a *maximum*.
 
 "
 
@@ -713,8 +787,9 @@ $\;$
 md"
 ---
 ###### 3.3.5 Fisher Information and Standard Error of $\mu$
+(Brown, 2014, p.90)
 
-$std_{error}(\hat \mu) = \sqrt{\frac{1}{I(\mu)}} = \sqrt{\frac{1}{I(\hat \mu)}} = \sqrt{\frac{\sigma^2}{n}}= \frac{\sigma}{\sqrt n}$
+$std_{error}(\hat \mu) = \sqrt{I^{-1}(\mu)} = \sqrt{\frac{1}{I(\mu)}} = \sqrt{\frac{1}{I(\hat \mu)}} = \sqrt{\frac{\sigma^2}{n}}= \frac{\sigma}{\sqrt n}$
 
 $\;$
 $\;$
@@ -765,6 +840,35 @@ cl_σ = (ybar - 2.1788 * ystderror_σ, ybar + 2.1788 * ystderror_σ)
 # ╔═╡ b3574040-fd96-43cd-b3c9-05d1d36956c8
 cl_s = (ybar - 2.1788 * ystderror_s, ybar + 2.1788 * ystderror_s)
 
+# ╔═╡ d79d1e1a-4865-456d-9da5-ab2d11283b58
+md"
+---
+###### Example: 3.3.7 Numerical Minimization of Log-likelihood Kernel
+
+$\hat \mu_{MLE} = \underset{\mathbb \mu}{\operatorname{argmin}}\left(\frac{1}{2\sigma^2}\sum_{i=1}^n (y_i-\mu)^2\right)$
+
+$\;$
+$\;$
+$\;$
+$\;$
+
+"
+
+# ╔═╡ aa017aa2-d8be-4066-80cf-c2bc7556eca6
+foo(μ) = plusLogLikelihoodGaussianKernel(ys, μ; σ=15.0)
+
+# ╔═╡ 34ff0aa9-2fae-4afb-bf85-acac6d700ef4
+ys
+
+# ╔═╡ c6ac6881-64ce-4414-af59-2f0fcb23577d
+let lower = [75.0]
+	upper = [135.0]
+	optimize(foo, lower, upper, NelderMead())
+end # let
+
+# ╔═╡ 4e55677b-ddd8-44b5-a95b-8ce99605eb78
+foo(75.0), foo(100.0), foo(135.0)
+
 # ╔═╡ 4943eec5-b299-4e70-a80a-bcf407c35074
 md"
 ---
@@ -808,6 +912,9 @@ PLUTO_PROJECT_TOML_CONTENTS = """
 Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
 LaTeXStrings = "b964fa9f-0449-5b57-a5c2-d3ea65f4040f"
 Latexify = "23fbe1c1-3f47-55db-b15f-69d7ec21a316"
+Optim = "429524aa-4258-5aef-a3af-852621145aeb"
+Optimization = "7f7a1694-90dd-40f0-9382-eb1efda571ba"
+OptimizationOptimJL = "36348300-93cb-4f02-beb5-3c3902f8871e"
 Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
 Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 
@@ -815,6 +922,9 @@ Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 Distributions = "~0.25.107"
 LaTeXStrings = "~1.3.1"
 Latexify = "~0.16.1"
+Optim = "~1.9.2"
+Optimization = "~3.22.0"
+OptimizationOptimJL = "~0.2.2"
 Plots = "~1.40.1"
 """
 
@@ -824,17 +934,67 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.10.4"
 manifest_format = "2.0"
-project_hash = "09dada185cef10de1487a456a033facc30ab4a55"
+project_hash = "cdc36b56839c9449617be108ee4ffd55ceb7c1ed"
+
+[[deps.ADTypes]]
+git-tree-sha1 = "41c37aa88889c171f1300ceac1313c06e891d245"
+uuid = "47edcb42-4c32-4615-8424-f2b9edc5f35b"
+version = "0.2.6"
+
+[[deps.AbstractTrees]]
+git-tree-sha1 = "faa260e4cb5aba097a73fab382dd4b5819d8ec8c"
+uuid = "1520ce14-60c1-5f80-bbc7-55ef81b5835c"
+version = "0.4.4"
+
+[[deps.Adapt]]
+deps = ["LinearAlgebra", "Requires"]
+git-tree-sha1 = "0fb305e0253fd4e833d486914367a2ee2c2e78d0"
+uuid = "79e6a3ab-5dfb-504d-930d-738a2a938a0e"
+version = "4.0.1"
+
+    [deps.Adapt.extensions]
+    AdaptStaticArraysExt = "StaticArrays"
+
+    [deps.Adapt.weakdeps]
+    StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 
 [[deps.ArgTools]]
 uuid = "0dad84c5-d112-42e6-8d28-ef12dabb789f"
 version = "1.1.1"
+
+[[deps.ArrayInterface]]
+deps = ["Adapt", "LinearAlgebra", "Requires", "SparseArrays", "SuiteSparse"]
+git-tree-sha1 = "c5aeb516a84459e0318a02507d2261edad97eb75"
+uuid = "4fba245c-0d91-5ea0-9b3e-6abc04ee57a9"
+version = "7.7.1"
+
+    [deps.ArrayInterface.extensions]
+    ArrayInterfaceBandedMatricesExt = "BandedMatrices"
+    ArrayInterfaceBlockBandedMatricesExt = "BlockBandedMatrices"
+    ArrayInterfaceCUDAExt = "CUDA"
+    ArrayInterfaceGPUArraysCoreExt = "GPUArraysCore"
+    ArrayInterfaceStaticArraysCoreExt = "StaticArraysCore"
+    ArrayInterfaceTrackerExt = "Tracker"
+
+    [deps.ArrayInterface.weakdeps]
+    BandedMatrices = "aae01518-5342-5314-be14-df237901396f"
+    BlockBandedMatrices = "ffab5731-97b5-5995-9138-79e8c1846df0"
+    CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
+    GPUArraysCore = "46192b85-c4d5-4398-a991-12ede77f4527"
+    StaticArraysCore = "1e83bf80-4336-4d27-bf5d-d5a4f845583c"
+    Tracker = "9f7883ad-71c0-57eb-9f7f-b5c9e6d3789c"
 
 [[deps.Artifacts]]
 uuid = "56f22d72-fd6d-98f1-02f0-08ddc0907c33"
 
 [[deps.Base64]]
 uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
+
+[[deps.BenchmarkTools]]
+deps = ["JSON", "Logging", "Printf", "Profile", "Statistics", "UUIDs"]
+git-tree-sha1 = "f1f03a9fa24271160ed7e73051fba3c1a759b53f"
+uuid = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
+version = "1.4.0"
 
 [[deps.BitFlags]]
 git-tree-sha1 = "2dc09997850d68179b69dafb58ae806167a32b1b"
@@ -858,6 +1018,12 @@ deps = ["LinearAlgebra"]
 git-tree-sha1 = "f641eb0a4f00c343bbc32346e1217b86f3ce9dad"
 uuid = "49dc2e85-a5d0-5ad3-a950-438e2897f1b9"
 version = "0.5.1"
+
+[[deps.CodecBzip2]]
+deps = ["Bzip2_jll", "Libdl", "TranscodingStreams"]
+git-tree-sha1 = "9b1ca1aa6ce3f71b3d1840c538a8210a043625eb"
+uuid = "523fee87-0ab8-5b00-afb7-3ecf72e48cfd"
+version = "0.8.2"
 
 [[deps.CodecZlib]]
 deps = ["TranscodingStreams", "Zlib_jll"]
@@ -893,6 +1059,17 @@ git-tree-sha1 = "fc08e5930ee9a4e03f84bfb5211cb54e7769758a"
 uuid = "5ae59095-9a9b-59fe-a467-6f913c188581"
 version = "0.12.10"
 
+[[deps.CommonSolve]]
+git-tree-sha1 = "0eee5eb66b1cf62cd6ad1b460238e60e4b09400c"
+uuid = "38540f10-b2f7-11e9-35d8-d573e4eb0ff2"
+version = "0.2.4"
+
+[[deps.CommonSubexpressions]]
+deps = ["MacroTools", "Test"]
+git-tree-sha1 = "7b8a93dba8af7e3b42fecabf646260105ac373f7"
+uuid = "bbf7d656-a473-5ed7-a52c-81e309532950"
+version = "0.3.0"
+
 [[deps.Compat]]
 deps = ["TOML", "UUIDs"]
 git-tree-sha1 = "75bd5b6fc5089df449b5d35fa501c846c9b6549b"
@@ -914,6 +1091,26 @@ git-tree-sha1 = "9c4708e3ed2b799e6124b5673a712dda0b596a9b"
 uuid = "f0e56b4a-5159-44fe-b623-3e5288b988bb"
 version = "2.3.1"
 
+[[deps.ConsoleProgressMonitor]]
+deps = ["Logging", "ProgressMeter"]
+git-tree-sha1 = "3ab7b2136722890b9af903859afcf457fa3059e8"
+uuid = "88cd18e8-d9cc-4ea6-8889-5259c0d15c8b"
+version = "0.1.2"
+
+[[deps.ConstructionBase]]
+deps = ["LinearAlgebra"]
+git-tree-sha1 = "c53fc348ca4d40d7b371e71fd52251839080cbc9"
+uuid = "187b0558-2788-49d3-abe0-74a17ed4e7c9"
+version = "1.5.4"
+
+    [deps.ConstructionBase.extensions]
+    ConstructionBaseIntervalSetsExt = "IntervalSets"
+    ConstructionBaseStaticArraysExt = "StaticArrays"
+
+    [deps.ConstructionBase.weakdeps]
+    IntervalSets = "8197267c-284f-5f27-9208-e0e47529a953"
+    StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
+
 [[deps.Contour]]
 git-tree-sha1 = "d05d9e7b7aedff4e5b51a029dced05cfb6125781"
 uuid = "d38c429a-6771-53c6-b99e-75d170b6e991"
@@ -930,6 +1127,11 @@ git-tree-sha1 = "ac67408d9ddf207de5cfa9a97e114352430f01ed"
 uuid = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
 version = "0.18.16"
 
+[[deps.DataValueInterfaces]]
+git-tree-sha1 = "bfc1187b79289637fa0ef6d4436ebdfe6905cbd6"
+uuid = "e2d170a0-9d28-54be-80f0-106bbe20a464"
+version = "1.0.0"
+
 [[deps.Dates]]
 deps = ["Printf"]
 uuid = "ade2ca70-3891-5945-98fb-dc099432e06a"
@@ -939,6 +1141,22 @@ deps = ["Mmap"]
 git-tree-sha1 = "9e2f36d3c96a820c678f2f1f1782582fcf685bae"
 uuid = "8bb1440f-4735-579b-a4ab-409b98df4dab"
 version = "1.9.1"
+
+[[deps.DiffResults]]
+deps = ["StaticArraysCore"]
+git-tree-sha1 = "782dd5f4561f5d267313f23853baaaa4c52ea621"
+uuid = "163ba53b-c6d8-5494-b064-1a9d43ac40c5"
+version = "1.1.0"
+
+[[deps.DiffRules]]
+deps = ["IrrationalConstants", "LogExpFunctions", "NaNMath", "Random", "SpecialFunctions"]
+git-tree-sha1 = "23163d55f885173722d1e4cf0f6110cdbaf7e272"
+uuid = "b552c78f-8df3-52c6-915a-8e097449b14b"
+version = "1.15.1"
+
+[[deps.Distributed]]
+deps = ["Random", "Serialization", "Sockets"]
+uuid = "8ba89e20-285c-5b6f-9357-94700520ee1b"
 
 [[deps.Distributions]]
 deps = ["FillArrays", "LinearAlgebra", "PDMats", "Printf", "QuadGK", "Random", "SpecialFunctions", "Statistics", "StatsAPI", "StatsBase", "StatsFuns"]
@@ -973,6 +1191,11 @@ git-tree-sha1 = "5837a837389fccf076445fce071c8ddaea35a566"
 uuid = "fa6b7ba4-c1ee-5f82-b5fc-ecf0adba8f74"
 version = "0.6.8"
 
+[[deps.EnumX]]
+git-tree-sha1 = "bdb1942cd4c45e3c678fd11569d5cccd80976237"
+uuid = "4e289a0a-7415-4d19-859d-a7e5c4648b56"
+version = "1.0.4"
+
 [[deps.EpollShim_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl"]
 git-tree-sha1 = "8e9441ee83492030ace98f9789a654a6d0b1f643"
@@ -990,6 +1213,11 @@ deps = ["Artifacts", "JLLWrappers", "Libdl"]
 git-tree-sha1 = "4558ab818dcceaab612d1bb8c19cee87eda2b83c"
 uuid = "2e619515-83b5-522b-bb60-26c02a35a201"
 version = "2.5.0+0"
+
+[[deps.ExprTools]]
+git-tree-sha1 = "27415f162e6028e81c72b82ef756bf321213b6ec"
+uuid = "e2ba6199-217a-4e67-a87a-7c52f15ade04"
+version = "0.1.10"
 
 [[deps.FFMPEG]]
 deps = ["FFMPEG_jll"]
@@ -1018,6 +1246,22 @@ weakdeps = ["PDMats", "SparseArrays", "Statistics"]
     FillArraysSparseArraysExt = "SparseArrays"
     FillArraysStatisticsExt = "Statistics"
 
+[[deps.FiniteDiff]]
+deps = ["ArrayInterface", "LinearAlgebra", "Requires", "Setfield", "SparseArrays"]
+git-tree-sha1 = "73d1214fec245096717847c62d389a5d2ac86504"
+uuid = "6a86dc24-6348-571c-b903-95158fe2bd41"
+version = "2.22.0"
+
+    [deps.FiniteDiff.extensions]
+    FiniteDiffBandedMatricesExt = "BandedMatrices"
+    FiniteDiffBlockBandedMatricesExt = "BlockBandedMatrices"
+    FiniteDiffStaticArraysExt = "StaticArrays"
+
+    [deps.FiniteDiff.weakdeps]
+    BandedMatrices = "aae01518-5342-5314-be14-df237901396f"
+    BlockBandedMatrices = "ffab5731-97b5-5995-9138-79e8c1846df0"
+    StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
+
 [[deps.FixedPointNumbers]]
 deps = ["Statistics"]
 git-tree-sha1 = "335bfdceacc84c5cdf16aadc768aa5ddfc5383cc"
@@ -1036,6 +1280,18 @@ git-tree-sha1 = "8339d61043228fdd3eb658d86c926cb282ae72a8"
 uuid = "59287772-0a20-5a39-b81b-1366585eb4c0"
 version = "0.4.2"
 
+[[deps.ForwardDiff]]
+deps = ["CommonSubexpressions", "DiffResults", "DiffRules", "LinearAlgebra", "LogExpFunctions", "NaNMath", "Preferences", "Printf", "Random", "SpecialFunctions"]
+git-tree-sha1 = "cf0fe81336da9fb90944683b8c41984b08793dad"
+uuid = "f6369f11-7733-5829-9624-2563aa707210"
+version = "0.10.36"
+
+    [deps.ForwardDiff.extensions]
+    ForwardDiffStaticArraysExt = "StaticArrays"
+
+    [deps.ForwardDiff.weakdeps]
+    StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
+
 [[deps.FreeType2_jll]]
 deps = ["Artifacts", "Bzip2_jll", "JLLWrappers", "Libdl", "Zlib_jll"]
 git-tree-sha1 = "d8db6a5a2fe1381c1ea4ef2cab7c69c2de7f9ea0"
@@ -1048,11 +1304,32 @@ git-tree-sha1 = "aa31987c2ba8704e23c6c8ba8a4f769d5d7e4f91"
 uuid = "559328eb-81f9-559d-9380-de523a88c83c"
 version = "1.0.10+0"
 
+[[deps.FunctionWrappers]]
+git-tree-sha1 = "d62485945ce5ae9c0c48f124a84998d755bae00e"
+uuid = "069b7b12-0de2-55c6-9aab-29f3d0a68a2e"
+version = "1.1.3"
+
+[[deps.FunctionWrappersWrappers]]
+deps = ["FunctionWrappers"]
+git-tree-sha1 = "b104d487b34566608f8b4e1c39fb0b10aa279ff8"
+uuid = "77dc65aa-8811-40c2-897b-53d922fa7daf"
+version = "0.1.3"
+
+[[deps.Future]]
+deps = ["Random"]
+uuid = "9fa8497b-333b-5362-9e8d-4d0656e87820"
+
 [[deps.GLFW_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Libglvnd_jll", "Xorg_libXcursor_jll", "Xorg_libXi_jll", "Xorg_libXinerama_jll", "Xorg_libXrandr_jll"]
 git-tree-sha1 = "ff38ba61beff76b8f4acad8ab0c97ef73bb670cb"
 uuid = "0656b61e-2033-5cc2-a64a-77c0f6c09b89"
 version = "3.3.9+0"
+
+[[deps.GPUArraysCore]]
+deps = ["Adapt"]
+git-tree-sha1 = "ec632f177c0d990e64d955ccc1b8c04c485a0950"
+uuid = "46192b85-c4d5-4398-a991-12ede77f4527"
+version = "0.1.6"
 
 [[deps.GR]]
 deps = ["Artifacts", "Base64", "DelimitedFiles", "Downloads", "GR_jll", "HTTP", "JSON", "Libdl", "LinearAlgebra", "Pkg", "Preferences", "Printf", "Random", "Serialization", "Sockets", "TOML", "Tar", "Test", "UUIDs", "p7zip_jll"]
@@ -1115,6 +1392,11 @@ uuid = "b77e0a4c-d291-57a0-90e8-8db25a27a240"
 git-tree-sha1 = "630b497eafcc20001bba38a4651b327dcfc491d2"
 uuid = "92d709cd-6900-40b7-9082-c6be49f344b6"
 version = "0.2.2"
+
+[[deps.IteratorInterfaceExtensions]]
+git-tree-sha1 = "a3f24677c21f5bbe9d2a714f95dcd58337fb2856"
+uuid = "82899510-4779-5014-852e-03e436cf321d"
+version = "1.0.0"
 
 [[deps.JLFzf]]
 deps = ["Pipe", "REPL", "Random", "fzf_jll"]
@@ -1182,6 +1464,18 @@ version = "0.16.1"
     [deps.Latexify.weakdeps]
     DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
     SymEngine = "123dc426-2d89-5057-bbad-38513e3affd8"
+
+[[deps.Lazy]]
+deps = ["MacroTools"]
+git-tree-sha1 = "1370f8202dac30758f3c345f9909b97f53d87d3f"
+uuid = "50d2b5c4-7a5e-59d5-8109-a42b560f39c0"
+version = "0.15.1"
+
+[[deps.LeftChildRightSiblingTrees]]
+deps = ["AbstractTrees"]
+git-tree-sha1 = "fb6803dafae4a5d62ea5cab204b1e657d9737e7f"
+uuid = "1d6d02ad-be62-4b6b-8a6d-2f90e265016e"
+version = "0.2.0"
 
 [[deps.LibCURL]]
 deps = ["LibCURL_jll", "MozillaCACerts_jll"]
@@ -1258,6 +1552,12 @@ git-tree-sha1 = "7f3efec06033682db852f8b3bc3c1d2b0a0ab066"
 uuid = "38a345b3-de98-5d2b-a5d3-14cd9215e700"
 version = "2.36.0+0"
 
+[[deps.LineSearches]]
+deps = ["LinearAlgebra", "NLSolversBase", "NaNMath", "Parameters", "Printf"]
+git-tree-sha1 = "7bbea35cec17305fc70a0e5b4641477dc0789d9d"
+uuid = "d3d80556-e9d4-5f37-9878-2ab0fcc64255"
+version = "7.2.0"
+
 [[deps.LinearAlgebra]]
 deps = ["Libdl", "OpenBLAS_jll", "libblastrampoline_jll"]
 uuid = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
@@ -1297,6 +1597,12 @@ version = "0.5.13"
 deps = ["Base64"]
 uuid = "d6f4376e-aef5-505a-96c1-9c027394607a"
 
+[[deps.MathOptInterface]]
+deps = ["BenchmarkTools", "CodecBzip2", "CodecZlib", "DataStructures", "ForwardDiff", "JSON", "LinearAlgebra", "MutableArithmetics", "NaNMath", "OrderedCollections", "PrecompileTools", "Printf", "SparseArrays", "SpecialFunctions", "Test", "Unicode"]
+git-tree-sha1 = "569a003f93d7c64068d3afaab908d21f67a22cd5"
+uuid = "b8f27783-ece8-5eb3-8dc8-9495eed66fee"
+version = "1.25.3"
+
 [[deps.MbedTLS]]
 deps = ["Dates", "MbedTLS_jll", "MozillaCACerts_jll", "NetworkOptions", "Random", "Sockets"]
 git-tree-sha1 = "c067a280ddc25f196b5e7df3877c6b226d390aaf"
@@ -1325,6 +1631,18 @@ uuid = "a63ad114-7e13-5084-954f-fe012c677804"
 [[deps.MozillaCACerts_jll]]
 uuid = "14a3606d-f60d-562e-9121-12d972cd8159"
 version = "2023.1.10"
+
+[[deps.MutableArithmetics]]
+deps = ["LinearAlgebra", "SparseArrays", "Test"]
+git-tree-sha1 = "302fd161eb1c439e4115b51ae456da4e9984f130"
+uuid = "d8a4904e-b15c-11e9-3269-09a3773c0cb0"
+version = "1.4.1"
+
+[[deps.NLSolversBase]]
+deps = ["DiffResults", "Distributed", "FiniteDiff", "ForwardDiff"]
+git-tree-sha1 = "a0b464d183da839699f4c79e7606d9d186ec172c"
+uuid = "d41bc354-129a-5804-8e4c-c37616107c6c"
+version = "7.8.3"
 
 [[deps.NaNMath]]
 deps = ["OpenLibm_jll"]
@@ -1370,6 +1688,45 @@ git-tree-sha1 = "13652491f6856acfd2db29360e1bbcd4565d04f1"
 uuid = "efe28fd5-8261-553b-a9e1-b2916fc3738e"
 version = "0.5.5+0"
 
+[[deps.Optim]]
+deps = ["Compat", "FillArrays", "ForwardDiff", "LineSearches", "LinearAlgebra", "MathOptInterface", "NLSolversBase", "NaNMath", "Parameters", "PositiveFactorizations", "Printf", "SparseArrays", "StatsBase"]
+git-tree-sha1 = "d024bfb56144d947d4fafcd9cb5cafbe3410b133"
+uuid = "429524aa-4258-5aef-a3af-852621145aeb"
+version = "1.9.2"
+
+[[deps.Optimization]]
+deps = ["ADTypes", "ArrayInterface", "ConsoleProgressMonitor", "DocStringExtensions", "LinearAlgebra", "Logging", "LoggingExtras", "Pkg", "Printf", "ProgressLogging", "Reexport", "SciMLBase", "SparseArrays", "TerminalLoggers"]
+git-tree-sha1 = "145baedf71770d84bf590d307b4686a9ea619c4b"
+uuid = "7f7a1694-90dd-40f0-9382-eb1efda571ba"
+version = "3.22.0"
+
+    [deps.Optimization.extensions]
+    OptimizationEnzymeExt = "Enzyme"
+    OptimizationFiniteDiffExt = "FiniteDiff"
+    OptimizationForwardDiffExt = "ForwardDiff"
+    OptimizationMTKExt = "ModelingToolkit"
+    OptimizationReverseDiffExt = "ReverseDiff"
+    OptimizationSparseDiffExt = ["SparseDiffTools", "Symbolics", "ReverseDiff"]
+    OptimizationTrackerExt = "Tracker"
+    OptimizationZygoteExt = "Zygote"
+
+    [deps.Optimization.weakdeps]
+    Enzyme = "7da242da-08ed-463a-9acd-ee780be4f1d9"
+    FiniteDiff = "6a86dc24-6348-571c-b903-95158fe2bd41"
+    ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
+    ModelingToolkit = "961ee093-0014-501f-94e3-6117800e7a78"
+    ReverseDiff = "37e2e3b7-166d-5795-8a7a-e32c996b4267"
+    SparseDiffTools = "47a9eef4-7e08-11e9-0b38-333d64bd3804"
+    Symbolics = "0c5d862f-8b57-4792-8d23-62f2024744c7"
+    Tracker = "9f7883ad-71c0-57eb-9f7f-b5c9e6d3789c"
+    Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
+
+[[deps.OptimizationOptimJL]]
+deps = ["Optim", "Optimization", "Reexport", "SparseArrays"]
+git-tree-sha1 = "6cdc08135141c153b49372de47416ac15fed42de"
+uuid = "36348300-93cb-4f02-beb5-3c3902f8871e"
+version = "0.2.2"
+
 [[deps.Opus_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
 git-tree-sha1 = "51a08fb14ec28da2ec7a927c4337e4332c2a4720"
@@ -1391,6 +1748,12 @@ deps = ["LinearAlgebra", "SparseArrays", "SuiteSparse"]
 git-tree-sha1 = "949347156c25054de2db3b166c52ac4728cbad65"
 uuid = "90014a1f-27ba-587c-ab20-58faa44d9150"
 version = "0.11.31"
+
+[[deps.Parameters]]
+deps = ["OrderedCollections", "UnPack"]
+git-tree-sha1 = "34c0e9ad262e5f7fc75b10a9952ca7692cfc5fbe"
+uuid = "d96e819e-fc66-5662-9728-84c9c7592b0a"
+version = "0.12.3"
 
 [[deps.Parsers]]
 deps = ["Dates", "PrecompileTools", "UUIDs"]
@@ -1446,6 +1809,12 @@ version = "1.40.1"
     ImageInTerminal = "d8c32880-2388-543b-8c61-d9f865259254"
     Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
 
+[[deps.PositiveFactorizations]]
+deps = ["LinearAlgebra"]
+git-tree-sha1 = "17275485f373e6673f7e7f97051f703ed5b15b20"
+uuid = "85a6dd25-e78a-55b7-8502-1745935b8125"
+version = "0.2.4"
+
 [[deps.PrecompileTools]]
 deps = ["Preferences"]
 git-tree-sha1 = "03b4c25b43cb84cee5c90aa9b5ea0a78fd848d2f"
@@ -1461,6 +1830,22 @@ version = "1.4.1"
 [[deps.Printf]]
 deps = ["Unicode"]
 uuid = "de0858da-6303-5e67-8744-51eddeeeb8d7"
+
+[[deps.Profile]]
+deps = ["Printf"]
+uuid = "9abbd945-dff8-562f-b5e8-e1ebf5ef1b79"
+
+[[deps.ProgressLogging]]
+deps = ["Logging", "SHA", "UUIDs"]
+git-tree-sha1 = "80d919dee55b9c50e8d9e2da5eeafff3fe58b539"
+uuid = "33c8b6b6-d38a-422a-b730-caa89a2f386c"
+version = "0.1.4"
+
+[[deps.ProgressMeter]]
+deps = ["Distributed", "Printf"]
+git-tree-sha1 = "00099623ffee15972c16111bcf84c58a0051257c"
+uuid = "92933f4c-e287-5a05-a399-4b506db050ca"
+version = "1.9.0"
 
 [[deps.Qt6Base_jll]]
 deps = ["Artifacts", "CompilerSupportLibraries_jll", "Fontconfig_jll", "Glib_jll", "JLLWrappers", "Libdl", "Libglvnd_jll", "OpenSSL_jll", "Vulkan_Loader_jll", "Xorg_libSM_jll", "Xorg_libXext_jll", "Xorg_libXrender_jll", "Xorg_libxcb_jll", "Xorg_xcb_util_cursor_jll", "Xorg_xcb_util_image_jll", "Xorg_xcb_util_keysyms_jll", "Xorg_xcb_util_renderutil_jll", "Xorg_xcb_util_wm_jll", "Zlib_jll", "libinput_jll", "xkbcommon_jll"]
@@ -1494,6 +1879,30 @@ git-tree-sha1 = "45cf9fd0ca5839d06ef333c8201714e888486342"
 uuid = "01d81517-befc-4cb6-b9ec-a95719d0359c"
 version = "0.6.12"
 
+[[deps.RecursiveArrayTools]]
+deps = ["Adapt", "ArrayInterface", "DocStringExtensions", "GPUArraysCore", "IteratorInterfaceExtensions", "LinearAlgebra", "RecipesBase", "SparseArrays", "StaticArraysCore", "Statistics", "SymbolicIndexingInterface", "Tables"]
+git-tree-sha1 = "09c906ce9fa905d40e0706cdb62422422091c22f"
+uuid = "731186ca-8d62-57ce-b412-fbd966d074cd"
+version = "3.8.1"
+
+    [deps.RecursiveArrayTools.extensions]
+    RecursiveArrayToolsFastBroadcastExt = "FastBroadcast"
+    RecursiveArrayToolsForwardDiffExt = "ForwardDiff"
+    RecursiveArrayToolsMeasurementsExt = "Measurements"
+    RecursiveArrayToolsMonteCarloMeasurementsExt = "MonteCarloMeasurements"
+    RecursiveArrayToolsReverseDiffExt = ["ReverseDiff", "Zygote"]
+    RecursiveArrayToolsTrackerExt = "Tracker"
+    RecursiveArrayToolsZygoteExt = "Zygote"
+
+    [deps.RecursiveArrayTools.weakdeps]
+    FastBroadcast = "7034ab61-46d4-4ed7-9d0f-46aef9175898"
+    ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
+    Measurements = "eff96d63-e80a-5855-80a2-b1b0885c5ab7"
+    MonteCarloMeasurements = "0987c9cc-fe09-11e8-30f0-b96dd679fdca"
+    ReverseDiff = "37e2e3b7-166d-5795-8a7a-e32c996b4267"
+    Tracker = "9f7883ad-71c0-57eb-9f7f-b5c9e6d3789c"
+    Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
+
 [[deps.Reexport]]
 git-tree-sha1 = "45e428421666073eab6f2da5c9d310d99bb12f9b"
 uuid = "189a3867-3050-52da-a836-e630ba90ab69"
@@ -1523,9 +1932,46 @@ git-tree-sha1 = "6ed52fdd3382cf21947b15e8870ac0ddbff736da"
 uuid = "f50d1b31-88e8-58de-be2c-1cc44531875f"
 version = "0.4.0+0"
 
+[[deps.RuntimeGeneratedFunctions]]
+deps = ["ExprTools", "SHA", "Serialization"]
+git-tree-sha1 = "6aacc5eefe8415f47b3e34214c1d79d2674a0ba2"
+uuid = "7e49a35a-f44a-4d26-94aa-eba1b4ca6b47"
+version = "0.5.12"
+
 [[deps.SHA]]
 uuid = "ea8e919c-243c-51af-8825-aaa63cd721ce"
 version = "0.7.0"
+
+[[deps.SciMLBase]]
+deps = ["ADTypes", "ArrayInterface", "CommonSolve", "ConstructionBase", "Distributed", "DocStringExtensions", "EnumX", "FillArrays", "FunctionWrappersWrappers", "IteratorInterfaceExtensions", "LinearAlgebra", "Logging", "Markdown", "PrecompileTools", "Preferences", "Printf", "RecipesBase", "RecursiveArrayTools", "Reexport", "RuntimeGeneratedFunctions", "SciMLOperators", "StaticArraysCore", "Statistics", "SymbolicIndexingInterface", "Tables", "TruncatedStacktraces"]
+git-tree-sha1 = "a123011b1711f3449bc4e5d66746be5725af92fd"
+uuid = "0bca4576-84f4-4d90-8ffe-ffa030f20462"
+version = "2.26.0"
+
+    [deps.SciMLBase.extensions]
+    SciMLBaseChainRulesCoreExt = "ChainRulesCore"
+    SciMLBaseMakieExt = "Makie"
+    SciMLBasePartialFunctionsExt = "PartialFunctions"
+    SciMLBasePyCallExt = "PyCall"
+    SciMLBasePythonCallExt = "PythonCall"
+    SciMLBaseRCallExt = "RCall"
+    SciMLBaseZygoteExt = "Zygote"
+
+    [deps.SciMLBase.weakdeps]
+    ChainRules = "082447d4-558c-5d27-93f4-14fc19e9eca2"
+    ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
+    Makie = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
+    PartialFunctions = "570af359-4316-4cb7-8c74-252c00c2016b"
+    PyCall = "438e738f-606a-5dbb-bf0a-cddfbfd45ab0"
+    PythonCall = "6099a3de-0909-46bc-b1f4-468b9a2dfc0d"
+    RCall = "6f49c342-dc21-5d91-9882-a32aef131414"
+    Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
+
+[[deps.SciMLOperators]]
+deps = ["ArrayInterface", "DocStringExtensions", "Lazy", "LinearAlgebra", "Setfield", "SparseArrays", "StaticArraysCore", "Tricks"]
+git-tree-sha1 = "51ae235ff058a64815e0a2c34b1db7578a06813d"
+uuid = "c0aeaf25-5076-4817-a8d5-81caf7dfa961"
+version = "0.3.7"
 
 [[deps.Scratch]]
 deps = ["Dates"]
@@ -1535,6 +1981,12 @@ version = "1.2.1"
 
 [[deps.Serialization]]
 uuid = "9e88b42a-f829-5b0c-bbe9-9e923198166b"
+
+[[deps.Setfield]]
+deps = ["ConstructionBase", "Future", "MacroTools", "StaticArraysCore"]
+git-tree-sha1 = "e2cc6d8c88613c05e1defb55170bf5ff211fbeac"
+uuid = "efcf1570-3423-57d1-acb7-fd33fddbac46"
+version = "1.1.1"
 
 [[deps.Showoff]]
 deps = ["Dates", "Grisu"]
@@ -1572,6 +2024,11 @@ version = "2.3.1"
 
     [deps.SpecialFunctions.weakdeps]
     ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
+
+[[deps.StaticArraysCore]]
+git-tree-sha1 = "36b3d696ce6366023a0ea192b4cd442268995a0d"
+uuid = "1e83bf80-4336-4d27-bf5d-d5a4f845583c"
+version = "1.4.2"
 
 [[deps.Statistics]]
 deps = ["LinearAlgebra", "SparseArrays"]
@@ -1613,10 +2070,27 @@ deps = ["Artifacts", "Libdl", "libblastrampoline_jll"]
 uuid = "bea87d4a-7f5b-5778-9afe-8cc45184846c"
 version = "7.2.1+1"
 
+[[deps.SymbolicIndexingInterface]]
+git-tree-sha1 = "dc7186d456f9ff2bef0cb754a59758920f0b2382"
+uuid = "2efcf032-c050-4f8e-a9bb-153293bab1f5"
+version = "0.3.6"
+
 [[deps.TOML]]
 deps = ["Dates"]
 uuid = "fa267f1f-6049-4f14-aa54-33bafae1ed76"
 version = "1.0.3"
+
+[[deps.TableTraits]]
+deps = ["IteratorInterfaceExtensions"]
+git-tree-sha1 = "c06b2f539df1c6efa794486abfb6ed2022561a39"
+uuid = "3783bdb8-4a98-5b6b-af9a-565f29a5fe9c"
+version = "1.0.1"
+
+[[deps.Tables]]
+deps = ["DataAPI", "DataValueInterfaces", "IteratorInterfaceExtensions", "LinearAlgebra", "OrderedCollections", "TableTraits"]
+git-tree-sha1 = "cb76cf677714c095e535e3501ac7954732aeea2d"
+uuid = "bd369af6-aec1-5ad0-b16a-f7cc5008161c"
+version = "1.11.1"
 
 [[deps.Tar]]
 deps = ["ArgTools", "SHA"]
@@ -1628,6 +2102,12 @@ deps = ["LinearAlgebra"]
 git-tree-sha1 = "1feb45f88d133a655e001435632f019a9a1bcdb6"
 uuid = "62fd8b95-f654-4bbd-a8a5-9c27f68ccd50"
 version = "0.1.1"
+
+[[deps.TerminalLoggers]]
+deps = ["LeftChildRightSiblingTrees", "Logging", "Markdown", "Printf", "ProgressLogging", "UUIDs"]
+git-tree-sha1 = "f133fab380933d042f6796eda4e130272ba520ca"
+uuid = "5d786b92-1e48-4d6f-9151-6b4477ca9bed"
+version = "0.1.7"
 
 [[deps.Test]]
 deps = ["InteractiveUtils", "Logging", "Random", "Serialization"]
@@ -1642,6 +2122,17 @@ weakdeps = ["Random", "Test"]
     [deps.TranscodingStreams.extensions]
     TestExt = ["Test", "Random"]
 
+[[deps.Tricks]]
+git-tree-sha1 = "eae1bb484cd63b36999ee58be2de6c178105112f"
+uuid = "410a4b4d-49e4-4fbc-ab6d-cb71b17b3775"
+version = "0.1.8"
+
+[[deps.TruncatedStacktraces]]
+deps = ["InteractiveUtils", "MacroTools", "Preferences"]
+git-tree-sha1 = "ea3e54c2bdde39062abf5a9758a23735558705e1"
+uuid = "781d530d-4396-4725-bb49-402e4bee1e77"
+version = "1.4.0"
+
 [[deps.URIs]]
 git-tree-sha1 = "67db6cc7b3821e19ebe75791a9dd19c9b1188f2b"
 uuid = "5c2747f8-b7ea-4ff2-ba2e-563bfd36b1d4"
@@ -1650,6 +2141,11 @@ version = "1.5.1"
 [[deps.UUIDs]]
 deps = ["Random", "SHA"]
 uuid = "cf7118a7-6976-5b1a-9a39-7adc72f591a4"
+
+[[deps.UnPack]]
+git-tree-sha1 = "387c1f73762231e86e0c9c5443ce3b4a0a9a0c2b"
+uuid = "3a884ed6-31ef-47d7-9d2a-63182c4928ed"
+version = "1.0.2"
 
 [[deps.Unicode]]
 uuid = "4ec0a83e-493e-50e2-b9ac-8f72acf5a8f5"
@@ -2044,6 +2540,11 @@ version = "1.4.1+1"
 # ╠═41a626a6-1616-40ee-859f-ba323ae621f1
 # ╠═94391f3b-22f8-40c0-b0dd-66dbcc9d0d34
 # ╠═b3574040-fd96-43cd-b3c9-05d1d36956c8
+# ╟─d79d1e1a-4865-456d-9da5-ab2d11283b58
+# ╠═aa017aa2-d8be-4066-80cf-c2bc7556eca6
+# ╠═34ff0aa9-2fae-4afb-bf85-acac6d700ef4
+# ╠═c6ac6881-64ce-4414-af59-2f0fcb23577d
+# ╠═4e55677b-ddd8-44b5-a95b-8ce99605eb78
 # ╟─4943eec5-b299-4e70-a80a-bcf407c35074
 # ╟─d6051c16-4b38-4784-a7b8-0150027294cb
 # ╟─afb4fc4d-8d81-40c7-bd3d-40575f881a34
