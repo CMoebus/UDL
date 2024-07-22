@@ -11,7 +11,6 @@ begin
 	using Printf
 	using LaTeXStrings, Latexify
 	using Optim
-	# using Optimization, OptimizationOptimJL
 end # begin
 
 # ╔═╡ 400e7456-8a3b-44cc-ac77-5b28087b81fb
@@ -19,9 +18,19 @@ md"
 =====================================================================================
 #### UDL\_20240711\_5\_2\_1\_Maximum\_Likelihood\_Estimation\_I.jl
 ##### file: UDL\_20240711\_5\_2\_1\_Maximum\_Likelihood\_Estimation\_I.jl
-##### code: Julia 1.10.4/Pluto by *** PCM 2024/07/21 ***
+##### code: Julia 1.10.4/Pluto by *** PCM 2024/07/22 ***
 
 =====================================================================================
+"
+
+# ╔═╡ e2666b94-6c11-4de3-9b68-ed61a01aa334
+md"
+---
+##### 0. Introduction
+
+Here we deal with various *MLE*-related concepts in the context of the Gaussian distributed random samples: density, likelihood, density and likelhood function, log-likelihood, likelihood kernel, minimization and maximization, first and second derivatives of log-likelihood function, Fisher's score function, Hessian, Fisher information, Nelder-Mead-, L-BFGS-, and Newton-algorithm.
+
+Besides several others we use function of the Optim.jl package.
 "
 
 # ╔═╡ 19818803-5892-46a4-b0a7-2025cd0555ba
@@ -844,7 +853,8 @@ cl_s = (ybar - 2.1788 * ystderror_s, ybar + 2.1788 * ystderror_s)
 md"
 ---
 ###### Example: 3.3.7 Numerical Minimization of Negative Log-likelihood Kernel
-Some algorithms (e.g. Nelder-Mead) only *minimize* functions, we provide here the *negative log-likelihood kernel*: 
+###### Example: 3.3.7.1 Derivate-free Minimization with Nelder-Mead
+Some algorithms (e.g. Nelder-Mead) only *minimize* functions. So we provide the *negative log-likelihood kernel* here: 
 
 $\hat \mu_{MLE} = \underset{\mathbb \mu}{\operatorname{argmin}}\left(\frac{1}{2\sigma^2}\sum_{i=1}^n (y_i-\mu)^2\right) = 100.0 = \bar x$
 
@@ -859,17 +869,129 @@ ys
 
 # ╔═╡ c6ac6881-64ce-4414-af59-2f0fcb23577d
 let nGLLK(μ) = negativeGaussianLogLikelihoodKernel(ys, μ; σ=15.0)
-	lower   = [ 75.0]
-	upper   = [135.0]
-	optimize(nGLLK, lower, upper, NelderMead())
-	results = optimize(nGLLK, lower, upper, NelderMead())
+	μ0   = [ 75.0]
+	results = optimize(nGLLK, μ0, NelderMead())
 	Optim.minimizer(results), Optim.minimum(results), results
+end # let
+
+# ╔═╡ 91550cbb-5cb6-491e-9459-aeee6120b8a7
+md"
+---
+###### Example: 3.3.7.2 Minimization with [L-BFGS](https://julianlsolvers.github.io/Optim.jl/stable/user/minimization/) Using Gradients
+
+"
+
+# ╔═╡ c14e5edf-6277-4d8b-b92b-a2e79dd6c0f9
+md"
+###### *L-BFGS* with [Approximate Gradient Using Central Finite Differencing](https://julianlsolvers.github.io/Optim.jl/stable/user/minimization/)
+"
+
+# ╔═╡ 4bac2323-7a2f-4797-9542-6bb5d45c0dd3
+let nGLLK(μ) = negativeGaussianLogLikelihoodKernel(ys, μ; σ=15.0)
+	μ0   = [ 75.0]
+	results = optimize(nGLLK, μ0, LBFGS())
+	Optim.minimizer(results), Optim.minimum(results), results
+end # let
+
+# ╔═╡ 6727ce62-a589-4351-862f-adc01ce30307
+md"
+###### *L-BFGS* with [Automatic Differentiation triggered by Keyword](https://julianlsolvers.github.io/Optim.jl/stable/user/minimization/) $autodiff$
+"
+
+# ╔═╡ 62567f28-3100-4762-9f08-a9a596062bf8
+let nGLLK(μ) = negativeGaussianLogLikelihoodKernel(ys, μ; σ=15.0)
+	μ0   = [ 75.0]
+	results = optimize(nGLLK, μ0, LBFGS(); autodiff = :forward)
+	Optim.minimizer(results), Optim.minimum(results), results
+end # let
+
+# ╔═╡ 1f7d29f1-f951-4d82-9bf4-7901d4eeb51f
+md"
+###### *L-BFGS* with Explicit Information about Gradients (= *Score* Function)
+The *score* is (Held & Bove, 2020, p.28):
+
+$S(\mathbb \mu; \mathcal l_{\mathcal N}, \sigma, y_{1:n}) = \frac{d \mathcal l}{d \mu} = \frac{1}{\sigma^2}\left(\sum_{i=1}^n y_i - μ\right)$
+
+$\;$
+$\;$
+$\;$
+
+For algorithm $LBFGS$ we had to switch from *positive* to *negative* score:
+
+$-S(\mathbb \mu; \mathcal l_{\mathcal N}, \sigma, y_{1:n}) = -\frac{d \mathcal l}{d \mu} = -\frac{1}{\sigma^2}\left(\sum_{i=1}^n y_i - μ\right).$
+
+$\;$
+$\;$
+$\;$
+"
+
+# ╔═╡ 63282a7b-554c-46d4-9762-375dfeba6b9f
+# no inplace mutation of gradient
+#----------------------------------------------------------------
+let nGLLK(μ) = negativeGaussianLogLikelihoodKernel(ys, μ; σ=15.0)
+	#------------------------------------------------------------
+	negativeScore(μ; σ=15.0) = -(1.0/σ^2)*sum(ys .- μ)
+	#------------------------------------------------------------
+	function g(μ) 
+		negativeScore(μ; σ=15.0)
+	end # function g
+	#------------------------------------------------------------
+	μ0   = [ 75.0]
+	results = optimize(nGLLK, g, μ0, LBFGS(); inplace=false)
+	Optim.minimizer(results), Optim.minimum(results), results
+	#------------------------------------------------------------
+end # let
+
+# ╔═╡ a57321e6-faef-4786-b03a-8f0df6a655d9
+# inplace mutation of gradient G
+#----------------------------------------------------------------
+let nGLLK(μ) = negativeGaussianLogLikelihoodKernel(ys, μ; σ=15.0)
+	#------------------------------------------------------------
+	negativeScore(μ; σ=15.0) = -(1.0/σ^2)*sum(ys .- μ)
+	#------------------------------------------------------------
+	function g!(G, μ) 
+		G[1] = negativeScore(μ; σ=15.0)
+	end # function g!
+	#------------------------------------------------------------
+	μ0   = [ 75.0]
+	results = optimize(nGLLK, g!, μ0, LBFGS())
+	Optim.minimizer(results), Optim.minimum(results), results
+	#------------------------------------------------------------
+end # let
+
+# ╔═╡ fee13909-fea3-4b8e-971e-7632766b3c5c
+md"
+###### *Newton* Algorithm with Explicit Gradients (= *Score* Function) and *Hessians* 
+"
+
+# ╔═╡ 7d651c60-8f75-4428-ae91-2b933e23b7cf
+# inplace mutation of Hessian H
+#----------------------------------------------------------------
+let nGLLK(μ) = negativeGaussianLogLikelihoodKernel(ys, μ; σ=15.0)
+	#------------------------------------------------------------
+	negativeScore(μ; σ=15.0) = -(1.0/σ^2)*sum(ys .- μ)
+	#------------------------------------------------------------
+	function g!(G, μ; σ=15.0) 
+		G[1] = negativeScore(μ; σ=15.0)
+	end # function g!
+	#------------------------------------------------------------
+	function h!(H, μ; σ=15.0)
+		H[1, 1] = - n/σ^2
+	end # function h!
+	#------------------------------------------------------------
+	μ0   = [ 75.0]
+	results = optimize(nGLLK, g!, h!, μ0, Newton())
+	Optim.minimizer(results), Optim.minimum(results), results
+	#------------------------------------------------------------
 end # let
 
 # ╔═╡ 4943eec5-b299-4e70-a80a-bcf407c35074
 md"
 ---
 ##### 4. Summary
+We presented and used various *MLE*-related concepts in the context of the Gaussian distributed random samples: density, likelihood, density and likelhood function, log-likelihood, likelihood kernel, minimization and maximization, first and second derivatives of log-likelihood function, Fisher's score function, Hessian, Fisher information, Nelder-Mead-, L-BFGS-, and Newton-algorithm.
+
+Besides several others we used function of the Optim.jl package.
 "
 
 # ╔═╡ d6051c16-4b38-4784-a7b8-0150027294cb
@@ -2257,6 +2379,7 @@ version = "1.4.1+1"
 
 # ╔═╡ Cell order:
 # ╟─400e7456-8a3b-44cc-ac77-5b28087b81fb
+# ╟─e2666b94-6c11-4de3-9b68-ed61a01aa334
 # ╟─19818803-5892-46a4-b0a7-2025cd0555ba
 # ╠═007be6ce-ca18-4877-82e4-f49f85fd993b
 # ╟─3a2a4fca-9e51-4882-967a-4d62718dae94
@@ -2326,6 +2449,16 @@ version = "1.4.1+1"
 # ╟─d79d1e1a-4865-456d-9da5-ab2d11283b58
 # ╠═34ff0aa9-2fae-4afb-bf85-acac6d700ef4
 # ╠═c6ac6881-64ce-4414-af59-2f0fcb23577d
+# ╟─91550cbb-5cb6-491e-9459-aeee6120b8a7
+# ╟─c14e5edf-6277-4d8b-b92b-a2e79dd6c0f9
+# ╠═4bac2323-7a2f-4797-9542-6bb5d45c0dd3
+# ╟─6727ce62-a589-4351-862f-adc01ce30307
+# ╠═62567f28-3100-4762-9f08-a9a596062bf8
+# ╟─1f7d29f1-f951-4d82-9bf4-7901d4eeb51f
+# ╠═63282a7b-554c-46d4-9762-375dfeba6b9f
+# ╠═a57321e6-faef-4786-b03a-8f0df6a655d9
+# ╟─fee13909-fea3-4b8e-971e-7632766b3c5c
+# ╠═7d651c60-8f75-4428-ae91-2b933e23b7cf
 # ╟─4943eec5-b299-4e70-a80a-bcf407c35074
 # ╟─d6051c16-4b38-4784-a7b8-0150027294cb
 # ╟─afb4fc4d-8d81-40c7-bd3d-40575f881a34
