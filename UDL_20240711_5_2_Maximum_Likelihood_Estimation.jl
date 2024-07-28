@@ -18,7 +18,7 @@ md"
 =====================================================================================
 #### UDL\_20240711\_5\_2\_Maximum\_Likelihood\_Estimation.jl
 ##### file: UDL\_20240711\_5\_2\_Maximum\_Likelihood\_Estimation\_I.jl
-##### code: Julia 1.10.4/Pluto by *** PCM 2024/07/25 ***
+##### code: Julia 1.10.4/Pluto by *** PCM 2024/07/28 ***
 
 =====================================================================================
 "
@@ -179,9 +179,9 @@ $\mathcal L(\phi; f, h, x, y) = f(y;h(x,\phi), x, \phi)$
 
 $\;$
 
-The likelihood of $N$ realizations $x$ of a random variable $X$ is the product of their single densities. This is true under the assumption of *i.i.d. (= independent identical distributed)* random realizations $X=x_i$.
+The likelihood of $n$ realizations $x_{1:n}$ of a random variable $X$ is the product of their single densities. This is true under the assumption of *i.i.d. (= independent identical distributed)* random realizations $X=x_{1:n}$.
 
-$\mathcal L(\phi; f, h, \mathbf{x, y}) = \prod_{i=1}^n f\left(y_i; h(x_i, \mathbb \phi), x_i, \phi \right)$
+$\mathcal L(\phi; f, h, x_{1:n}, y_{1:n}) = \prod_{i=1}^n f\left(y_i; h(x_i, \mathbb \phi), x_i, \phi \right)$
 
 $\;$
 $\;$
