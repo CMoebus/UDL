@@ -32,7 +32,7 @@ md"
 =====================================================================================
 #### UDL\_20240705\_5\_1\_Identification\_Of\_A\_Latent\_Generator.jl
 ##### file:  UDL_20240705_5_1_IdentificationOfALatentGenerator.jl
-##### code: Julia 1.10.4/Pluto by *** PCM 2024/07/11 ***
+##### code: Julia 1.10.4/Pluto by *** PCM 2024/08/07 ***
 
 =====================================================================================
 "
@@ -53,9 +53,9 @@ md"
 ---
 ##### 2. Specification of Shallow 1-3-1-Generator
 ###### 2.1 General Matrix Formulation
-(Prince, 2024, (4.15))
+(cf. Prince, 2024, (4.15))
 
-$\mathbf{h_1} = \mathbf a \left(\mathbf{\beta}_0 + \mathbf{\Omega}_0 \mathbf x \right)$
+$\mathbf{h_0} = \mathbf a \left(\mathbf{\beta}_0 + \mathbf{\Omega}_0 \mathbf x \right)$
 
 $\;$
 
@@ -63,11 +63,15 @@ $...$
 
 $\;$
 
-$\mathbf{h_k} = \mathbf a \left(\mathbf{\beta}_{k-1} + \mathbf{\Omega}_{k-1} \mathbf x \right)$
+$\mathbf{h_{k-1}} = \mathbf a \left(\mathbf{\beta}_{k-1} + \mathbf{\Omega}_{k-1} \mathbf x \right)$
 
 $\;$
 
-$\mathbf{y} = \mathbf a \left(\mathbf{\beta}_{k} + \mathbf{\Omega}_{k} \mathbf x \right)$
+$\mathbf{y} = \left(\mathbf{\beta}_{k} + \mathbf{\Omega}_{k} \mathbf x \right)$
+
+$\;$
+
+The last output layer has *no* activation $\mathbf a.$
 
 $\;$
 $\;$
