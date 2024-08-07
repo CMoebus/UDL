@@ -71,7 +71,7 @@ $\mathbf{y} = \left(\mathbf{\beta}_{k} + \mathbf{\Omega}_{k} \mathbf x \right)$
 
 $\;$
 
-The last output layer has *no* activation $\mathbf a.$
+The last output layer has *no* (!) activation $\mathbf a.$
 
 $\;$
 $\;$
@@ -100,8 +100,8 @@ function shallow_1_3_1_nn(xs::Vector{Float32}, activation::Function,
 	layer1_preact = β0 .+ (Ω0 * xs')                     # Prince, 2024, (4.15)
 	# Pass these through the ReLU function 
 	h1 = activation.(layer1_preact)                      # Prince, 2024, (4.15)
-	#---------------------------------------------------------------------------------# weight the activations                                 # Prince, 2024, (4.15)
-	ys = β1 .+ (Ω1 * h1)
+	#---------------------------------------------------------------------------------# weight the activations                             # Prince, 2024, (4.15)
+	ys = β1 .+ (Ω1 * h1)                                 # no (!) activation
 	#---------------------------------------------------------------------------------
 	layer1_preact, h1, ys
 end # function shallow_1_3_1_nn
@@ -200,15 +200,97 @@ end # begin
 # ╔═╡ 641d1183-318a-4e3c-8392-cae892b218ea
 md"
 ---
-##### 3. Shallow 1-3-1 LUX-Model
-###### 3.1 Training Loop
+##### 3. Shallow 1-3-1 NN LUX-Model
+"
+
+# ╔═╡ ce17b890-56aa-4312-8210-60eb73bd0ba8
+md"
+---
+###### 3.1 Shallow 1-3-1-NN Model with $relu$-Specification
+"
+
+# ╔═╡ 067ac55e-5624-44d2-b878-db502cc0f9f5
+shallow_1_3_1_tanh_Model = 
+	Chain(
+		Dense(1 => 3, tanh), 
+		Dense(3 => 1))
+
+# ╔═╡ 65807101-61b9-4f46-a986-eda7b7830fd3
+md"
+###### 3.3 Training of Model
+"
+
+# ╔═╡ 4a8cde93-e991-4ecd-a6c7-dcf1c2ec20a1
+md"
+---
+###### 3.4 tanh-Model Specification
+"
+
+# ╔═╡ 3f88f4e9-6418-4571-89fc-407505892ddb
+shallow_1_3_1_tanh2_Model = 
+	Chain(
+		Dense(1 => 3, tanh), 
+		Dense(3 => 1, tanh))
+
+# ╔═╡ 9f064895-8e29-4c95-a5f0-f37d7b1e8ea6
+md"
+---
+###### 3.5 Training of tanh-Model
+"
+
+# ╔═╡ bcff1007-7180-47ab-bea0-21fe379ab12b
+md"
+A model with a single $tanh$-activitation will do.
+"
+
+# ╔═╡ ff142dba-7382-4047-a8e0-57fb7f447871
+md"
+---
+##### 4. From Shallow 1-10-1 Neural Networks to [Univariate Regression](https://github.com/udlbook/udlbook/blob/main/Notebooks/Chap05/5_1_Least_Squares_Loss.ipynb)
+###### 4.1 Training Data: Single Input, Single Output
+Data $ysTrain$ are generator's output $\hat ys$ with gaussian random noise $randn(Float32)/4.0$ added.
+"
+
+# ╔═╡ 06da2b96-0861-488a-9e99-baa88a044f59
+xsTrain = xs
+
+# ╔═╡ c3071b6b-7d31-4530-8df7-f56cb440c6cd
+ysTrain = convert(Vector{Float32}, [ysHat[1, j] + randn(Float32)/4.0  for j in 1: length(ysHat[1, :])])
+
+# ╔═╡ 3dca892a-c4f1-40f7-872e-04f9c494b10e
+scatter(xsTrain, ysTrain, label=L"data: (x, y)", xlabel=L"xs", ylabel=L"ys", title="Training Data", titlefontsize=12)
+
+# ╔═╡ 254842e5-96c1-431b-ae7c-d3922db15233
+md"
+---
+###### 4.2 Generator's Output
+The figure below is similar but not identical to one in Prince's notebook 5.1. Here we used the shallow 1-3-1 generator to first generate the error-free $\hat ys$ and then the noisy $ysTrain$.
+"
+
+# ╔═╡ 005ccb7b-8048-44c6-a66b-d067cd4592ae
+let stDevResid = std(ysTrain - ysHat[1, :])  # standard deviation of residuals
+	#-----------------------------------------------------------------------------
+	scatter(xsTrain, ysTrain, label=L"data: (xsTrain, ysTrain)", title="Training Data", titlefontsize=12)
+	#-----------------------------------------------------------------------------
+	plot!(xs, ysHat[1, :], label=L"generator: \hat ys", xlabel=L"xs", ylabel=L"ys", title="Output of Shallow 1-3-1 Generator and Training Data", titlefontsize=11, lw=2.0, color=:red)
+	#-----------------------------------------------------------------------------
+	plot!(xs, ysHat[1, :] .+ (1.96 * stDevResid), label=L"generator: \hat ys+1.96s", xlabel=L"xs", ylabel=L"ys", ls=:dash, color=:black)
+	#-----------------------------------------------------------------------------
+	plot!(xs, ysHat[1, :] .- (1.96 * stDevResid), label=L"generator: \hat ys-1.96s", xlabel=L"xs", ylabel=L"ys", ls=:dash, color=:black)
+	#-----------------------------------------------------------------------------
+end # let
+
+# ╔═╡ 6ebbc969-247d-4434-9ccc-d79a054420f6
+md"
+---
+###### 4.3 LUX.jl Shallow Models
 "
 
 # ╔═╡ 28083194-281d-49ee-84b0-cec56e3a039f
 myCorSq = zeros(Float64, 20)                #  = proportions of explained variance
 
 # ╔═╡ c06c7d20-324d-41fb-865e-111ebf627cc4
-function trainTheModel(luxModel, xsData::Vector{Float32}, ysData::Vector{Float32}; title="LUX-Model")
+function trainTheModel(luxModel, xsData::Vector{Float32}, ysData::Vector{Float32}; nLatentUnit=0, title="LUX-Model")
 	#-------------------------------------------------------------------------------
 	function myMse(model, parameters, states, data)
 		# dereferencing of 'data'-tuple in two elements 'xs' and 'ys'
@@ -266,9 +348,11 @@ function trainTheModel(luxModel, xsData::Vector{Float32}, ysData::Vector{Float32
 	ysPredNew = 
 		trainStateNew.model(xsData', trainStateNew.parameters, trainStateNew.states)[1]
 	#-------------------------------------------------------------------------------
-	myCor = cor(ysData, ysPredNew')[1]
+	myCor       = cor(ysData, ysPredNew')[1]
 	myCorSquare = myCor^2
-	pushfirst!(myCorSq, myCorSquare)
+	if 	nLatentUnit !== 0 
+		myCorSq[nLatentUnit] = myCor^2
+	end # if 
 	#-------------------------------------------------------------------------------
 	Plots.scatter(xsData, ysData, label=L"data:(x, y)", titlefontsize=9, title=title)
 	Plots.plot!(xsData, ysPredNew', label=L"model: \hat ys", color=:red, lw=3)
@@ -280,89 +364,11 @@ function trainTheModel(luxModel, xsData::Vector{Float32}, ysData::Vector{Float32
 	#-------------------------------------------------------------------------------
 end # function trainTheModel
 
-# ╔═╡ ce17b890-56aa-4312-8210-60eb73bd0ba8
-md"
----
-###### 3.2 relu-Model Specification
-"
-
-# ╔═╡ 067ac55e-5624-44d2-b878-db502cc0f9f5
-shallow_1_3_1_relu_Model = 
-	Chain(
-		Dense(1 => 3, relu), 
-		Dense(3 => 1, relu))
-
-# ╔═╡ 65807101-61b9-4f46-a986-eda7b7830fd3
-md"
-###### 4.3 Training of relu-Model
-"
-
 # ╔═╡ 78b953b1-3ab3-42c7-8bb1-c0a2b16ad4e3
-trainTheModel(shallow_1_3_1_relu_Model, xs, ysHat[1, :], title="LUX-Model with *relu*-Activation")
-
-# ╔═╡ 4a8cde93-e991-4ecd-a6c7-dcf1c2ec20a1
-md"
----
-###### 3.4 tanh-Model Specification
-"
-
-# ╔═╡ 3f88f4e9-6418-4571-89fc-407505892ddb
-shallow_1_3_1_tanh_Model1 = 
-	Chain(
-		Dense(1 => 3, tanh), 
-		Dense(3 => 1, tanh))
-
-# ╔═╡ 9f064895-8e29-4c95-a5f0-f37d7b1e8ea6
-md"
----
-###### 3.5 Training of tanh-Model
-"
+trainTheModel(shallow_1_3_1_tanh_Model, xs, ysHat[1, :], title="LUX-Model with *tanh*-Activation")
 
 # ╔═╡ 4e0bfee4-f8a1-45e0-ba30-4a9cd4774f71
-trainTheModel(shallow_1_3_1_tanh_Model1, xs, ysHat[1, :], title="LUX-Model with *tanh*-Activation")
-
-# ╔═╡ ff142dba-7382-4047-a8e0-57fb7f447871
-md"
----
-##### 4. From Shallow 1-10-1 Neural Networks to [Univariate Regression](https://github.com/udlbook/udlbook/blob/main/Notebooks/Chap05/5_1_Least_Squares_Loss.ipynb)
-###### 4.1 Training Data: Single Input, Single Output
-Data $ysTrain$ are generator's output $\hat ys$ with gaussian random noise $randn(Float32)/4.0$ added.
-"
-
-# ╔═╡ 06da2b96-0861-488a-9e99-baa88a044f59
-xsTrain = xs
-
-# ╔═╡ c3071b6b-7d31-4530-8df7-f56cb440c6cd
-ysTrain = convert(Vector{Float32}, [ysHat[1, j] + randn(Float32)/4.0  for j in 1: length(ysHat[1, :])])
-
-# ╔═╡ 3dca892a-c4f1-40f7-872e-04f9c494b10e
-scatter(xsTrain, ysTrain, label=L"data: (x, y)", xlabel=L"xs", ylabel=L"ys", title="Training Data", titlefontsize=12)
-
-# ╔═╡ 254842e5-96c1-431b-ae7c-d3922db15233
-md"
----
-###### 4.2 Generator's Output
-The figure below is similar but not identical to one in Prince's notebook 5.1. Here we used the shallow 1-3-1 generator to first generate the error-free $\hat ys$ and then the noisy $ysTrain$.
-"
-
-# ╔═╡ 005ccb7b-8048-44c6-a66b-d067cd4592ae
-let stDevResid = std(ysTrain - ysHat[1, :])  # standard deviation of residuals
-	#-----------------------------------------------------------------------------
-	scatter(xsTrain, ysTrain, label=L"data: (xsTrain, ysTrain)", title="Training Data", titlefontsize=12)
-	#-----------------------------------------------------------------------------
-	plot!(xs, ysHat[1, :], label=L"generator: \hat ys", xlabel=L"xs", ylabel=L"ys", title="Output of Shallow 1-3-1 Generator and Training Data", titlefontsize=11, lw=2.0, color=:red)
-	#-----------------------------------------------------------------------------
-	plot!(xs, ysHat[1, :] .+ (1.96 * stDevResid), label=L"generator: \hat ys+1.96s", xlabel=L"xs", ylabel=L"ys", ls=:dash, color=:black)
-	#-----------------------------------------------------------------------------
-	plot!(xs, ysHat[1, :] .- (1.96 * stDevResid), label=L"generator: \hat ys-1.96s", xlabel=L"xs", ylabel=L"ys", ls=:dash, color=:black)
-	#-----------------------------------------------------------------------------
-end # let
-
-# ╔═╡ 6ebbc969-247d-4434-9ccc-d79a054420f6
-md"
----
-###### 4.3 LUX.jl Shallow Models
-"
+trainTheModel(shallow_1_3_1_tanh2_Model, xs, ysHat[1, :], title="LUX-Model with *tanh-tanh*-Activation")
 
 # ╔═╡ 7e1a7052-8d8f-4ee1-aa3d-5e89392d0625
 md"
@@ -371,10 +377,10 @@ md"
 
 # ╔═╡ 4f6dc297-5450-4475-9922-4008d893c1a0
 shallow_1_10_1_tanh_Model = 
-	Chain(Dense(1 => 10, tanh), Dense(10 => 1, tanh))
+	Chain(Dense(1 => 10, tanh), Dense(10 => 1))
 
 # ╔═╡ c43b7f93-fcc0-4d37-a34c-af585eececae
-trainTheModel(shallow_1_10_1_tanh_Model, xsTrain, ysTrain, 
+trainTheModel(shallow_1_10_1_tanh_Model, xsTrain, ysTrain, nLatentUnit=10,
 	title="LUX.jl shallow_1_10_1_tanh_Model with *tanh*-Activation")
 
 # ╔═╡ 1d721540-eaa9-44be-99b3-cb582d1a7a27
@@ -385,10 +391,10 @@ md"
 
 # ╔═╡ b11279a0-28e2-4e37-a2a8-92c1837a31a2
 shallow_1_9_1_tanh_Model = 
-	Chain(Dense(1 => 9, tanh), Dense(9 => 1, tanh))
+	Chain(Dense(1 => 9, tanh), Dense(9 => 1))
 
 # ╔═╡ cf4658ff-18b0-4578-a78c-070128826da7
-trainTheModel(shallow_1_9_1_tanh_Model, xsTrain, ysTrain, 
+trainTheModel(shallow_1_9_1_tanh_Model, xsTrain, ysTrain, nLatentUnit=9,
 	title="LUX.jl shallow_1_9_1_tanh_Model with *tanh*-Activation")
 
 # ╔═╡ 983567af-c203-4590-aaab-702549cc36c9
@@ -399,10 +405,10 @@ md"
 
 # ╔═╡ 5f9fed69-4a9f-4673-a04a-fafee40c6f9f
 shallow_1_8_1_tanh_Model = 
-	Chain(Dense(1 => 8, tanh), Dense(8 => 1, tanh))
+	Chain(Dense(1 => 8, tanh), Dense(8 => 1))
 
 # ╔═╡ e3f07344-3757-4f8b-b230-18249da7925e
-trainTheModel(shallow_1_8_1_tanh_Model, xsTrain, ysTrain, 
+trainTheModel(shallow_1_8_1_tanh_Model, xsTrain, ysTrain, nLatentUnit=8,
 	title="LUX.jl shallow_1_8_1_tanh_Model with *tanh*-Activation")
 
 # ╔═╡ 82b35ffc-3e85-4770-a5af-e276f52d9488
@@ -413,10 +419,10 @@ md"
 
 # ╔═╡ cb3aac6c-108a-40c5-b33f-5718cb306779
 shallow_1_7_1_tanh_Model = 
-	Chain(Dense(1 => 7, tanh), Dense(7 => 1, tanh))
+	Chain(Dense(1 => 7, tanh), Dense(7 => 1))
 
 # ╔═╡ 2c00a7c4-4b7b-45a2-892d-c90239fd6b4a
-trainTheModel(shallow_1_7_1_tanh_Model, xsTrain, ysTrain, 
+trainTheModel(shallow_1_7_1_tanh_Model, xsTrain, ysTrain, nLatentUnit=7,
 	title="LUX.jl shallow_1_7_1_tanh_Model with *tanh*-Activation")
 
 # ╔═╡ 3ecc19dc-2f88-44b6-9f32-0ecc220bf268
@@ -427,10 +433,10 @@ md"
 
 # ╔═╡ 8075984e-3a8d-4582-b07d-86f0baa17d0f
 shallow_1_6_1_tanh_Model = 
-	Chain(Dense(1 => 6, tanh), Dense(6 => 1, tanh))
+	Chain(Dense(1 => 6, tanh), Dense(6 => 1))
 
 # ╔═╡ 940da618-0c3a-4a7e-92e4-304eeafeef16
-trainTheModel(shallow_1_6_1_tanh_Model, xsTrain, ysTrain, 
+trainTheModel(shallow_1_6_1_tanh_Model, xsTrain, ysTrain, nLatentUnit=6,
 	title="LUX.jl shallow_1_6_1_tanh_Model with *tanh*-Activation")
 
 # ╔═╡ 0ea44381-9c3c-4a99-9dc4-5fa2ee36cb5f
@@ -440,10 +446,10 @@ md"
 
 # ╔═╡ 86f7a201-c5d0-4369-afe7-2ba5227c4be1
 shallow_1_5_1_tanh_Model = 
-	Chain(Dense(1 => 5, tanh), Dense(5 => 1, tanh))
+	Chain(Dense(1 => 5, tanh), Dense(5 => 1))
 
 # ╔═╡ 449ff9af-4bca-4969-9183-d606bd404a5e
-trainTheModel(shallow_1_5_1_tanh_Model, xsTrain, ysTrain, 
+trainTheModel(shallow_1_5_1_tanh_Model, xsTrain, ysTrain, nLatentUnit=5,
 	title="LUX.jl shallow_1_5_1_tanh_Model with *tanh*-Activation")
 
 # ╔═╡ 3dd7730f-292a-480a-9f8b-2cf4aedfe14c
@@ -454,10 +460,10 @@ md"
 
 # ╔═╡ c962252b-2161-4067-a358-401d825c3fba
 shallow_1_4_1_tanh_Model = 
-	Chain(Dense(1 => 4, tanh), Dense(4 => 1, tanh))
+	Chain(Dense(1 => 4, tanh), Dense(4 => 1))
 
 # ╔═╡ 1c3cf9da-0836-4f45-9ee9-dcede8afb43e
-trainTheModel(shallow_1_4_1_tanh_Model, xsTrain, ysTrain, 
+trainTheModel(shallow_1_4_1_tanh_Model, xsTrain, ysTrain, nLatentUnit=4,
 	title="LUX.jl shallow_1_4_1_tanh_Model with *tanh*-Activation")
 
 # ╔═╡ 40266303-1552-4aa3-91b6-aaa940e72e50
@@ -468,10 +474,10 @@ md"
 
 # ╔═╡ 318b1feb-8ec8-4212-98d2-4852aaf7d0d6
 shallow_1_3_1_tanh_Model2 = 
-	Chain(Dense(1 => 3, tanh), Dense(3 => 1, tanh))
+	Chain(Dense(1 => 3, tanh), Dense(3 => 1))
 
 # ╔═╡ c2653965-7419-43bd-b77c-33c564a68722
-trainTheModel(shallow_1_3_1_tanh_Model2, xsTrain, ysTrain, title="LUX.jl shallow_1_3_1_tanh_Model with *tanh*-Activation")
+trainTheModel(shallow_1_3_1_tanh_Model2, xsTrain, ysTrain, nLatentUnit=3, title="LUX.jl shallow_1_3_1_tanh_Model with *tanh*-Activation")
 
 # ╔═╡ 86a74fe4-b431-4251-b16c-211c0838503a
 typeof(xsTrain), typeof(ysTrain)
@@ -485,10 +491,10 @@ md"
 # ╔═╡ dc34ffc6-2a3f-4fe0-b4f9-1f02ecc41acc
 shallow_1_2_1_tanh_Model = 
 	Chain(
-		Dense(1 => 2, tanh), Dense(2 => 1, tanh))
+		Dense(1 => 2, tanh), Dense(2 => 1))
 
 # ╔═╡ 8cba4700-315a-4fb8-a185-9ab9c7aaee44
-trainTheModel(shallow_1_2_1_tanh_Model, xsTrain, ysTrain, title="LUX.jl shallow_1_2_1_tanh_Model with *tanh*-Activation")
+trainTheModel(shallow_1_2_1_tanh_Model, xsTrain, ysTrain, nLatentUnit=2, title="LUX.jl shallow_1_2_1_tanh_Model with *tanh*-Activation")
 
 # ╔═╡ 0af08cd3-f624-4a2b-938d-8bde2d362812
 md"
@@ -500,10 +506,19 @@ md"
 shallow_1_1_1_tanh_Model = 
 	Chain(
 		Dense(1 => 1, tanh),
-		Dense(1 => 1, tanh))
+		Dense(1 => 1))
 
 # ╔═╡ dee8d6ee-cf5b-4447-bdfb-2b5c8e3b37e5
-trainTheModel(shallow_1_1_1_tanh_Model, xsTrain, ysTrain, title="LUX.jl shallow_1_1_1_tanh_Model with *tanh*-Activation")
+trainTheModel(shallow_1_1_1_tanh_Model, xsTrain, ysTrain, nLatentUnit=1, title="LUX.jl shallow_1_1_1_tanh_Model with *tanh*-Activation")
+
+# ╔═╡ a36eed97-8bce-4aff-8935-ec31b7a6b930
+myCorSq
+
+# ╔═╡ a0dfcbd1-3d6b-49a2-9f13-60be76387973
+begin
+	scatter(10:-1:1, myCorSq[10:-1:1], ylimit=(0.0, 0.5), label=L"(model, r^2)", xlabel="Model", ylabel=L"r^2", title="Increase in Variance^2", titlefontsize=12)
+	plot!(10:-1:1, myCorSq[10:-1:1], label=L"(model, r^2)", lw=2.5)
+end # begin
 
 # ╔═╡ c127cc4a-289b-49e9-a4e4-4a21b52c2ee4
 md"
@@ -512,30 +527,23 @@ md"
 "
 
 # ╔═╡ 3ca02ecf-7d83-43c0-b9d3-57c1a3ac758e
-univariate_1_1_tanh_RegressionModel = Dense(1 => 1, tanh)
+univariate_1_1_RegressionModel = Dense(1 => 1)
 
 # ╔═╡ ed7f76ea-57d3-4f84-bdca-8c562d25ad2b
-trainTheModel(univariate_1_1_tanh_RegressionModel, xsTrain, ysTrain, title="LUX.jl Univariate_1_1_tanh_Regression_Model with *tanh*-Activation")
-
-# ╔═╡ a36eed97-8bce-4aff-8935-ec31b7a6b930
-myCorSq
-
-# ╔═╡ a0dfcbd1-3d6b-49a2-9f13-60be76387973
-begin
-	scatter(1:1:11, myCorSq[11:-1:1], ylimit=(0, 1), label=L"(model, r^2)", xlabel="Model", ylabel=L"r^2", title="Drop in Proportion of Variance Explanations", titlefontsize=12)
-	plot!(1:1:11, myCorSq[11:-1:1], label=L"(model, r^2)", lw=2.5)
-end # begin
+trainTheModel(univariate_1_1_RegressionModel, xsTrain, ysTrain, title="LUX.jl Univariate_1_1_tanh_Regression_Model with *tanh*-Activation")
 
 # ╔═╡ 1217056a-dc3d-4acd-92ce-f86aca4aa99e
 md"
 ---
 ##### 5. Summary
-We reimplemented Prince's $10$-parameter *shallow 1-3-1 relu-model* and used it as a generator for error-free data $\hat ys$. To that we added gaussian distributed noise to obtain training data $ysTrain$. Training data $xsTrain:=xs, ysTrain$ were fed into various LUX.jl models with a range of $10$ to $0$ hidden units. The last model is better known as *univariate line regression*. 
+We reimplemented Prince's $10$-parameter *shallow 1-3-1 $relu$-model* and used it as a generator for error-free data $\hat ys$. To that we added gaussian distributed noise to obtain training data $ysTrain$. Training data $xsTrain:=xs, ysTrain$ were fed into various LUX.jl models with a range of $10$ to $0$ hidden units. The last model is better known as *univariate linear regression*. 
 
-For each model we computed parameters minimzing *mean squares loss* and the correlation $r$ and its square $r^2$ between model predictions $\hat ys$ and $ysTrain$. It could be demonstrated that we could reduce model complexity down to the
-$shallow\_1\_3\_1\_tanh\_Model$ with $10$ parameters without substantially deteriorating the proportion of explained variance $r^2$.
+Then we took the same training data and specified LUX.jl with a varying number of latent units. These ranged from 10 to 0 units. For each model we computed parameters minimzing *mean squares loss* and the correlation $r$ and its square $r^2$ between model predictions $\hat ys$ and training $ysTrain$. We plotted the drop/increase of $r^2$ as a function of the number of latent parameters between 10 to 1 latent units. It could be demonstrated that we could reduce model complexity down to the
+$shallow\_1\_3\_1\_tanh\_Model$ with a total of $10$ parameters without loss of variance explanation.
 
 The remarkable result is, that our *optimal* LUX.jl $shallow\_1\_3\_1\_tanh\_Model$ possesses the same structure as the original latent generator despite the fact that both models use different activations.
+
+The univariate linear regression model with zero latent unit only explained 6% of criterium's variance
 "
 
 # ╔═╡ 2048da89-ff72-4a4e-b8ff-696acb9e9555
@@ -2107,16 +2115,16 @@ version = "1.4.1+1"
 # ╠═73bb7782-8d52-4905-9c97-b7cf0fc44fe4
 # ╠═85353649-2a95-45fd-9720-5270189df673
 # ╟─641d1183-318a-4e3c-8392-cae892b218ea
-# ╠═28083194-281d-49ee-84b0-cec56e3a039f
-# ╠═c06c7d20-324d-41fb-865e-111ebf627cc4
 # ╟─ce17b890-56aa-4312-8210-60eb73bd0ba8
 # ╠═067ac55e-5624-44d2-b878-db502cc0f9f5
 # ╟─65807101-61b9-4f46-a986-eda7b7830fd3
+# ╠═c06c7d20-324d-41fb-865e-111ebf627cc4
 # ╠═78b953b1-3ab3-42c7-8bb1-c0a2b16ad4e3
 # ╟─4a8cde93-e991-4ecd-a6c7-dcf1c2ec20a1
 # ╠═3f88f4e9-6418-4571-89fc-407505892ddb
 # ╟─9f064895-8e29-4c95-a5f0-f37d7b1e8ea6
 # ╠═4e0bfee4-f8a1-45e0-ba30-4a9cd4774f71
+# ╟─bcff1007-7180-47ab-bea0-21fe379ab12b
 # ╟─ff142dba-7382-4047-a8e0-57fb7f447871
 # ╠═06da2b96-0861-488a-9e99-baa88a044f59
 # ╠═c3071b6b-7d31-4530-8df7-f56cb440c6cd
@@ -2124,6 +2132,7 @@ version = "1.4.1+1"
 # ╟─254842e5-96c1-431b-ae7c-d3922db15233
 # ╠═005ccb7b-8048-44c6-a66b-d067cd4592ae
 # ╟─6ebbc969-247d-4434-9ccc-d79a054420f6
+# ╠═28083194-281d-49ee-84b0-cec56e3a039f
 # ╟─7e1a7052-8d8f-4ee1-aa3d-5e89392d0625
 # ╠═4f6dc297-5450-4475-9922-4008d893c1a0
 # ╠═c43b7f93-fcc0-4d37-a34c-af585eececae
@@ -2155,11 +2164,11 @@ version = "1.4.1+1"
 # ╟─0af08cd3-f624-4a2b-938d-8bde2d362812
 # ╠═2cba1418-0a5d-45ee-90ea-c0d05cb26cfd
 # ╠═dee8d6ee-cf5b-4447-bdfb-2b5c8e3b37e5
+# ╠═a36eed97-8bce-4aff-8935-ec31b7a6b930
+# ╠═a0dfcbd1-3d6b-49a2-9f13-60be76387973
 # ╟─c127cc4a-289b-49e9-a4e4-4a21b52c2ee4
 # ╠═3ca02ecf-7d83-43c0-b9d3-57c1a3ac758e
 # ╠═ed7f76ea-57d3-4f84-bdca-8c562d25ad2b
-# ╠═a36eed97-8bce-4aff-8935-ec31b7a6b930
-# ╠═a0dfcbd1-3d6b-49a2-9f13-60be76387973
 # ╟─1217056a-dc3d-4acd-92ce-f86aca4aa99e
 # ╟─2048da89-ff72-4a4e-b8ff-696acb9e9555
 # ╟─9498ad5f-d5d0-4a09-9797-fa1c284a5e4d
