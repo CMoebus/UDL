@@ -31,8 +31,8 @@ end # begin
 md"
 =====================================================================================
 #### UDL\_20240705\_5\_1\_Identification\_Of\_A\_Latent\_Generator.jl
-##### file:  UDL_20240705_5_1_IdentificationOfALatentGenerator.jl
-##### code: Julia 1.10.4/Pluto by *** PCM 2024/08/07 ***
+##### file:  UDL\_20240705\_5\_1\_IdentificationOfALatentGenerator.jl
+##### code: Julia 1.10.4/Pluto by *** PCM 2024/08/08 ***
 
 =====================================================================================
 "
@@ -220,6 +220,18 @@ md"
 ###### 3.3 Training of Model
 "
 
+# ╔═╡ eed7ce2b-2345-4cb1-a7a5-b29d13aa0ab7
+function myMse(model, parameters, states, data)
+	# dereferencing of 'data'-tuple in two elements 'xs' and 'ys'
+	xs = data[1]          # 1st element of tuple data
+	ys = data[2]          # 2nd element of tuple data
+	# ysPredicted, states = Lux.apply(model, data[1], parameters, states)
+	# Lux.apply(model, data[1], parameters, states) == model(xs, parameters, states)
+	ysPredicted, states = model(xs, parameters, states)
+	mseLoss = mean(abs2, ysPredicted .- ys)
+	mseLoss, states, ()
+end
+
 # ╔═╡ 4a8cde93-e991-4ecd-a6c7-dcf1c2ec20a1
 md"
 ---
@@ -290,18 +302,7 @@ md"
 myCorSq = zeros(Float64, 20)                #  = proportions of explained variance
 
 # ╔═╡ c06c7d20-324d-41fb-865e-111ebf627cc4
-function trainTheModel(luxModel, xsData::Vector{Float32}, ysData::Vector{Float32}; nLatentUnit=0, title="LUX-Model")
-	#-------------------------------------------------------------------------------
-	function myMse(model, parameters, states, data)
-		# dereferencing of 'data'-tuple in two elements 'xs' and 'ys'
-		xs = data[1]          # 1st element of tuple data
-		ys = data[2]          # 2nd element of tuple data
-		# ysPredicted, states = Lux.apply(model, data[1], parameters, states)
-		# Lux.apply(model, data[1], parameters, states) == model(xs, parameters, states)
-		ysPredicted, states = model(xs, parameters, states)
-	    mseLoss = mean(abs2, ysPredicted .- ys)
-	    mseLoss, states, ()
-	end
+function trainTheModel(luxModel, xsData::Vector{Float32}, ysData::Vector{Float32}, loss; nLatentUnit=0, title="LUX-Model")
 	#-------------------------------------------------------------------------------
 	function iterationLoop(trainState, vjp, data)
 		lossOld = Inf
@@ -312,7 +313,7 @@ function trainTheModel(luxModel, xsData::Vector{Float32}, ysData::Vector{Float32
 			lossOld = lossNew
 			epochs += 1 
 			grads, lossNew, stats, trainState = 
-				Lux.Training.compute_gradients(vjp, myMse, data, trainState)
+				Lux.Training.compute_gradients(vjp, loss, data, trainState)
 		    if (epochs % 10) == 0  
 				println(lazy"MSE-Loss Value after $epochs epochs: $lossNew")
 			end # if
@@ -365,10 +366,10 @@ function trainTheModel(luxModel, xsData::Vector{Float32}, ysData::Vector{Float32
 end # function trainTheModel
 
 # ╔═╡ 78b953b1-3ab3-42c7-8bb1-c0a2b16ad4e3
-trainTheModel(shallow_1_3_1_tanh_Model, xs, ysHat[1, :], title="LUX-Model with *tanh*-Activation")
+trainTheModel(shallow_1_3_1_tanh_Model, xs, ysHat[1, :], myMse, title="LUX-Model with *tanh*-Activation")
 
 # ╔═╡ 4e0bfee4-f8a1-45e0-ba30-4a9cd4774f71
-trainTheModel(shallow_1_3_1_tanh2_Model, xs, ysHat[1, :], title="LUX-Model with *tanh-tanh*-Activation")
+trainTheModel(shallow_1_3_1_tanh2_Model, xs, ysHat[1, :], myMse, title="LUX-Model with *tanh-tanh*-Activation")
 
 # ╔═╡ 7e1a7052-8d8f-4ee1-aa3d-5e89392d0625
 md"
@@ -380,7 +381,7 @@ shallow_1_10_1_tanh_Model =
 	Chain(Dense(1 => 10, tanh), Dense(10 => 1))
 
 # ╔═╡ c43b7f93-fcc0-4d37-a34c-af585eececae
-trainTheModel(shallow_1_10_1_tanh_Model, xsTrain, ysTrain, nLatentUnit=10,
+trainTheModel(shallow_1_10_1_tanh_Model, xsTrain, ysTrain, myMse, nLatentUnit=10,
 	title="LUX.jl shallow_1_10_1_tanh_Model with *tanh*-Activation")
 
 # ╔═╡ 1d721540-eaa9-44be-99b3-cb582d1a7a27
@@ -394,7 +395,7 @@ shallow_1_9_1_tanh_Model =
 	Chain(Dense(1 => 9, tanh), Dense(9 => 1))
 
 # ╔═╡ cf4658ff-18b0-4578-a78c-070128826da7
-trainTheModel(shallow_1_9_1_tanh_Model, xsTrain, ysTrain, nLatentUnit=9,
+trainTheModel(shallow_1_9_1_tanh_Model, xsTrain, ysTrain, myMse, nLatentUnit=9,
 	title="LUX.jl shallow_1_9_1_tanh_Model with *tanh*-Activation")
 
 # ╔═╡ 983567af-c203-4590-aaab-702549cc36c9
@@ -408,7 +409,7 @@ shallow_1_8_1_tanh_Model =
 	Chain(Dense(1 => 8, tanh), Dense(8 => 1))
 
 # ╔═╡ e3f07344-3757-4f8b-b230-18249da7925e
-trainTheModel(shallow_1_8_1_tanh_Model, xsTrain, ysTrain, nLatentUnit=8,
+trainTheModel(shallow_1_8_1_tanh_Model, xsTrain, ysTrain, myMse, nLatentUnit=8,
 	title="LUX.jl shallow_1_8_1_tanh_Model with *tanh*-Activation")
 
 # ╔═╡ 82b35ffc-3e85-4770-a5af-e276f52d9488
@@ -422,7 +423,7 @@ shallow_1_7_1_tanh_Model =
 	Chain(Dense(1 => 7, tanh), Dense(7 => 1))
 
 # ╔═╡ 2c00a7c4-4b7b-45a2-892d-c90239fd6b4a
-trainTheModel(shallow_1_7_1_tanh_Model, xsTrain, ysTrain, nLatentUnit=7,
+trainTheModel(shallow_1_7_1_tanh_Model, xsTrain, ysTrain, myMse, nLatentUnit=7,
 	title="LUX.jl shallow_1_7_1_tanh_Model with *tanh*-Activation")
 
 # ╔═╡ 3ecc19dc-2f88-44b6-9f32-0ecc220bf268
@@ -436,7 +437,7 @@ shallow_1_6_1_tanh_Model =
 	Chain(Dense(1 => 6, tanh), Dense(6 => 1))
 
 # ╔═╡ 940da618-0c3a-4a7e-92e4-304eeafeef16
-trainTheModel(shallow_1_6_1_tanh_Model, xsTrain, ysTrain, nLatentUnit=6,
+trainTheModel(shallow_1_6_1_tanh_Model, xsTrain, ysTrain, myMse, nLatentUnit=6,
 	title="LUX.jl shallow_1_6_1_tanh_Model with *tanh*-Activation")
 
 # ╔═╡ 0ea44381-9c3c-4a99-9dc4-5fa2ee36cb5f
@@ -449,7 +450,7 @@ shallow_1_5_1_tanh_Model =
 	Chain(Dense(1 => 5, tanh), Dense(5 => 1))
 
 # ╔═╡ 449ff9af-4bca-4969-9183-d606bd404a5e
-trainTheModel(shallow_1_5_1_tanh_Model, xsTrain, ysTrain, nLatentUnit=5,
+trainTheModel(shallow_1_5_1_tanh_Model, xsTrain, ysTrain, myMse, nLatentUnit=5,
 	title="LUX.jl shallow_1_5_1_tanh_Model with *tanh*-Activation")
 
 # ╔═╡ 3dd7730f-292a-480a-9f8b-2cf4aedfe14c
@@ -463,7 +464,7 @@ shallow_1_4_1_tanh_Model =
 	Chain(Dense(1 => 4, tanh), Dense(4 => 1))
 
 # ╔═╡ 1c3cf9da-0836-4f45-9ee9-dcede8afb43e
-trainTheModel(shallow_1_4_1_tanh_Model, xsTrain, ysTrain, nLatentUnit=4,
+trainTheModel(shallow_1_4_1_tanh_Model, xsTrain, ysTrain, myMse, nLatentUnit=4,
 	title="LUX.jl shallow_1_4_1_tanh_Model with *tanh*-Activation")
 
 # ╔═╡ 40266303-1552-4aa3-91b6-aaa940e72e50
@@ -477,7 +478,7 @@ shallow_1_3_1_tanh_Model2 =
 	Chain(Dense(1 => 3, tanh), Dense(3 => 1))
 
 # ╔═╡ c2653965-7419-43bd-b77c-33c564a68722
-trainTheModel(shallow_1_3_1_tanh_Model2, xsTrain, ysTrain, nLatentUnit=3, title="LUX.jl shallow_1_3_1_tanh_Model with *tanh*-Activation")
+trainTheModel(shallow_1_3_1_tanh_Model2, xsTrain, ysTrain, myMse, nLatentUnit=3, title="LUX.jl shallow_1_3_1_tanh_Model with *tanh*-Activation")
 
 # ╔═╡ 86a74fe4-b431-4251-b16c-211c0838503a
 typeof(xsTrain), typeof(ysTrain)
@@ -494,7 +495,7 @@ shallow_1_2_1_tanh_Model =
 		Dense(1 => 2, tanh), Dense(2 => 1))
 
 # ╔═╡ 8cba4700-315a-4fb8-a185-9ab9c7aaee44
-trainTheModel(shallow_1_2_1_tanh_Model, xsTrain, ysTrain, nLatentUnit=2, title="LUX.jl shallow_1_2_1_tanh_Model with *tanh*-Activation")
+trainTheModel(shallow_1_2_1_tanh_Model, xsTrain, ysTrain, myMse, nLatentUnit=2, title="LUX.jl shallow_1_2_1_tanh_Model with *tanh*-Activation")
 
 # ╔═╡ 0af08cd3-f624-4a2b-938d-8bde2d362812
 md"
@@ -509,7 +510,7 @@ shallow_1_1_1_tanh_Model =
 		Dense(1 => 1))
 
 # ╔═╡ dee8d6ee-cf5b-4447-bdfb-2b5c8e3b37e5
-trainTheModel(shallow_1_1_1_tanh_Model, xsTrain, ysTrain, nLatentUnit=1, title="LUX.jl shallow_1_1_1_tanh_Model with *tanh*-Activation")
+trainTheModel(shallow_1_1_1_tanh_Model, xsTrain, ysTrain, myMse, nLatentUnit=1, title="LUX.jl shallow_1_1_1_tanh_Model with *tanh*-Activation")
 
 # ╔═╡ a36eed97-8bce-4aff-8935-ec31b7a6b930
 myCorSq
@@ -530,7 +531,7 @@ md"
 univariate_1_1_RegressionModel = Dense(1 => 1)
 
 # ╔═╡ ed7f76ea-57d3-4f84-bdca-8c562d25ad2b
-trainTheModel(univariate_1_1_RegressionModel, xsTrain, ysTrain, title="LUX.jl Univariate_1_1_tanh_Regression_Model with *tanh*-Activation")
+trainTheModel(univariate_1_1_RegressionModel, xsTrain, ysTrain, myMse, title="LUX.jl Univariate_1_1_tanh_Regression_Model with *tanh*-Activation")
 
 # ╔═╡ 1217056a-dc3d-4acd-92ce-f86aca4aa99e
 md"
@@ -541,9 +542,9 @@ We reimplemented Prince's $10$-parameter *shallow 1-3-1 $relu$-model* and used i
 Then we took the same training data and specified LUX.jl with a varying number of latent units. These ranged from 10 to 0 units. For each model we computed parameters minimzing *mean squares loss* and the correlation $r$ and its square $r^2$ between model predictions $\hat ys$ and training $ysTrain$. We plotted the drop/increase of $r^2$ as a function of the number of latent parameters between 10 to 1 latent units. It could be demonstrated that we could reduce model complexity down to the
 $shallow\_1\_3\_1\_tanh\_Model$ with a total of $10$ parameters without loss of variance explanation.
 
-The remarkable result is, that our *optimal* LUX.jl $shallow\_1\_3\_1\_tanh\_Model$ possesses the same structure as the original latent generator despite the fact that both models use different activations.
+The remarkable result is, that our *optimal* LUX.jl $shallow\_1\_3\_1\_tanh\_Model$ possesses the same structure as the original latent generator despite the fact that both models use different activations. Due to the noisification of generator's output the variance explanation of the 1-3-1 Lux-model is only approximately 31% dependent on iteration results.
 
-The univariate linear regression model with zero latent unit only explained 6% of criterium's variance
+The univariate linear regression model with zero latent unit only explained 6-9% of criterium's variance dependent on the results of the iteration process.
 "
 
 # ╔═╡ 2048da89-ff72-4a4e-b8ff-696acb9e9555
@@ -2118,6 +2119,7 @@ version = "1.4.1+1"
 # ╟─ce17b890-56aa-4312-8210-60eb73bd0ba8
 # ╠═067ac55e-5624-44d2-b878-db502cc0f9f5
 # ╟─65807101-61b9-4f46-a986-eda7b7830fd3
+# ╠═eed7ce2b-2345-4cb1-a7a5-b29d13aa0ab7
 # ╠═c06c7d20-324d-41fb-865e-111ebf627cc4
 # ╠═78b953b1-3ab3-42c7-8bb1-c0a2b16ad4e3
 # ╟─4a8cde93-e991-4ecd-a6c7-dcf1c2ec20a1
