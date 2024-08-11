@@ -24,7 +24,7 @@ md"
 =====================================================================================
 #### UDL\_20240727\_5\_4\_Binary Cross Entropy.jl
 ##### file: UDL\_20240727\_5\_4\_BinaryCrossEntropy.jl
-##### code: Julia 1.10.4/Pluto by *** PCM 2024/08/10 ***
+##### code: Julia 1.10.4/Pluto by *** PCM 2024/08/11 ***
 
 =====================================================================================
 "
@@ -115,10 +115,13 @@ myBernoulliPMF(1, 0.2)
 # ╔═╡ b06512a7-0354-4c58-93af-a8a35c8838a2
 function bernoulliPMF(y, θ)
 	if 0 <= θ <= 1
-		y == 1   ? succprob(Bernoulli(θ)) : failprob(Bernoulli(θ))# typeof(y) == Int
-		y == 1.0 ? succprob(Bernoulli(θ)) : failprob(Bernoulli(θ))# typeof(y) == Float
-		y == 0   ? failprob(Bernoulli(θ)) : succprob(Bernoulli(θ))# typeof(y) == Int
-		y == 0.0 ? failprob(Bernoulli(θ)) : succprob(Bernoulli(θ))# typeof(y) == Float
+		if 	y == 1 || y == 1.0
+			succprob(Bernoulli(θ))
+		elseif 	y == 0 || y == 0.0
+			failprob(Bernoulli(θ))
+		else
+			error("θ is 0 < $θ < 1 ;", θ)
+		end # if
 	else
 		error("θ is not 0 <= $θ <= 1 ;", θ)
 	end # if
