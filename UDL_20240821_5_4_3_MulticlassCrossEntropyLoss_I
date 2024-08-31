@@ -44,14 +44,22 @@ md"
 ###### 2.1 Definition
 (Prince, 2024, p.68, (5.22))
 
-$\sigma_{softmax}(\mathbf z)_j = \frac{e^{z_j}}{\sum_{k=1}^K e^{z_k}} \text{ for }j,k=1,...,K \text{ and } \mathbf z = [z_1,...,z_j,z_k,...,z_K]$
+$\sigma_{so}(z_j) = \sigma_{softmax}(z_j) = \frac{e^{z_j}}{\sum_{k=1}^K e^{z_k}} \text{ for }j=1,...,K \text{ and } \mathbf z = [z_1,...,z_{j-1},z_j,z_{j+1},...,z_K]$
 
 $\;$
 $\;$
 
 with
 
-$\sum_{k=1}^K e^{z_k} = 1$
+$\sum_{k=1}^K e^{z_k} \neq 0$
+
+$\;$
+$\;$
+$\;$
+
+, and
+
+$\sum_{j=1}^K \sigma_{so}(z_j) = 1.$
 
 $\;$
 $\;$
@@ -67,7 +75,7 @@ md"
 ###### 2.2 From *Softmax* to *Sigmoid (Logistic)* Function
 For 2 classes is the *softmax* function:
 
-$\sigma_{softmax}(\mathbf z) = \frac{e^{z_j}}{e^{z_1} + e^{z_2}} \text{ for }j=1,2 \text{ and } \mathbf z = [z_1,z_2]$
+$\sigma_{softmax}(\mathbf z)_j = \frac{e^{z_j}}{e^{z_1} + e^{z_2}} \text{ for }j=1,2 \text{ ; } \mathbf z = [z_1,z_2] \text{ , and } \sum_j e^{z_j} \neq 0$
 
 $\;$
 $\;$
@@ -95,7 +103,7 @@ $\;$
 
 Then we get for $j=1$
 
-$e^{z_1} + e^{z_2} = e^{z_1} + e^{z_1-x_1} \rightarrow e^{z_2} = e^{z_1-x_1} \rightarrow z_2 = z_1 - x_1 \rightarrow x_1 = z_1 - z_2$
+$(e^{z_1} + e^{z_2}) = e^{z_1} + e^{z_1-x_1} \rightarrow e^{z_2} = e^{z_1-x_1} \rightarrow z_2 = z_1 - x_1 \rightarrow x_1 = z_1 - z_2$
 
 $\;$
 
@@ -143,7 +151,7 @@ md"
 
 The Bayesian interpretation of softmax can be obtained if we take its definition
 
-$\sigma_{softmax}(\mathbf z)_j = \frac{e^{z_j}}{\sum_{k=1}^K e^{z_k}} \text{ for }j,k=1,...,K \text{ and } \mathbf z = [z_1,...,z_j,z_k,...,z_K]$
+$\sigma_{softmax}(\mathbf z)_j = \frac{e^{z_j}}{\sum_{k=1}^K e^{z_k}} \text{ for }j=1,...,K$
 
 $\;$
 $\;$
@@ -721,6 +729,13 @@ md"
 - **Prince, S.J.D.**; [*Understanding Deep Learning*](https://udlbook.github.io/udlbook/); MIT Press, 2024, last visit 2024/08/21
 
 - **Prince, S.J.D.**; [*Notebook 5.3 Multiclass Cross-Entropy Loss*](https://github.com/udlbook/udlbook/blob/main/Notebooks/Chap05/5_3_Multiclass_Cross_entropy_Loss.ipynb); last visit 2024/08/21
+"
+
+# ╔═╡ 6641aa98-df54-4c6f-85ea-278b36838c7b
+md"
+---
+##### Acknowledgements
+Thanks to Mark Eilers and Benno Hubert for bug reports and valuable informations.
 "
 
 # ╔═╡ e64f6039-d127-454a-a789-384dc9be17ed
@@ -2118,6 +2133,7 @@ version = "1.4.1+1"
 # ╟─86e5039d-f05c-4524-a2f4-3dec89bae695
 # ╟─7493bda1-7cf5-4060-92a1-dd0174d7660c
 # ╟─8b8167a7-14fd-495b-ab56-701c8825224b
+# ╟─6641aa98-df54-4c6f-85ea-278b36838c7b
 # ╟─e64f6039-d127-454a-a789-384dc9be17ed
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
