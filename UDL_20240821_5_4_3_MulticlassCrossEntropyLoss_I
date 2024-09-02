@@ -20,7 +20,7 @@ md"
 =====================================================================================
 #### UDL\_20240821\_5\_4\_3\_Multiclass Cross-Entropy Loss I
 ##### file: UDL\_20240821\_5\_4\_3\_MulticlassCrossEntropyLoss\_I.jl
-##### code: Julia 1.10.5/Pluto 0.19.46/Lux 0.5.63 by *** PCM 2024/08/31 ***
+##### code: Julia 1.10.5/Pluto 0.19.46/Lux 0.5.63 by *** PCM 2024/09/02 ***
 
 ===================================================================================
 "
@@ -82,34 +82,38 @@ $\;$
 
 The hypothesis is that
 
-$\frac{e^{z_j}}{e^{z_1} + e^{z_2}} = \frac{1}{1+e^{-x_j}}$
+$\frac{e^{z_j}}{e^{z_1} + e^{z_2}} = \frac{1}{1+e^{-x_j}}\;\;\text{ for }j=1,2$
+
+$\;$
+$\;$
+$\;$
+
+Now, what is $-x_j$ ? From now on upto the result for $x_j$ we manipulate the expressions *symbolically* without binding to numerical values. 
+
+We divide both numerator and denominator by $e^{z_j}$
+
+$\frac{e^{z_j}/e^{z_j}}{e^{z_1}/e^{z_j} + e^{z_2}/e^{z_j}} = \frac{e^{z_j-z_j}}{e^{z_1-z_j} + e^{z_2-z_j}} = \frac{e^0}{e^{z_1-z_j} + e^{z_2-z_j}} = \frac{1}{e^{z_1-z_j} + e^{z_2-z_j}} = \frac{1}{1+e^{-x_j}}\;\;\text{ for }j=1,2.$
+
+$\;$
+$\;$
+$\;$
+
+This is for $j=1$:
+
+$\frac{1}{e^{z_1-z_1} + e^{z_2-z_1}} = \frac{1}{e^0 + e^{z_2-z_1}} = \frac{1}{1 + e^{z_2-z_1}} = \frac{1}{1+e^{-x_1}}$
 
 $\;$
 $\;$
 
-Now, what is $-x_j$ ? We invert both ratios
+and
 
-$\frac{e^{z_1} + e^{z_2}}{e^{z_j}} = \frac{1+e^{-x_j}}{1}$
-
-$\;$
-$\;$
-
-Then we cross-multiply both denominators
-
-$(e^{z_1} + e^{z_2}) = (1+e^{-x_j})e^{z_j} = e^{z_j} + e^{z_j-x_j}$
-
-$\;$
-$\;$
-
-Then we get for $j=1$
-
-$(e^{z_1} + e^{z_2}) = e^{z_1} + e^{z_1-x_1} \rightarrow e^{z_2} = e^{z_1-x_1} \rightarrow z_2 = z_1 - x_1 \rightarrow x_1 = z_1 - z_2$
+$-x_1 = z_2-z_1\;\; \text{ or }\;\; x_1 = z_1-z_2$
 
 $\;$
 
 and for $j=2$
 
-$x_2 = z_2 - z_1$
+$-x_2 = z_1-z_2\;\; \text{ or }\;\; x_2 = z_2 - z_1.$
 
 $\;$
 $\;$
@@ -137,7 +141,7 @@ md"
 
 This way is rather easy to show:
 
-$\sigma_{logistic}(\tilde z_j) = \frac{e^{\tilde z_j}}{1 + \tilde z_j} \cdot \frac{e^{z_k}}{e^{z_k}} = \frac{e^{z_j}}{e^{z_1} + e^{z_2}} = \sigma_{softmax}(\mathbf z)_j \;;\; k \neq j.$
+$\sigma_{logistic}(\tilde z_j) = \frac{e^{\tilde z_j}}{1 + \tilde z_j} \cdot \frac{e^{z_k}}{e^{z_k}} = \frac{e^{z_j}}{e^{z_1} + e^{z_2}} = \sigma_{softmax}(\mathbf z)_j \;;\; k \neq j\;;\;\sum_j e^{z_j} \neq 0.$
 
 $\;$
 $\;$
@@ -151,7 +155,7 @@ md"
 
 The Bayesian interpretation of softmax can be obtained if we take its definition
 
-$\sigma_{softmax}(\mathbf z)_j = \frac{e^{z_j}}{\sum_{k=1}^K e^{z_k}} \text{ for }j=1,...,K$
+$\sigma_{softmax}(\mathbf z)_j = \frac{e^{z_j}}{\sum_{k=1}^K e^{z_k}} \text{ for }j=1,...,K\;;\;\sum_j e^{z_j} \neq 0$
 
 $\;$
 $\;$
@@ -165,7 +169,7 @@ $\;$
 
 Now we get a ratio which can be identified as part of the *Bayesian theorem* (Bishop, 2006, p.198, (4.62)):
 
-$\frac{e^{z_j}}{\sum_{k=1}^K e^{z_k}}=\frac{P(\mathbf x|C_j)P(C_j)}{\sum_{k=1}^K P(\mathbf x|C_k)P(C_k)}=P(C_j|\mathbf x).$
+$\frac{e^{z_j}}{\sum_{k=1}^K e^{z_k}}=\frac{P(\mathbf x|C_j)P(C_j)}{\sum_{k=1}^K P(\mathbf x|C_k)P(C_k)}=P(C_j|\mathbf x)\;;\;\sum_j e^{z_j} \neq 0.$
 
 $\;$
 $\;$
@@ -204,7 +208,7 @@ $\;$
 
 with
 
-$C=e^{log\ C} \text{ , } log\ C = - max(\mathbf z)\;\;\text{ and }\;\; \sum_{k=1}^K e^{z_k - max(\mathbf z)} = 1$
+$\sum_j e^{z_j} \neq 0\;;\;C=e^{log\ C} \text{ , } log\ C = - max(\mathbf z)\;\;\text{ and }\;\; \sum_{k=1}^K e^{z_k - max(\mathbf z)} = 1$
 
 $\;$
 $\;$
