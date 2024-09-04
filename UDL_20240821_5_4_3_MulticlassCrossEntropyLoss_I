@@ -20,7 +20,7 @@ md"
 =====================================================================================
 #### UDL\_20240821\_5\_4\_3\_Multiclass Cross-Entropy Loss I
 ##### file: UDL\_20240821\_5\_4\_3\_MulticlassCrossEntropyLoss\_I.jl
-##### code: Julia 1.10.5/Pluto 0.19.46/Lux 0.5.63 by *** PCM 2024/09/02 ***
+##### code: Julia 1.10.5/Pluto 0.19.46/Lux 0.5.63 by *** PCM 2024/09/04 ***
 
 ===================================================================================
 "
@@ -409,11 +409,12 @@ end # let
 md"
 ---
 ##### 5. The Likelihood Function $L$
-###### 5.1 Generation of Posterior Probability of Class Membership
-According to the *Bayesian theorem* is the *posterior* probability of *class membership* conditional on the data $\mathbf x$ (Bishop, 2006, p.198, (4.62)):
+###### 5.1 Generation of Posterior Probability of Class Membership $C_j$
+According to the *Bayesian theorem* the *posterior* probability of *class membership* $C_j$ conditional on the data $\mathbf x$ (Bishop, 2006, p.198, (4.62)) is :
 
-$P(C_j|\mathbf x) = \frac{P(\mathbf x, C_j)}{P(\mathbf x)} = \frac{P(\mathbf x, C_j)}{\sum_{k=1}^K P(\mathbf x, C_k)} = \frac{P(\mathbf x|C_j)P(C_j)}{\sum_{k=1}^K P(\mathbf x|C_k)P(C_k)}.$
+$P(C_j|\mathbf x) = \frac{P(\mathbf x, C_j)}{P(\mathbf x)} = \frac{P(\mathbf x, C_j)}{\sum_{k=1}^K P(\mathbf x, C_k)} = \frac{P(\mathbf x|C_j)P(C_j)}{\sum_{k=1}^K P(\mathbf x|C_k)P(C_k)}\;;\; j=1,...,K.$
 
+$\;$
 $\;$
 $\;$
 
@@ -422,9 +423,8 @@ When we set
 $z_j = ln\ P(\mathbf x, C_j) = ln[P(\mathbf x|C_j)P(C_j)]$
 
 $\;$
-$\;$
 
-we need not have to separately determine the *priors* $P(C_j)$ and the *likelihood* $P(\mathbf x|C_j)$. We only have to generate the $z_{ij}$ by our NN model 
+then unlike in *Bayesian models* we need not have to separately determine the *priors* $P(C_j)$ and the *likelihood* $P(\mathbf x|C_j)$. We only have to generate the $z_{ij}$ by our NN model 
 
 $P(C_j|\mathbf x_i) = \frac{e^{z_{ij}}}{\sum_{k=1}^K e^{z_{ik}}}$
 
@@ -444,33 +444,37 @@ md"
 ---
 ###### 5.2 Likelihood Function
 
-If the *likelihood* of a single datum $i$ for class $C_j$ is 
+When class membership $C_j$ is *1-hot* or *1-of-K*-coded, like
 
-$L(\mathbf{\phi}_j; h, \mathbf x_i) = \left(P(C_j|h, \mathbf {\phi}_j, \mathbf x_i)\right)^{y_{ij}} = \left(\frac{e^{z_{ij}}}{\sum_{k=1}^K e^{z_{ik}}}\right)^{y_{ij}} = \left(\frac{e^{h(\mathbf x_i, \mathbf \phi_j)}}{\sum_{k=1}^K e^{h(\mathbf x_i, \mathbf \phi_j)}}\right)^{y_{ij}}$
-
-$\;$
-$\;$
-$\;$
-
-when class membership is *1-hot* or *1-of-K*-coded, like
+$C_{j} := [y_{1}=0,...,y_{j}=1,...,y_{K}=0]$
 
 $\;$
 
-$C_{ij} := [y_{i1}=0,...,y_{ij}=1,...,y_{iK}=0]$
+and for $i=1,...,N$:
 
+$C_{ij} := [y_{i1}=0,...,y_{ij}=1,...,y_{iK}=0],$
+
+$\;$
+$\;$
+
+the *likelihood* of a single datum $i$ for class $C_j$ is 
+
+$L(\mathbf{\phi}_j; h, \mathbf x_i) = P(C_j|h, \mathbf {\phi}_j, \mathbf x_i)^{y_{ij}} = \left(\frac{e^{z_{ij}}}{\sum_{k=1}^K e^{z_{ik}}}\right)^{y_{ij}} = \left(\frac{e^{h(\mathbf x_i, \mathbf \phi_j)}}{\sum_{k=1}^K e^{h(\mathbf x_i, \mathbf \phi_j)}}\right)^{y_{ij}}$
+
+$\;$
 $\;$
 $\;$
 
 then the *likelihood for all* i.i.d. data constrained to class $C_j$ is
 
-$L(\phi_j; h, \mathbf x_{1:N}) = \prod_{i=1}^N \left(P(C_j|h, \mathbf {\phi}_j, \mathbf x_i)\right)^{y_{ij}} = \prod_{i=1}^N\left(\frac{e^{z_{ij}}}{\sum_{k=1}^K e^{z_{ik}}}\right)^{y_{ij}}$
+$L(\phi_j; h, \mathbf x_{1:N}) = \prod_{i=1}^N P(C_j|h, \mathbf {\phi}_j, \mathbf x_i)^{y_{ij}} = \prod_{i=1}^N\left(\frac{e^{z_{ij}}}{\sum_{k=1}^K e^{z_{ik}}}\right)^{y_{ij}}$
 
 $\;$
 $\;$
 
-and for the whole data set and or all classes (Bishop, 2006, p.209, (4.107); 2024, p.161, (5.79))
+and for the whole data which means for all classes (Bishop, 2006, p.209, (4.107); 2024, p.161, (5.79))
 
-$L(\phi_{1:K}; h, \mathbf x_{1:N}) = \prod_{j=1}^K \prod_{i=1}^N \left(P(C_j|h, \mathbf {\phi}_j, \mathbf x_i)\right)^{y_{ij}} = \prod_{j=1}^K\prod_{i=1}^N\left(\frac{e^{z_{ij}}}{\sum_{k=1}^K e^{z_{ik}}}\right)^{y_{ij}}$
+$L(\phi_{1:K}; h, \mathbf x_{1:N}) = \prod_{j=1}^K \prod_{i=1}^N P(C_j|h, \mathbf {\phi}_j, \mathbf x_i)^{y_{ij}} = \prod_{j=1}^K\prod_{i=1}^N\left(\frac{e^{z_{ij}}}{\sum_{k=1}^K e^{z_{ik}}}\right)^{y_{ij}}$
 
 $\;$
 $\;$
@@ -485,13 +489,13 @@ md"
 
 The *log-likelihood* is
 
-$l(\phi_{1:K}; h, \mathbf x_{1:N}) = log\ L(\phi_{1:K}; h, \mathbf x_{1:N}) = log\left( \prod_{j=1}^K \prod_{i=1}^N \left(P(C_j|h, \mathbf {\phi}_j, \mathbf x_i)\right)^{y_{ij}}\right) =$
+$l(\phi_{1:K}; h, \mathbf x_{1:N}) = log\ L(\phi_{1:K}; h, \mathbf x_{1:N}) = log\ \prod_{j=1}^K \prod_{i=1}^N P(C_j|h, \mathbf {\phi}_j, \mathbf x_i)^{y_{ij}} =$
 
 $\;$
 $\;$
 $\;$
 
-$= \sum_{j=1}^K \sum_{i=1}^N y_{ij}\log\ \left(P(C_j|h, \mathbf {\phi}_j, \mathbf x_i)\right)$
+$= \sum_{j=1}^K \sum_{i=1}^N y_{ij}\log\ P(C_j|h, \mathbf {\phi}_j, \mathbf x_i)$
 
 $\;$
 $\;$
@@ -499,7 +503,7 @@ $\;$
 
 and the *negative log-likelihood* or *multi-class cross-entropy* loss for the multiclass classification problem (Bishop, 2006, p.209, (4.108); 2024, p.163, (5.80); Prince, 2024, p.69, (5.24)).
 
-$- l(\phi_{1:K}; h, \mathbf x_{1:N}) = - log\ L(\phi_{1:K}; h, \mathbf x_{1:N}) = - \sum_{j=1}^K \sum_{i=1}^N y_{ij}\log\ \left(P(C_j|h, \mathbf {\phi}_j, \mathbf x_i)\right)$
+$- l(\phi_{1:K}; h, \mathbf x_{1:N}) = - log\ L(\phi_{1:K}; h, \mathbf x_{1:N}) = - \sum_{j=1}^K \sum_{i=1}^N y_{ij}\log\ P(C_j|h, \mathbf {\phi}_j, \mathbf x_i)$
 
 $\;$
 $\;$
