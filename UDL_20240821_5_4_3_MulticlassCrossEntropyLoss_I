@@ -20,7 +20,7 @@ md"
 =====================================================================================
 #### UDL\_20240821\_5\_4\_3\_Multiclass Cross-Entropy Loss I
 ##### file: UDL\_20240821\_5\_4\_3\_MulticlassCrossEntropyLoss\_I.jl
-##### code: Julia 1.10.5/Pluto 0.19.46/Lux 0.5.63 by *** PCM 2024/09/04 ***
+##### code: Julia 1.10.5/Pluto 0.19.46/Lux 0.5.63 by *** PCM 2024/09/06 ***
 
 ===================================================================================
 "
@@ -51,13 +51,13 @@ $\;$
 
 with
 
-$\sum_{k=1}^K e^{z_k} \neq 0$
+$\sum_{k=1}^K e^{z_k} \neq 0,$
 
 $\;$
 $\;$
 $\;$
 
-, and
+and
 
 $\sum_{j=1}^K \sigma_{so}(z_j) = 1.$
 
@@ -73,7 +73,7 @@ The *softmax* function got its name, because it approximates the *max* function 
 md"
 ---
 ###### 2.2 From *Softmax* to *Sigmoid (Logistic)* Function
-For 2 classes is the *softmax* function:
+For 2 classes the *softmax* function is:
 
 $\sigma_{softmax}(\mathbf z)_j = \frac{e^{z_j}}{e^{z_1} + e^{z_2}} \text{ for }j=1,2 \text{ ; } \mathbf z = [z_1,z_2] \text{ , and } \sum_j e^{z_j} \neq 0$
 
@@ -120,14 +120,14 @@ $\;$
 
 So we have
 
-$\sigma_{softmax}(\mathbf z)_1 = \sigma_{logistic}(\tilde z_1) \text{ with } \tilde z_1 = z_1 - z_2.$
+$\sigma_{softmax}(\mathbf z)_1 = \sigma_{logistic}(\Delta z_1) \text{ with } \Delta z_1 = z_1 - z_2.$
 
 $\;$
 $\;$
 
 The same is true for 
 
-$\sigma_{softmax}(\mathbf z)_2 = \sigma_{logistic}(\tilde z_2) \text{ with } \tilde z_2 = z_2 - z_1.$
+$\sigma_{softmax}(\mathbf z)_2 = \sigma_{logistic}(\Delta z_2) \text{ with } \Delta z_2 = z_2 - z_1.$
 
 $\;$
 $\;$
@@ -141,7 +141,7 @@ md"
 
 This way is rather easy to show:
 
-$\sigma_{logistic}(\tilde z_j) = \frac{e^{\tilde z_j}}{1 + \tilde z_j} \cdot \frac{e^{z_k}}{e^{z_k}} = \frac{e^{z_j}}{e^{z_1} + e^{z_2}} = \sigma_{softmax}(\mathbf z)_j \;;\; k \neq j\;;\;\sum_j e^{z_j} \neq 0.$
+$\sigma_{logistic}(\Delta z_j) = \frac{e^{\Delta z_j}}{1 + \Delta z_j} \cdot \frac{e^{z_k}}{e^{z_k}} = \frac{e^{z_j}}{e^{z_1} + e^{z_2}} = \sigma_{softmax}(\mathbf z)_j \;;\; k \neq j\;;\;\sum_j e^{z_j} \neq 0.$
 
 $\;$
 $\;$
@@ -161,7 +161,7 @@ $\;$
 $\;$
 $\;$
 
-and plug into the term $z_j$ the expression
+and substitute for $z_j$ the expression
 
 $z_j = ln\ P(\mathbf x, C_j) = ln[P(\mathbf x|C_j)P(C_j)].$
 
@@ -175,21 +175,19 @@ $\;$
 $\;$
 $\;$
 
-The conditional probability $P(C_k|\mathbf x)$ is written by Prince in a slightly different style (Prince, 2024, p.68, (5.23)):
+The conditional probability $P(C_k|\mathbf x)$ is written by Prince in a slightly different but equivalent style (Prince, 2024, p.68, (5.23)):
 
 $P(C_k|\mathbf x) = P(Y=k|\mathbf x).$
 
 $\;$
 
-The *softmax* function got its name, because it approximates the *max* function in this probabilistic (*Bayesian*) sense (c.f. Bishop, 2006, p.198):
-
-$\;$
+The *softmax* function got its name, because it approximates the *max* function in a probabilistic (*Bayesian*) sense (c.f. Bishop, 2006, p.198):
 
 $\text{ if }z_k >> z_j\;\;\text{ for all }j \neq k, \text{ then } P(C_k|\mathbf x) \cong 1 \text{ and } P(C_j|\mathbf x) \cong 0$
 
-with
+$\;$
 
-$z_k = ln[P(\mathbf x | C_k)P(C_k)].$
+with $z_k = ln[P(\mathbf x | C_k)P(C_k)].$
 
 $\;$
 $\;$
@@ -210,6 +208,7 @@ with
 
 $\sum_j e^{z_j} \neq 0\;;\;C=e^{log\ C} \text{ , } log\ C = - max(\mathbf z)\;\;\text{ and }\;\; \sum_{k=1}^K e^{z_k - max(\mathbf z)} = 1$
 
+$\;$
 $\;$
 $\;$
 
@@ -289,24 +288,20 @@ end # function getParameters
 md"
 ---
 ##### 3.3 Matrix Equation of Shallow 1-3-3 Neural Network
-(the second layer is not 'relu'ed but c.f. Prince, 2024, (4.16))
+(the second layer is not '$relu$'-ed but c.f. Prince, 2024, (4.16))
 
-$\;$
 $\;$
 
 $\mathbf h_0 = \mathbf{a[β_0+Ω_0x]}$
 
 $\;$
-$\;$
 
 $\mathbf{δ=[β_1+Ω_1h_0]}$
 
 $\;$
-$\;$
 
 $\mathbf θ_{sig}=sig(\mathbf δ)$
 
-$\;$
 $\;$
 
 $\mathbf θ_{soft}=softmax(\mathbf δ)$
@@ -424,7 +419,7 @@ $z_j = ln\ P(\mathbf x, C_j) = ln[P(\mathbf x|C_j)P(C_j)]$
 
 $\;$
 
-then unlike in *Bayesian models* we need not have to separately determine the *priors* $P(C_j)$ and the *likelihood* $P(\mathbf x|C_j)$. We only have to generate the $z_{ij}$ by our NN model 
+then unlike in *Bayesian models* we need not have to separately determine the *priors* $P(C_j)$ and the *likelihood* $P(\mathbf x|C_j)$. We only have to generate the unconstrained $z_{ij}$ by our NN model 
 
 $P(C_j|\mathbf x_i) = \frac{e^{z_{ij}}}{\sum_{k=1}^K e^{z_{ik}}}$
 
@@ -442,24 +437,24 @@ $\;$
 # ╔═╡ 16fe4285-8187-43f9-a825-057f4b04aa0e
 md"
 ---
-###### 5.2 Likelihood Function
+###### 5.2 Likelihood Function *L*
 
 When class membership $C_j$ is *1-hot* or *1-of-K*-coded, like
 
-$C_{j} := [c_{1}=0,...,c_{j}=1,...,c_{K}=0]$
+$\mathbf C_j := [c_1=0,...,c_j=1,...,c_K=0] = \mathbf Y_j$
 
 $\;$
 
 and for $i=1,...,N$:
 
-$Y_{ij} := [y_{i1}=0,...,y_{ij}=1,...,y_{iK}=0],$
+$\mathbf C_{ij} := [c_{i1}=0,...,c_{ij}=1,...,c_{iK}=0]=\mathbf Y_{ij},$
 
 $\;$
 $\;$
 
 the *likelihood* of a single datum $i$ for class $C_j$ is 
 
-$L(\mathbf{\phi}_j; h, \mathbf x_i) = P(C_j|h, \mathbf {\phi}_j, \mathbf x_i)^{y_{ij}} = \left(\frac{e^{z_{ij}}}{\sum_{k=1}^K e^{z_{ik}}}\right)^{y_{ij}} = \left(\frac{e^{h(\mathbf x_i, \mathbf \phi_j)}}{\sum_{k=1}^K e^{h(\mathbf x_i, \mathbf \phi_j)}}\right)^{y_{ij}}$
+$L(\mathbf{\phi}_j; h, \mathbf x_i) = P(C_{ij}|h, \mathbf {\phi}_j, \mathbf x_i)^{y_{ij}} = \left(\frac{e^{z_{ij}}}{\sum_{k=1}^K e^{z_{ik}}}\right)^{y_{ij}} = \left(\frac{e^{h(\mathbf x_i, \mathbf \phi_j)}}{\sum_{k=1}^K e^{h(\mathbf x_i, \mathbf \phi_j)}}\right)^{y_{ij}}$
 
 $\;$
 $\;$
@@ -467,14 +462,14 @@ $\;$
 
 then the *likelihood for all* i.i.d. data constrained to class $C_j$ is
 
-$L(\phi_j; h, \mathbf x_{1:N}) = \prod_{i=1}^N P(C_j|h, \mathbf {\phi}_j, \mathbf x_i)^{y_{ij}} = \prod_{i=1}^N\left(\frac{e^{z_{ij}}}{\sum_{k=1}^K e^{z_{ik}}}\right)^{y_{ij}}$
+$L(\phi_j; h, \mathbf x_{1:N}) = \prod_{i=1}^N P(C_{ij}|h, \mathbf {\phi}_j, \mathbf x_i)^{y_{ij}} = \prod_{i=1}^N\left(\frac{e^{z_{ij}}}{\sum_{k=1}^K e^{z_{ik}}}\right)^{y_{ij}}$
 
 $\;$
 $\;$
 
 and for the whole data which means for all classes (Bishop, 2006, p.209, (4.107); 2024, p.161, (5.79))
 
-$L(\phi_{1:K}; h, \mathbf x_{1:N}) = \prod_{j=1}^K \prod_{i=1}^N P(C_j|h, \mathbf {\phi}_j, \mathbf x_i)^{y_{ij}} = \prod_{j=1}^K\prod_{i=1}^N\left(\frac{e^{z_{ij}}}{\sum_{k=1}^K e^{z_{ik}}}\right)^{y_{ij}}$
+$L(\phi_{1:K}; h, \mathbf x_{1:N}) = \prod_{i=1}^N \prod_{j=1}^K P(C_{ij}|h, \mathbf {\phi}_j, \mathbf x_i)^{y_{ij}} = \prod_{i=1}^N \prod_{j=1}^K \left(\frac{e^{z_{ij}}}{\sum_{k=1}^K e^{z_{ik}}}\right)^{y_{ij}}$
 
 $\;$
 $\;$
@@ -489,21 +484,21 @@ md"
 
 The *log-likelihood* is
 
-$l(\phi_{1:K}; h, \mathbf x_{1:N}) = log\ L(\phi_{1:K}; h, \mathbf x_{1:N}) = log\ \prod_{j=1}^K \prod_{i=1}^N P(C_j|h, \mathbf {\phi}_j, \mathbf x_i)^{y_{ij}} =$
+$l(\phi_{1:K}; h, \mathbf x_{1:N}) = log\ L(\phi_{1:K}; h, \mathbf x_{1:N}) = log\ \prod_{i=1}^N \prod_{j=1}^K P(C_{ij}|h, \mathbf {\phi}_j, \mathbf x_i)^{y_{ij}} =$
 
 $\;$
 $\;$
 $\;$
 
-$= \sum_{j=1}^K \sum_{i=1}^N y_{ij}\log\ P(C_j|h, \mathbf {\phi}_j, \mathbf x_i)$
+$= \sum_{i=1}^N \sum_{j=1}^K y_{ij}\log\ P(C_{ij}|h, \mathbf {\phi}_j, \mathbf x_i),$
 
 $\;$
 $\;$
 $\;$
 
-and the *negative log-likelihood* or *multi-class cross-entropy* loss for the multiclass classification problem (Bishop, 2006, p.209, (4.108); 2024, p.163, (5.80); Prince, 2024, p.69, (5.24)).
+and the *negative log-likelihood* or *multi-class cross-entropy* loss for the multiclass classification problem (Bishop, 2006, p.209, (4.108); 2024, p.163, (5.80); Prince, 2024, p.69, (5.24)) 
 
-$- l(\phi_{1:K}; h, \mathbf x_{1:N}) = - log\ L(\phi_{1:K}; h, \mathbf x_{1:N}) = - \sum_{j=1}^K \sum_{i=1}^N y_{ij}\log\ P(C_j|h, \mathbf {\phi}_j, \mathbf x_i)$
+$- l(\phi_{1:K}; h, \mathbf x_{1:N}) = - log\ L(\phi_{1:K}; h, \mathbf x_{1:N}) = - \sum_{i=1}^N \sum_{j=1}^K y_{ij}\log\ P(C_{ij}|h, \mathbf {\phi}_j, \mathbf x_i).$
 
 $\;$
 $\;$
