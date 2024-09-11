@@ -23,7 +23,7 @@ md"
 =====================================================================================
 #### UDL\_20240902\_5\_4\_4\_Multiclass Cross-Entropy Loss II
 ##### file: UDL\_20240902\_5\_4\_4\_MulticlassCrossEntropyLoss\_II.jl
-##### code: Julia 1.10.5/Pluto 0.19.46/Lux 0.5.63 by *** PCM 2024/09/10 ***
+##### code: Julia 1.10.5/Pluto 0.19.46/Lux 0.5.63 by *** PCM 2024/09/11 ***
 
 ===================================================================================
 "
@@ -479,6 +479,7 @@ end # function trainTheModel
 md"
 ---
 ##### 6. Training Results
+###### 6.1 Iteration Process
 Training with Prince's Training Data in [*5.3 Multiclass Cross-Entropy Loss*](https://github.com/udlbook/udlbook/blob/main/Notebooks/Chap05/5_3_Multiclass_Cross_entropy_Loss.ipynb)
 "
 
@@ -488,61 +489,10 @@ xsData, ysData, ysModelPred, finalLoss, epochs =
 	xsTrain32, ysTrain32, luxMultiCrossEntropy, 
 	title="LUX-Cross-Entropy-Model with *tanh/softmax*-Activations")
 
-# ╔═╡ b82c87e7-e3d1-4e3c-b241-6b4a76c34a2b
-begin
-	N = length(xsData) 
-	K = size(ysData)[1]                     #  K = #classes
-	myCors = Array{Float32}(undef, (K, 2))  #  for correlations and correlations^2
-	xs = [x for x in 1:N]
-	#--------------------------------------------------------------------------------
-	for k in 1:K
-		myCors[k, 1]  = cor(ysData[k, :], ysModelPred[k, :])
-		myCors[k, 2]  = myCors[k, 1]^2
-	end # for
-	#-----------------------------------------------------------------------------
-	plot1 = let 
-		myCor1   = myCors[1, 1]
-		myCor1Sq = round(myCors[1, 2], digits=2)
-		scatter(xs,  ysData[1, :], color=:blue,  label=L"ysData[1, :]", title=L"Softmax\ Classification\ for\ Class\ 1")
-		plot!(xs, ysModelPred[1, :], color=:blue,  lw=2, label=L"P(C_1|h, \phi, x)")
-		annotate!(2.5, 1.4, "r^2=$myCor1Sq", 8)
-	end # let
-	#-----------------------------------------------------------------------------
-	plot2 = let
-		myCor2   = myCors[2, 1]
-		myCor2Sq = round(myCors[2, 2], digits=2)
-		scatter(xs,  ysData[2, :], color=:red,  label=L"ysData[2, :]", title=L"Softmax\ Classification\ for\ Class\ 2")
-		plot!(xs, ysModelPred[2, :], color=:red,  lw=2, label=L"P(C_2|h, \phi, x)")
-		annotate!(2.5, 1.4, "r^2=$myCor2Sq", 8)
-	end # let
-	#-----------------------------------------------------------------------------
-	plot3 = let
-		myCor3   = myCors[3, 1]
-		myCor3Sq = round(myCors[3, 2], digits=2)
-		scatter(xs,  ysData[3, :], color=:green,  label=L"ysData[3, :]", title=L"Softmax\ Classification\ for\ Class\ 3")
-		plot!(xs, ysModelPred[3, :], color=:green,  lw=2, label=L"P(C_3|h, \phi, x)")
-		annotate!(2.5, 1.4, "r^2=$myCor3Sq", 8)
-	end # let
-	#-----------------------------------------------------------------------------
-	plot4 = let
-		scatter(xs,  ysData[1, :], color=:blue,  label=L"ysData[1, :]", title=L"Softmax\ Classification\ for\ Classes\ 1, 2, 3")
-		scatter!(xs, ysData[2, :], color=:red,   label=L"ysData[2, :]")
-		scatter!(xs, ysData[3, :], color=:green, label=L"ysData[3, :]")
-		plot!(xs, ysModelPred[1, :], color=:blue,  lw=2, label=L"P(C_1|h, \phi, x)")
-		plot!(xs, ysModelPred[2, :], color=:red,   lw=2, label=L"P(C_2|h, \phi, x)")
-		plot!(xs, ysModelPred[3, :], color=:green, lw=2, label=L"P(C_3|h, \phi, x)")
-		annotate!(5.5, 1.4, "final loss = $finalLoss after $epochs epochs", 8)
-	end # let
- 	#--------------------------------------------------------------------------------
-	plot(plot1, plot2, plot3, plot4, layout=(5, 1), ylimits=(-0.1, +1.5), titlefontsize=10)
-end # begin
-
-# ╔═╡ 1fa7817c-9434-43ba-872b-a3f6bcf34c4d
-[sum(x->x, ysTrain32[:, i], init=0.0) for i in 1:N] # Test whether each col has '1'
-
 # ╔═╡ 6b30501e-aef1-4885-8daf-d3597a32a916
 # plausibilty test: are all columns sums == 1 ?
 begin
+	N = length(xsData)
 	colSums = Vector{Float64}(undef, N)
 	for i in 1:N
 		colSums[i] = sum(x->x, ysModelPred[:, i], init=0.0)	
@@ -550,45 +500,118 @@ begin
 	colSums
 end # begin
 
-# ╔═╡ 1a1c0514-ea44-4f22-8f6e-fe7a84086cc4
+# ╔═╡ 1fa7817c-9434-43ba-872b-a3f6bcf34c4d
+[sum(x->x, ysTrain32[:, i], init=0.0) for i in 1:N] # Test whether each col has '1'
+
+# ╔═╡ beb13d67-22b3-4caf-af83-2af38b57ffb4
 md"
 ---
-A *success* for 'diagnosis $\mathbf C=k|\mathbf x_i$' is scored, when the predicted conditional probability of class membership $\hat P(C_k|h, \mathbf{\phi, x_i})$ is the largest in column $i$ of the matrix $\hat P(\mathbf C_{:,i}|h, \mathbf{\phi, x_i})$.
+###### 6.2 Sensivity Results
+A *success* for 'diagnosis $C=k|\mathbf x_i$' is scored, when the predicted conditional probability of class membership $\hat P(C_{ki}|h, \mathbf{\phi, x_i})$ is
+- a) in case of $y_{ki}=1$, the *largest* in column $i$ of the matrix $\hat P(\mathbf C_{:,i}|h, \mathbf{\phi, x_i})$
+- b) in case of $y_{ki}=0$, the *smallest* in column $i$ of the matrix $\hat P(\mathbf C_{:,i}|h, \mathbf{\phi, x_i})$
+
+In other cases the diagnosis is doubtful and *no* success.
 "
 
 # ╔═╡ b4ba3413-8375-4c81-bba6-ab067b848149
 function crossTables(ysTrain32, ysModelPred; title="")
 	K, N = size(ysTrain32)
 	println("K = $K; N = $N")
-	successFreq  = 0.0
-	posSuccesses = Array{Int32}(undef, K)
+	successTotal  = 0.0
+	successes     = Array{Int32}(undef, K)
 	#-------------------------------------------------------------------------------
 	for k in 1:K    # class k
-		posSuccesses[k] = 0
+		successes[k] = 0
 		for i in 1:N
-			if ((ysTrain32[k, i] ≈ 1.0) && (argmax(ysModelPred[:, i]) == k))
-				posSuccesses[k] += 1 
+			if 	((ysTrain32[k, i] ≈ 1.0) && (argmax(ysModelPred[:, i]) == k)) ||
+				((ysTrain32[k, i] ≈ 0.0) && (argmin(ysModelPred[:, i]) == k))
+				successes[k] += 1 
 			end # if
 		end # for i
-		successFreq += posSuccesses[k] 
-		posSuccessesk = posSuccesses[k]
+		successTotal  += successes[k] 
+		successesk     = successes[k]
+		successesPropk = successes[k]/N
 		#--------------------------------------------------------------------------
-		println("posSuccesses[k] for class $k = $posSuccessesk")
+		println("successes[k] for class $k = $successesk")
+		println("proportion of success for class $k = $successesPropk")
 	end # for k
-	successProp = successFreq/N
+	successProp = successTotal/(K*N)
 	println("successProportion for all classes = $successProp")
 	#-----------------------------------------------------------------------------
-	(hitsClass_1=posSuccesses[1], hitsClass_2=posSuccesses[2], hitsClass_3=posSuccesses[3], successProportion=successProp)
+	(hitsClass_1=successes[1], hitsClass_2=successes[2], hitsClass_3=successes[3], successProportion=successProp)
 end # function crossTables
 
 # ╔═╡ a4bf362d-f090-476a-a07e-afa872350d33
- crossTables(ysTrain32, ysModelPred)
+ crossTableResults = crossTables(ysTrain32, ysModelPred)
+
+# ╔═╡ 657e2e26-5794-4f7d-9f08-c87ad6238a93
+md"
+---
+###### 6.3 Classification Plots
+"
+
+# ╔═╡ b82c87e7-e3d1-4e3c-b241-6b4a76c34a2b
+let K = size(ysData)[1]                     #  K = #classes
+	xs = [x for x in 1:N]
+	#--------------------------------------------------------------------------------
+	myCor    = cor(ysData[1, :], ysModelPred[1, :])
+	myCorSq  = round(myCor^2, digits=2)
+	#----------------------------------------------------------------------------- 
+	scatter(xs,  ysData[1, :], color=:blue,  xlabel=L"observation", ylabel=L"P(C_1|h, \phi, x)", label=L"P(C_1|h, \phi, x)", title=L"Softmax\ Classification\ for\ Class\ 1")
+	plot!(xs, ysModelPred[1, :], color=:blue,  lw=2, label=L"P(C_1|h, \phi, x)")
+	annotate!(2.5, 0.1, "r^2=$myCorSq", 10)
+end # let
+
+# ╔═╡ ccf95fff-e2d5-4691-9687-b1b78c226a35
+let K = size(ysData)[1]                     #  K = #classes
+	xs = [x for x in 1:N]
+	#--------------------------------------------------------------------------------
+	myCor    = cor(ysData[2, :], ysModelPred[2, :])
+	myCorSq  = round(myCor^2, digits=2)
+	#----------------------------------------------------------------------------- 
+	scatter(xs,  ysData[2, :], color=:green,  xlabel=L"observation", ylabel=L"P(C_2|h, \phi, x)", label=L"P(C_2|h, \phi, x)", title=L"Softmax\ Classification\ for\ Class\ 2")
+	plot!(xs, ysModelPred[2, :], color=:green,  lw=2, label=L"P(C_2|h, \phi, x)")
+	annotate!(2.5, 0.1, "r^2=$myCorSq", 10)
+end # let
+
+# ╔═╡ 2352e182-f12d-4780-a1f0-235d70f38fcb
+let K = size(ysData)[1]                     #  K = #classes
+	xs = [x for x in 1:N]
+	#--------------------------------------------------------------------------------
+	myCor    = cor(ysData[3, :], ysModelPred[3, :])
+	myCorSq  = round(myCor^2, digits=2)
+	#----------------------------------------------------------------------------- 
+	scatter(xs,  ysData[3, :], color=:violet,  xlabel=L"observation", ylabel=L"P(C_3|h, \phi, x)", label=L"P(C_2|h, \phi, x)", title=L"Softmax\ Classification\ for\ Class\ 3")
+	plot!(xs, ysModelPred[3, :], color=:violet,  lw=2, label=L"P(C_3|h, \phi, x)")
+	annotate!(2.5, 0.1, "r^2=$myCorSq", 10)
+end # let
+
+# ╔═╡ fde14169-df3a-49c6-abda-ffdfa0b419ad
+let K = size(ysData)[1]                     #  K = #classes
+	xs = [x for x in 1:N]
+	#----------------------------------------------------------------------------- 
+	scatter(xs,  ysData[1, :], color=:blue,  xlabel=L"observation", ylabel=L"P(C_1|h, \phi, x)", label=L"P(C_1|h, \phi, x)", title=L"Softmax\ Classification\ for\ Class\ 1")
+	plot!(xs, ysModelPred[1, :], color=:blue,  lw=2, label=L"P(C_1|h, \phi, x)")
+	#----------------------------------------------------------------------------- 
+	scatter!(xs,  ysData[2, :], color=:green,  xlabel=L"observation", ylabel=L"P(C_2|h, \phi, x)", label=L"P(C_2|h, \phi, x)", title=L"Softmax\ Classification\ for\ Class\ 2")
+	plot!(xs, ysModelPred[2, :], color=:green,  lw=2, label=L"P(C_2|h, \phi, x)")
+	#----------------------------------------------------------------------------- 
+	scatter!(xs,  ysData[3, :], color=:violet,  xlabel=L"observation", ylabel=L"P(C_3|h, \phi, x)", label=L"P(C_2|h, \phi, x)", title=L"Softmax\ Classification\ for\ Class\ 3")
+	plot!(xs, ysModelPred[3, :], color=:violet,  lw=2, label=L"P(C_3|h, \phi, x)")
+end # let
 
 # ╔═╡ 0b089174-0a04-4f8f-acc0-6c2388270baa
 md"
 ---
 ##### 7. Summary
-We implemented and ran a *1-3-3* Softmax NN classification model by using the API of $Lux.jl$. Parameters were estimated by minimizing multiclass cross-entropy loss. Data were taken from Prince's notebook [5.3 Multiclass Cross Entropy Loss](https://github.com/udlbook/udlbook/blob/main/Notebooks/Chap05/5_3_Multiclass_Cross_entropy_Loss.ipynb). Results are satisfying. Variance explanations (measured by squaring the point-biserial (= Pearson product-moment) correlations) range from 59% in class 2 to 70% in class 3. The percentage of valid *positive* classifications (= *sensitivity* constrained to positive classifications) is 85%. The iteration process took nearly 4500 epochs.
+We implemented and ran a *1-3-3* Softmax NN classification model by using the API of $Lux.jl$. Parameters were estimated by minimizing multiclass cross-entropy loss. Data were taken from Prince's notebook [5.3 Multiclass Cross Entropy Loss](https://github.com/udlbook/udlbook/blob/main/Notebooks/Chap05/5_3_Multiclass_Cross_entropy_Loss.ipynb). Results are satisfying. Variance explanations (measured by squaring the point-biserial (= Pearson product-moment) correlations) range from 59% in class 2 to 70% in class 3. The percentages of valid classifications (= *sensitivities*) range dependent on class from 40-80%. The total sensivity is 61%. The iteration process took nearly 4500 epochs.
+
+A *success* for 'diagnosis $C=k|\mathbf x_i$' is scored, when the predicted conditional probability of class membership $\hat P(C_{ki}|h, \mathbf{\phi, x_i})$ is
+- a) in case of $y_{ki}=1$, the *largest* in column $i$ of the matrix $\hat P(\mathbf C_{:,i}|h, \mathbf{\phi, x_i})$
+- b) in case of $y_{ki}=0$, the *smallest* in column $i$ of the matrix $\hat P(\mathbf C_{:,i}|h, \mathbf{\phi, x_i})$
+
+In other cases the diagnosis is doubtful and *no* success.
 "
 
 # ╔═╡ 70eaafe2-7fb2-4153-a4a3-efbe9db6bd6f
@@ -2612,10 +2635,14 @@ version = "1.4.1+1"
 # ╟─a92803c2-3a33-4e53-a80b-00dfb09abbf1
 # ╠═3fcc0cb7-3b39-4403-9d80-8852a4e53893
 # ╠═6b30501e-aef1-4885-8daf-d3597a32a916
-# ╠═b82c87e7-e3d1-4e3c-b241-6b4a76c34a2b
-# ╟─1a1c0514-ea44-4f22-8f6e-fe7a84086cc4
+# ╟─beb13d67-22b3-4caf-af83-2af38b57ffb4
 # ╠═b4ba3413-8375-4c81-bba6-ab067b848149
 # ╠═a4bf362d-f090-476a-a07e-afa872350d33
+# ╟─657e2e26-5794-4f7d-9f08-c87ad6238a93
+# ╠═b82c87e7-e3d1-4e3c-b241-6b4a76c34a2b
+# ╠═ccf95fff-e2d5-4691-9687-b1b78c226a35
+# ╠═2352e182-f12d-4780-a1f0-235d70f38fcb
+# ╠═fde14169-df3a-49c6-abda-ffdfa0b419ad
 # ╟─0b089174-0a04-4f8f-acc0-6c2388270baa
 # ╟─70eaafe2-7fb2-4153-a4a3-efbe9db6bd6f
 # ╟─d4cb323d-8e63-45c9-a529-6f5bca85a630
