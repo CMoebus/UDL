@@ -32,6 +32,8 @@ md"
 md"
 ---
 ##### 0. Introduction
+First we discuss the relation between the three *loss* measure. We present the proof that minimizing each of them results in the same parameter estimates. Then we minimize the *cross-entropy loss* modeling a multi-classification task with a neural net *softmax classification* model, a generalization of the logistic regression.
+
 "
 
 # ╔═╡ 5c0d4269-5f89-4d4c-89fe-974019fcd073
@@ -43,7 +45,7 @@ md"
 # ╔═╡ 32249d82-ad91-4e85-a1bd-63c78bc75dcd
 md"
 ---
-##### 2. *Kullback-Leibler-(KL)-Divergence* (= *Relative Entropy*), *Log-Likelihood*, and *Cross-Entropy Loss* 
+##### 2. *Kullback-Leibler-(KL)-Divergence* (= *Relative Entropy*), *Negative Log-Likelihood (NLL)*, and *Cross-Entropy Loss* 
 
 The *Kullback-Leibler divergence* is also called *relative entropy* (ao. Bishop, 2006, p.55).
 
@@ -375,6 +377,7 @@ begin
 	xsTrain32  = convert(Array{Float32}, xsTrain)
 	ysTrain    = [2, 0, 1, 2, 1, 0, 0, 2, 2, 0, 2, 0, 2, 0, 1, 2, 1, 2, 1, 0]
 	ysTrain32  = convert(Array{Float32}, my1Hot(ysTrain))
+	(K, N) = size(ysTrain32)
 end # begin
 
 # ╔═╡ 066f5c29-d84b-437d-9d74-fbac82710c9f
@@ -382,6 +385,9 @@ xsTrain32
 
 # ╔═╡ da44464e-7dfd-4b2b-b5b0-8ff0be5eb806
 ysTrain32
+
+# ╔═╡ 1fa7817c-9434-43ba-872b-a3f6bcf34c4d
+[sum(x->x, ysTrain32[:, i], init=0.0) for i in 1:N] # Test whether each col has '1'
 
 # ╔═╡ f0be6493-5438-4df3-8ed7-57413085e30d
 md"
@@ -412,7 +418,6 @@ function luxMultiCrossEntropy(model, parameters, state, data)
 	#-------------------------------------------------------------------------------
 	ysPredicted, state = model(xsTrain, parameters, state)
 	crEnLo(ysPredicted, ysTrain), state, ()
-	# myCrossEntropyLoss(ysTrain, ysPredicted), state, ()
 end # function luxMultiCrossEntropy 
 
 # ╔═╡ 9c85f819-089c-452e-9a25-b03db9902f39
@@ -423,8 +428,6 @@ md"
 
 # ╔═╡ ef793ead-9177-4b55-ad0f-aa8c4cc28495
 function trainTheModel(luxModel, xsData::Vector{Float32}, ysData::Matrix{Float32}, loss::Function; title="LUX-Model")
-	N = length(xsData)                      #  N = #observations
-	K = size(ysData)[1]                     #  K = #classes
 	#--------------------------------------------------------------------------------
 	function iterationLoop(trainState, vjp, data)
 		lossOld = Inf
@@ -492,16 +495,13 @@ xsData, ysData, ysModelPred, finalLoss, epochs =
 # ╔═╡ 6b30501e-aef1-4885-8daf-d3597a32a916
 # plausibilty test: are all columns sums == 1 ?
 begin
-	N = length(xsData)
+	# N = length(xsData)
 	colSums = Vector{Float64}(undef, N)
 	for i in 1:N
 		colSums[i] = sum(x->x, ysModelPred[:, i], init=0.0)	
 	end # for i
 	colSums
 end # begin
-
-# ╔═╡ 1fa7817c-9434-43ba-872b-a3f6bcf34c4d
-[sum(x->x, ysTrain32[:, i], init=0.0) for i in 1:N] # Test whether each col has '1'
 
 # ╔═╡ beb13d67-22b3-4caf-af83-2af38b57ffb4
 md"
@@ -516,34 +516,35 @@ In other cases the diagnosis is doubtful and *no* success.
 
 # ╔═╡ b4ba3413-8375-4c81-bba6-ab067b848149
 function crossTables(ysTrain32, ysModelPred; title="")
-	K, N = size(ysTrain32)
-	println("K = $K; N = $N")
-	successTotal  = 0.0
-	successes     = Array{Int32}(undef, K)
+	successFreqsTotal = 0.0
+	successesFreqs    = Array{Int32}(undef, K)
+	successesProps    = Array{Float32}(undef, K)
 	#-------------------------------------------------------------------------------
 	for k in 1:K    # class k
-		successes[k] = 0
+		successesFreqs[k] = 0
 		for i in 1:N
 			if 	((ysTrain32[k, i] ≈ 1.0) && (argmax(ysModelPred[:, i]) == k)) ||
 				((ysTrain32[k, i] ≈ 0.0) && (argmin(ysModelPred[:, i]) == k))
-				successes[k] += 1 
+				successesFreqs[k] += 1 
 			end # if
 		end # for i
-		successTotal  += successes[k] 
-		successesk     = successes[k]
-		successesPropk = successes[k]/N
+		successFreqsTotal += successesFreqs[k] 
+		successesFreqsk    = successesFreqs[k]
+		successesProps[k]  = successesFreqs[k]/N
+		successesPropsk    = successesProps[k]
 		#--------------------------------------------------------------------------
-		println("successes[k] for class $k = $successesk")
-		println("proportion of success for class $k = $successesPropk")
+		println("successes[k] for class $k = $successesFreqsk")
+		println("proportion of success for class $k = $successesPropsk")
 	end # for k
-	successProp = successTotal/(K*N)
-	println("successProportion for all classes = $successProp")
+	successesProp = successFreqsTotal/(K*N)
+	println("successProportion for all classes = $successesProp")
 	#-----------------------------------------------------------------------------
-	(hitsClass_1=successes[1], hitsClass_2=successes[2], hitsClass_3=successes[3], successProportion=successProp)
+	(successesFreqs, successesProps, successesProp)
 end # function crossTables
 
 # ╔═╡ a4bf362d-f090-476a-a07e-afa872350d33
- crossTableResults = crossTables(ysTrain32, ysModelPred)
+(successesFreqs, successesProps, successesProp) = 
+	crossTables(ysTrain32, ysModelPred)
 
 # ╔═╡ 657e2e26-5794-4f7d-9f08-c87ad6238a93
 md"
@@ -554,51 +555,68 @@ md"
 # ╔═╡ b82c87e7-e3d1-4e3c-b241-6b4a76c34a2b
 let K = size(ysData)[1]                     #  K = #classes
 	xs = [x for x in 1:N]
+	successesFreqs1 = successesFreqs[1]
+	successesProps1 = successesProps[1]
 	#--------------------------------------------------------------------------------
 	myCor    = cor(ysData[1, :], ysModelPred[1, :])
 	myCorSq  = round(myCor^2, digits=2)
 	#----------------------------------------------------------------------------- 
 	scatter(xs,  ysData[1, :], color=:blue,  xlabel=L"observation", ylabel=L"P(C_1|h, \phi, x)", label=L"P(C_1|h, \phi, x)", title=L"Softmax\ Classification\ for\ Class\ 1")
 	plot!(xs, ysModelPred[1, :], color=:blue,  lw=2, label=L"P(C_1|h, \phi, x)")
-	annotate!(2.5, 0.1, "r^2=$myCorSq", 10)
+	annotate!(16.4, 0.20, "r^2=$myCorSq", 10)
+	annotate!(17.2, 0.15, "#successes=$successesFreqs1", 10)
+	annotate!(17.5, 0.10, "%successes=$successesProps1", 10)
 end # let
 
 # ╔═╡ ccf95fff-e2d5-4691-9687-b1b78c226a35
 let K = size(ysData)[1]                     #  K = #classes
 	xs = [x for x in 1:N]
+	successesFreqs2 = successesFreqs[2]
+	successesProps2 = successesProps[2]
 	#--------------------------------------------------------------------------------
 	myCor    = cor(ysData[2, :], ysModelPred[2, :])
 	myCorSq  = round(myCor^2, digits=2)
 	#----------------------------------------------------------------------------- 
 	scatter(xs,  ysData[2, :], color=:green,  xlabel=L"observation", ylabel=L"P(C_2|h, \phi, x)", label=L"P(C_2|h, \phi, x)", title=L"Softmax\ Classification\ for\ Class\ 2")
 	plot!(xs, ysModelPred[2, :], color=:green,  lw=2, label=L"P(C_2|h, \phi, x)")
-	annotate!(2.5, 0.1, "r^2=$myCorSq", 10)
+	annotate!(16.5, 0.2, "r^2=$myCorSq", 10)
+	annotate!(17.3, 0.15, "#successes=$successesFreqs2", 10)
+	annotate!(17.5, 0.10, "%successes=$successesProps2", 10)
 end # let
 
 # ╔═╡ 2352e182-f12d-4780-a1f0-235d70f38fcb
 let K = size(ysData)[1]                     #  K = #classes
 	xs = [x for x in 1:N]
+	successesFreqs3 = successesFreqs[3]
+	successesProps3 = successesProps[3]
 	#--------------------------------------------------------------------------------
 	myCor    = cor(ysData[3, :], ysModelPred[3, :])
 	myCorSq  = round(myCor^2, digits=2)
 	#----------------------------------------------------------------------------- 
 	scatter(xs,  ysData[3, :], color=:violet,  xlabel=L"observation", ylabel=L"P(C_3|h, \phi, x)", label=L"P(C_2|h, \phi, x)", title=L"Softmax\ Classification\ for\ Class\ 3")
 	plot!(xs, ysModelPred[3, :], color=:violet,  lw=2, label=L"P(C_3|h, \phi, x)")
-	annotate!(2.5, 0.1, "r^2=$myCorSq", 10)
+	annotate!(16.2, 0.2, "r^2=$myCorSq", 10)
+	annotate!(17.2, 0.15, "#successes=$successesFreqs3", 10)
+	annotate!(17.5, 0.10, "%successes=$successesProps3", 10)
 end # let
 
 # ╔═╡ fde14169-df3a-49c6-abda-ffdfa0b419ad
 let K = size(ysData)[1]                     #  K = #classes
 	xs = [x for x in 1:N]
+	successesPropShort = round(successesProp, digits=2)
+	finalLossShort = round(finalLoss, digits=2)
 	#----------------------------------------------------------------------------- 
-	scatter(xs,  ysData[1, :], color=:blue,  xlabel=L"observation", ylabel=L"P(C_1|h, \phi, x)", label=L"P(C_1|h, \phi, x)", title=L"Softmax\ Classification\ for\ Class\ 1")
+	scatter(xs,  ysData[1, :], color=:blue,  xlabel=L"observation", ylabel=L"P(C_1|h, \phi, x)", label=L"P(C_1|h, \phi, x)")
 	plot!(xs, ysModelPred[1, :], color=:blue,  lw=2, label=L"P(C_1|h, \phi, x)")
 	#----------------------------------------------------------------------------- 
-	scatter!(xs,  ysData[2, :], color=:green,  xlabel=L"observation", ylabel=L"P(C_2|h, \phi, x)", label=L"P(C_2|h, \phi, x)", title=L"Softmax\ Classification\ for\ Class\ 2")
+	scatter!(xs,  ysData[2, :], color=:green,  xlabel=L"observation", ylabel=L"P(C_2|h, \phi, x)", label=L"P(C_2|h, \phi, x)")
 	plot!(xs, ysModelPred[2, :], color=:green,  lw=2, label=L"P(C_2|h, \phi, x)")
 	#----------------------------------------------------------------------------- 
-	scatter!(xs,  ysData[3, :], color=:violet,  xlabel=L"observation", ylabel=L"P(C_3|h, \phi, x)", label=L"P(C_2|h, \phi, x)", title=L"Softmax\ Classification\ for\ Class\ 3")
+	scatter!(xs,  ysData[3, :], color=:violet,  xlabel=L"observation", ylabel=L"P(C_3|h, \phi, x)", label=L"P(C_2|h, \phi, x)", title=L"Softmax\ Classification\ for\ all\ Classes")
 	plot!(xs, ysModelPred[3, :], color=:violet,  lw=2, label=L"P(C_3|h, \phi, x)")
+	annotate!(17.1, 0.20, "#epochs=$epochs", 10)
+	annotate!(16.4, 0.15, "loss=$finalLossShort", 10)
+	annotate!(17.5, 0.10, "%successes=$successesPropShort", 10)
 end # let
 
 # ╔═╡ 0b089174-0a04-4f8f-acc0-6c2388270baa
