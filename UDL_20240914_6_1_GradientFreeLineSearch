@@ -59,12 +59,12 @@ md"
 # ╔═╡ 0a34e75f-a6d4-4c23-89ec-81ceb78d37f1
 function  drawFunction(foo, xs; title="", a=0.0, b=0.0, c=0.0, d=0.0, solution=-0.0)
 	fxs = map(x -> foo(x), xs)
-	plot1 = plot(xs, fxs, lw=2, xlimits=(0.0, 1.0), ylimits=(0.0, 1.0), xlabel=L"\phi", ylabel=L"f(\phi)", label=L"f(x)", title=title, color=:red)
+	plot1 = plot(xs, fxs, lw=2, xlimits=(-0.001, +1.001), ylimits=(0.0, 1.0), xlabel=L"\phi", ylabel=L"f(\phi)", label=L"f(x)", title=title, color=:red)
 	if a+b+c+d !== 0.0
 		vline!([a, b, c, d], color = :blue, lw=1, label=L"f(a),...,f(d)")
 	end # if
 	if solution !==-0.0
-		vline!([solution], color = :green, ls=:dash, lw=2, label=L"f_{...}(x_{min})")
+		vline!([solution], color = :green, ls=:dash, lw=4, label=L"f_{...}(x_{min})")
 	end # if
 	plot(plot1, title=title, titlefontsize=12)
 end # function  drawFunction
@@ -181,9 +181,8 @@ function lineSearch(lossFunction, xs; title="", thresh = 0.0001, maxIter = 10, s
 		# Rule #1 If the HEIGHT at point A is less than the HEIGHT at points B, C, 	# and D then halve values of B, C, and D
         # i.e. bring them closer to the original point
         if 	!(fullRuleSet == false) && lossa < min(lossb, lossc, lossd)
-			rule = 1
           	b, c, d = (b, c, d)./2
-			@printf "Rule=%2i, a = %4.2f, b = %4.2f, c = %4.2f, d = %4.2f" rule a b c d
+			@printf "Rule=1, a = %4.2f, b = %4.2f, c = %4.2f, d = %4.2f" a b c d
 			println()
 			@printf "         fa= %4.2f, fb= %4.2f, cf= %4.2f, fd= %4.2f" lossa lossb lossc lossd
 			println()
@@ -192,12 +191,8 @@ function lineSearch(lossFunction, xs; title="", thresh = 0.0001, maxIter = 10, s
 		# Rule #2 If the HEIGHT at point D is less than the HEIGHT at points A, B, 	# and C then halve values of A, B, and C
         # i.e. bring them closer to the original point
         if 	!(fullRuleSet == false) && lossd < min(lossa, lossb, lossc)
-			rule = 2
-          	a  = b
-			da = abs(d - a)
-			b  = a + da/3
-			c  = d - da/3
-			@printf "Rule=%2i, a = %4.2f, b = %4.2f, c = %4.2f, d = %4.2f" rule a b c d
+			a, b, c, d = abs.(((abs.((a, b, c, d) .- d) ./2) .- 1.0))
+			@printf "Rule=2, a = %4.2f, b = %4.2f, c = %4.2f, d = %4.2f" a b c d
 			println()
 			@printf "         fa= %4.2f, fb= %4.2f, cf= %4.2f, fd= %4.2f" lossa lossb lossc lossd
 			println()
@@ -208,12 +203,11 @@ function lineSearch(lossFunction, xs; title="", thresh = 0.0001, maxIter = 10, s
         #                     point b becomes 1/3 between a and new d
         #                     point c becomes 2/3 between a and new d
         if (lossb < lossc)
-			rule = 3
 			d = c
 			da = abs(d - a)        # new interval length
 			b = a + da/3.0
 			c = d - da/3.0
-			@printf "Rule=%2i, a = %4.2f, b = %4.2f, c = %4.2f, d = %4.2f" rule a b c d
+			@printf "Rule=3, a = %4.2f, b = %4.2f, c = %4.2f, d = %4.2f" a b c d
 			println()
 			@printf "         fa= %4.2f, fb= %4.2f, cf= %4.2f, fd= %4.2f" lossa lossb lossc lossd
 			println()
@@ -224,12 +218,11 @@ function lineSearch(lossFunction, xs; title="", thresh = 0.0001, maxIter = 10, s
         #                     point b becomes 1/3 between new a and d
         #                     point c becomes 2/3 between new a and d
         if(lossc < lossb)
-			rule = 4
 			a = b
 			da = abs(d - a)        # new interval length
 			b = a + da/3
 			c = d - da/3
-			@printf "Rule=%2i, a = %4.2f, b = %4.2f, c = %4.2f, d = %4.2f" rule a b c d
+			@printf "Rule=4, a = %4.2f, b = %4.2f, c = %4.2f, d = %4.2f" a b c d
 			println()
 			@printf "         fa= %4.2f, fb= %4.2f, cf= %4.2f, fd= %4.2f" lossa lossb lossc lossd
 			println()
