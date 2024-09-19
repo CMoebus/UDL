@@ -26,7 +26,7 @@ md"
 #### UDL\_20240914\_6\_1\_Gradient\_Free\_Line\_Search
 ##### file: UDL\_20240914\_6\_1\_GradientFreeLineSearch.jl
 ##### libraries: Julia 1.10.5/Pluto 0.19.46/Lux 0.5.63/LuxCUDA 0.3.3 
-##### code by *** PCM 2024/09/16 ***
+##### code by *** PCM 2024/09/19 ***
 
 ===================================================================================
 "
@@ -35,7 +35,12 @@ md"
 md"
 ---
 ##### 0. Introduction
-Here we implement a task along the instruction issued in Prince [Notebook 6.1](https://github.com/udlbook/udlbook/blob/main/Notebooks/Chap06/6_1_Line_Search.ipynb). The line search implemented her is a *gradient-free line search* also called [*zero-order line search*](https://en.wikipedia.org/wiki/Line_search) and here the special variant [*ternary search*](https://en.wikipedia.org/wiki/Ternary_search).
+Here we implement a task according to the verbal instructions in Prince's [Notebook 6.1](https://github.com/udlbook/udlbook/blob/main/Notebooks/Chap06/6_1_Line_Search.ipynb). This task is a *gradient-free line search*, also known as [*zero order line search*](https://en.wikipedia.org/wiki/Line_search), in the special variant [*ternary search*](https://en.wikipedia.org/wiki/Ternary_search).
+
+Prince's verbal instructions contain three rules for determining a unimodal minimum. We found out that two rules are sufficient. Prince' rule 1 is only efficient if the minimum is in the first third of the linear search space. If you think that rule 1 makes sense, a new rule (our rule 2) should be added for antisymmetric reasons.
+
+We have implemented a selection mode in our code so that we can choose between two rule sets with two or four rules.
+
 "
 
 # ╔═╡ c2803478-6060-477f-800f-fabbf6f0c254
@@ -47,21 +52,94 @@ md"
 # ╔═╡ a1bb75b1-1b9c-48af-81d0-91681aee8a87
 md"
 ---
-##### 2. Example
-###### 2.1 Definition of $f_{loss1D}$
+##### 2. Examples
+
+"
+
+# ╔═╡ 0a34e75f-a6d4-4c23-89ec-81ceb78d37f1
+function  drawFunction(foo, xs; title="", a=0.0, b=0.0, c=0.0, d=0.0, solution=-0.0)
+	fxs = map(x -> foo(x), xs)
+	plot1 = plot(xs, fxs, lw=2, xlimits=(0.0, 1.0), ylimits=(0.0, 1.0), xlabel=L"\phi", ylabel=L"f(\phi)", label=L"f(x)", title=title, color=:red)
+	if a+b+c+d !== 0.0
+		vline!([a, b, c, d], color = :blue, lw=1, label=L"f(a),...,f(d)")
+	end # if
+	if solution !==-0.0
+		vline!([solution], color = :green, ls=:dash, lw=2, label=L"f_{...}(x_{min})")
+	end # if
+	plot(plot1, title=title, titlefontsize=12)
+end # function  drawFunction
+
+# ╔═╡ 93b273d2-e725-44fc-aa3b-cd97fbe02a3e
+md"
+---
+###### 2.1 Definition of Unimodal Test Functions
+###### 2.1.1 Systematic Test Functions for Ternary Search
 
 $\;$
 
-1D *loss function* ([Prince's 6_1_Line_Search.ipynb](https://colab.research.google.com/github/udlbook/udlbook/blob/main/Notebooks/Chap06/6_1_Line_Search.ipynb#scrollTo=qFRe9POHF2le)) 
+"
+
+# ╔═╡ 8930f5d8-a580-4f2e-9b2f-8ff58b0cfdce
+xs = [x for x in 0.0:0.01:1.0]
+
+# ╔═╡ 536c7cc0-e21a-4b83-854f-b226d983ce11
+function f000(x; l=0.0, r=1.0)
+	l <= x <= r ? 
+		y = abs(x - 0.0) + 1/5  :
+		"error: not (l <= x <= r)"
+end # function f000
+
+# ╔═╡ 89c09efe-25d5-47ef-8085-f93ff6e370a5
+drawFunction(f000, xs, title=L"f000(x)", a=0.0, b=1/3, c=2/3, d=1.0)
+
+# ╔═╡ 0f885ed3-2ba5-4d06-9536-f8dcebba1eaa
+function f025(x; l=0.0, r=1.0)
+	l <= x <= r ? 
+		y = abs(x - 0.25) + 1/5 :
+		"error: not (l <= x <= r)"
+end # function f025
+
+# ╔═╡ 4a8388a6-725a-49d0-9cf2-ad7d0c7325c4
+drawFunction(f025, xs, title=L"f025(x)", a=0.0, b=1/3, c=2/3, d=1.0)
+
+# ╔═╡ b10d10d3-bf88-47b8-9fa9-7ed010a4acfe
+function f050(x; l=0.0, r=1.0)
+	l <= x <= r ? 
+		y = abs(x - 0.50) + 1/5 :
+		"error: not (l <= x <= r)"
+end # function f50
+
+# ╔═╡ 735757b2-3590-4cfa-9ab9-9153ba406435
+drawFunction(f050, xs, title=L"f050(x)", a=0.0, b=1/3, c=2/3, d=1.0)
+
+# ╔═╡ c98667ed-a2a1-4950-a0ba-1eca13032eb6
+function f075(x; l=0.0, r=1.0)
+	l <= x <= r ? 
+		y = abs(x - 0.75) + 1/5 :
+		"error: not (l <= x <= r)"
+end # function f075
+
+# ╔═╡ 01fb9d76-09a8-41d2-8dd1-5f6972141728
+drawFunction(f075, xs, title=L"f075(x)", a=0.0, b=1/3, c=2/3, d=1.0)
+
+# ╔═╡ 653fe2c3-ce7e-4cf4-a0ac-97f17d8c2fa9
+function f100(x; l=0.0, r=1.0)
+	l <= x <= r ? 
+		y = abs(x - 1.00) + 1/5 :
+		"error: not (l <= x <= r)"
+end # function f100
+
+# ╔═╡ 9b101653-f775-48af-9f15-2ece1553feab
+drawFunction(f100, xs, title=L"f100(x)", a=0.0, b=1/3, c=2/3, d=1.0)
+
+# ╔═╡ 5c973e31-88fd-49db-9930-d33ce6527191
+md"
+---
+###### 2.1.2 Prince's $f_{loss1D}$ Function
+
+1D *loss function* ([Prince's 6\_1\_Line\_Search.ipynb](https://colab.research.google.com/github/udlbook/udlbook/blob/main/Notebooks/Chap06\_6\_1\_Line\_Search.ipynb#scrollTo=qFRe9POHF2le)) 
 
 $\;$
-
-$f_{simple1D}(\phi) = 1 - 0.5 \cdot \exp^{\left(- \frac{(\phi - 0.65)^2}{0.1}\right)} - 0.45 \cdot \exp^{\left(-\frac{(\phi-0.35)^2}{0.02}\right)}$
-
-$\;$
-$\;$
-$\;$
-
 "
 
 # ╔═╡ 4af1a194-3337-4243-9006-400a1d45733e
@@ -70,26 +148,8 @@ function simple1D(ϕ)
 	 0.45 * exp(-(ϕ - 0.35)^2 / 0.02)
 end # function simple1D
 
-# ╔═╡ 0a34e75f-a6d4-4c23-89ec-81ceb78d37f1
-function  drawFunction(foo, xs; title="", a=0.0, b=0.0, c=0.0, d=0.0, solution=-0.0)
-	fxs = map(x -> foo(x), xs)
-	plot1 = plot(xs, fxs, lw=2, xlimits=(0.0, 1.0), ylimits=(0.0, 1.0), xlabel=L"\phi", ylabel=L"f(\phi)", label=L"f(x)", title=L"f_{simple1D}(x)", color=:red)
-	if a+b+c+d !== 0.0
-		vline!([a, b, c, d], color = :blue, lw=1, label=L"f(a),...,f(c)")
-	end # if
-	if solution !==-0.0
-		vline!([solution], color = :green, ls=:dash, lw=2, label=L"f_{simple1D}(x_{min})")
-	end # if
-	plot(plot1, title=title, titlefontsize=12)
-end # function  drawFunction
-
-# ╔═╡ a2b3c651-200e-448d-9b36-fdb27918d1ef
-begin ϕs  = [ϕ for ϕ in 0.0:0.01:1.0]
-	drawFunction(simple1D, ϕs, title=L"f_{simple1D}(x)")
-end # begin
-
 # ╔═╡ 56e8d134-4e39-4f97-a10c-89c6c112932c
-drawFunction(simple1D, ϕs, title=L"f_{simple1D}(x)\ with\ a=0.0, b=0.33, c=0.66, d=1.0", a=0.00, b=0.33, c=0.66, d=1.00)
+drawFunction(simple1D, xs, title=L"f_{simple1D}(x)\ with\ a=0.0, b=0.33, c=0.66, d=1.0", a=0.00, b=0.33, c=0.66, d=1.00)
 
 # ╔═╡ 6bda9d25-a4e7-43b3-b0da-5f47973c78c4
 md"
@@ -99,79 +159,125 @@ md"
 "
 
 # ╔═╡ 0c4d0a2f-78ff-404a-9263-231603efce35
-function lineSearch(lossFunction, xs; thresh = 0.0001, maxIter = 10, solution=false)
+function lineSearch(lossFunction, xs; title="", thresh = 0.0001, maxIter = 10, solution=false, fullRuleSet=false)
 	# Initialization of four points
-           a = 0
-           b = 0.33
-           c = 0.66
-           d = 1.0
-       nIter = 0
+    a = xs[1]
+    d = xs[end]
+	intValLen = abs(xs[end] - xs[1])   # interval length
+	nIter = 1
+	b = a + intValLen/3.0
+	c = d - intValLen/3.0
 	solution = 0.0
-	plots = Array{Any}(undef, maxIter)
 	#-----------------------------------------------------------------------------
 	# ... haven't found the minimum 
 	while thresh < abs(b-c) && nIter < maxIter
-		nIter += 1
 		println("\nnIter=$nIter")
 		# calculate loss for all four points
 		lossa = lossFunction(a)
         lossb = lossFunction(b)
         lossc = lossFunction(c)
         lossd = lossFunction(d)
-		plots[nIter] = 
-			drawFunction(simple1D, ϕs, title=L"f_{simple1D}(x)\ with\ new\ points", a=a, b=b, c=c, d=d)
 		#-------------------------------------------------------------------------
 		# Rule #1 If the HEIGHT at point A is less than the HEIGHT at points B, C, 	# and D then halve values of B, C, and D
         # i.e. bring them closer to the original point
-        if 	lossa < min(lossb, lossc, lossd)
+        if 	!(fullRuleSet == false) && lossa < min(lossb, lossc, lossd)
 			rule = 1
           	b, c, d = (b, c, d)./2
 			@printf "Rule=%2i, a = %4.2f, b = %4.2f, c = %4.2f, d = %4.2f" rule a b c d
 			println()
 			@printf "         fa= %4.2f, fb= %4.2f, cf= %4.2f, fd= %4.2f" lossa lossb lossc lossd
+			println()
+		end # if
+		#-------------------------------------------------------------------------
+		# Rule #2 If the HEIGHT at point D is less than the HEIGHT at points A, B, 	# and C then halve values of A, B, and C
+        # i.e. bring them closer to the original point
+        if 	!(fullRuleSet == false) && lossd < min(lossa, lossb, lossc)
+			rule = 2
+          	a  = b
+			da = abs(d - a)
+			b  = a + da/3
+			c  = d - da/3
+			@printf "Rule=%2i, a = %4.2f, b = %4.2f, c = %4.2f, d = %4.2f" rule a b c d
+			println()
+			@printf "         fa= %4.2f, fb= %4.2f, cf= %4.2f, fd= %4.2f" lossa lossb lossc lossd
+			println()
 		end # if
 		#--------------------------------------------------------------------------
-		# Rule #2 If the HEIGHT at point b is less than the HEIGHT at point c then
+		# Rule #3 If the HEIGHT at point b is less than the HEIGHT at point c then
         #                     point d becomes point c, and
         #                     point b becomes 1/3 between a and new d
         #                     point c becomes 2/3 between a and new d
         if (lossb < lossc)
-			rule = 2
+			rule = 3
 			d = c
-			da = d - a        # new interval length
-			b = a + da/3
-			c = a + da*(2/3)
+			da = abs(d - a)        # new interval length
+			b = a + da/3.0
+			c = d - da/3.0
 			@printf "Rule=%2i, a = %4.2f, b = %4.2f, c = %4.2f, d = %4.2f" rule a b c d
 			println()
 			@printf "         fa= %4.2f, fb= %4.2f, cf= %4.2f, fd= %4.2f" lossa lossb lossc lossd
+			println()
 		end # if
 		#--------------------------------------------------------------------------
-		# Rule #3 If the HEIGHT at point c is less than the HEIGHT at point b then
+		# Rule #4 If the HEIGHT at point c is less than the HEIGHT at point b then
         #                     point a becomes point b, and
         #                     point b becomes 1/3 between new a and d
         #                     point c becomes 2/3 between new a and d
         if(lossc < lossb)
-			rule = 3
+			rule = 4
 			a = b
-			da = d - a        # new interval length
+			da = abs(d - a)        # new interval length
 			b = a + da/3
-			c = a + da*(2/3)
+			c = d - da/3
 			@printf "Rule=%2i, a = %4.2f, b = %4.2f, c = %4.2f, d = %4.2f" rule a b c d
 			println()
 			@printf "         fa= %4.2f, fb= %4.2f, cf= %4.2f, fd= %4.2f" lossa lossb lossc lossd
+			println()
 		end # if 
+		#-------------------------------------------------------------------------
+		nIter += 1
 	end # while
 	# FINAL SOLUTION IS AVERAGE OF B and C
 	solution = (b + c)/2.0
-   	drawFunction(simple1D, ϕs, title=L"f_{simple1D}(x)\ with\ solution", 
+   	drawFunction(lossFunction, xs, title=title, 
 		a=a, b=b, c=c, d=d, solution=solution)
 end # function lineSearch
 
+# ╔═╡ 31059150-2869-4fc8-a30a-9776eb89de89
+lineSearch(f000, xs, maxIter=40, title=L"f000")
+
+# ╔═╡ 72da834e-1b1c-4e0d-ba52-843aabef7a58
+lineSearch(f000, xs, maxIter=40, title=L"f000", fullRuleSet=true)
+
+# ╔═╡ 0a5cc19f-3a5f-4e95-9d7a-23fa2748ec8c
+lineSearch(f025, xs, maxIter=40, title=L"f025")
+
+# ╔═╡ 00bf8f5e-b389-4fbf-ae5e-eaf95f7b919d
+lineSearch(f025, xs, maxIter=40, title=L"f025", fullRuleSet=true)
+
+# ╔═╡ 0e5e00f4-7413-4be8-bbc3-e16098a9c606
+lineSearch(f050, xs, maxIter=40, title=L"f050")
+
+# ╔═╡ 8f27b412-135e-4e99-beb1-cbefce8963ff
+lineSearch(f050, xs, maxIter=40, title=L"f050", fullRuleSet=true)
+
+# ╔═╡ fde4daf8-947e-4bb8-9c4a-5f44085fded0
+lineSearch(f075, xs, maxIter=40, title=L"f075")
+
+# ╔═╡ e11ecb82-b39d-4abd-a8d6-6e6068450e60
+lineSearch(f075, xs, maxIter=40, title=L"f075", fullRuleSet=true)
+
+# ╔═╡ 9428b675-4da2-4e82-8be2-9b8c09facdbc
+lineSearch(f100, xs, maxIter=40, title=L"f100")
+
+# ╔═╡ 37d84b24-02b4-4d58-b97e-defeb668a52c
+lineSearch(f100, xs, maxIter=40, title=L"f100", fullRuleSet=true)
+
 # ╔═╡ 6347ed78-6ed6-40a2-9d0d-d9527ad29b2f
-begin 
-	xs = [x for x in 0.0:0.01:1.0]
-	lineSearch(simple1D, xs, maxIter=40)
-end # begin
+lineSearch(simple1D, xs, maxIter=40, title=L"simple1D")
+
+# ╔═╡ 91efeb59-29ae-4706-a599-d37aefb43ac9
+lineSearch(simple1D, xs, maxIter=40, title=L"simple1D", fullRuleSet=true)
 
 # ╔═╡ d53f1a12-5926-4cf7-97f8-2836cfceb150
 md"
@@ -202,11 +308,23 @@ function ternarySearch(f::Function, l, r; eps=0.0001, maxIter=20)
 	nIter, l, r, fmin      
 end # function ternarySearch
 
+# ╔═╡ 4f60fc1e-a12e-45ba-9a19-efca894436be
+ternarySearch(f000, 0.0, 1.0, maxIter=30)
+
+# ╔═╡ 65551d99-d9ca-4894-8b7d-a6d998fdf864
+ternarySearch(f025, 0.0, 1.0, maxIter=30)
+
+# ╔═╡ 054e0144-158f-47be-8665-43f835b7b35b
+ternarySearch(f050, 0.0, 1.0, maxIter=30)
+
+# ╔═╡ d9c5efb0-8f37-48f6-ab4e-4d26eaaeed39
+ternarySearch(f075, 0.0, 1.0, maxIter=30)
+
+# ╔═╡ 67bc3003-8aae-4c8d-be2a-b0e0ab5be74b
+ternarySearch(f100, 0.0, 1.0, maxIter=30)
+
 # ╔═╡ ea60704c-f603-4e5d-af4c-cb5118ac49cc
 ternarySearch(simple1D, 0.0, 1.0, maxIter=30)
-
-# ╔═╡ 8e6ebb82-e4cd-47b4-9499-488523683393
-simple1D(0.0), simple1D(1.0)
 
 # ╔═╡ 93b3caf3-74aa-4ec0-b158-b7c1c116ed60
 md"
@@ -2355,17 +2473,44 @@ version = "1.4.1+1"
 # ╟─c2803478-6060-477f-800f-fabbf6f0c254
 # ╠═e488978f-d0d3-4f83-a72d-4fe00ed4fa69
 # ╟─a1bb75b1-1b9c-48af-81d0-91681aee8a87
-# ╠═4af1a194-3337-4243-9006-400a1d45733e
 # ╠═0a34e75f-a6d4-4c23-89ec-81ceb78d37f1
-# ╠═a2b3c651-200e-448d-9b36-fdb27918d1ef
+# ╟─93b273d2-e725-44fc-aa3b-cd97fbe02a3e
+# ╠═8930f5d8-a580-4f2e-9b2f-8ff58b0cfdce
+# ╠═536c7cc0-e21a-4b83-854f-b226d983ce11
+# ╠═89c09efe-25d5-47ef-8085-f93ff6e370a5
+# ╠═0f885ed3-2ba5-4d06-9536-f8dcebba1eaa
+# ╠═4a8388a6-725a-49d0-9cf2-ad7d0c7325c4
+# ╠═b10d10d3-bf88-47b8-9fa9-7ed010a4acfe
+# ╠═735757b2-3590-4cfa-9ab9-9153ba406435
+# ╠═c98667ed-a2a1-4950-a0ba-1eca13032eb6
+# ╠═01fb9d76-09a8-41d2-8dd1-5f6972141728
+# ╠═653fe2c3-ce7e-4cf4-a0ac-97f17d8c2fa9
+# ╠═9b101653-f775-48af-9f15-2ece1553feab
+# ╟─5c973e31-88fd-49db-9930-d33ce6527191
+# ╠═4af1a194-3337-4243-9006-400a1d45733e
 # ╠═56e8d134-4e39-4f97-a10c-89c6c112932c
 # ╟─6bda9d25-a4e7-43b3-b0da-5f47973c78c4
 # ╠═0c4d0a2f-78ff-404a-9263-231603efce35
+# ╠═31059150-2869-4fc8-a30a-9776eb89de89
+# ╠═72da834e-1b1c-4e0d-ba52-843aabef7a58
+# ╠═0a5cc19f-3a5f-4e95-9d7a-23fa2748ec8c
+# ╠═00bf8f5e-b389-4fbf-ae5e-eaf95f7b919d
+# ╠═0e5e00f4-7413-4be8-bbc3-e16098a9c606
+# ╠═8f27b412-135e-4e99-beb1-cbefce8963ff
+# ╠═fde4daf8-947e-4bb8-9c4a-5f44085fded0
+# ╠═e11ecb82-b39d-4abd-a8d6-6e6068450e60
+# ╠═9428b675-4da2-4e82-8be2-9b8c09facdbc
+# ╠═37d84b24-02b4-4d58-b97e-defeb668a52c
 # ╠═6347ed78-6ed6-40a2-9d0d-d9527ad29b2f
+# ╠═91efeb59-29ae-4706-a599-d37aefb43ac9
 # ╟─d53f1a12-5926-4cf7-97f8-2836cfceb150
 # ╠═8637818c-ccf3-4994-b192-18197f994357
+# ╠═4f60fc1e-a12e-45ba-9a19-efca894436be
+# ╠═65551d99-d9ca-4894-8b7d-a6d998fdf864
+# ╠═054e0144-158f-47be-8665-43f835b7b35b
+# ╠═d9c5efb0-8f37-48f6-ab4e-4d26eaaeed39
+# ╠═67bc3003-8aae-4c8d-be2a-b0e0ab5be74b
 # ╠═ea60704c-f603-4e5d-af4c-cb5118ac49cc
-# ╠═8e6ebb82-e4cd-47b4-9499-488523683393
 # ╟─93b3caf3-74aa-4ec0-b158-b7c1c116ed60
 # ╟─72754696-589b-404e-9ee2-eca1f5916783
 # ╟─f2249c7f-0246-4f70-848a-22aec7fecf2a
