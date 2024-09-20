@@ -26,7 +26,7 @@ md"
 #### UDL\_20240914\_6\_1\_Gradient\_Free\_Line\_Search
 ##### file: UDL\_20240914\_6\_1\_GradientFreeLineSearch.jl
 ##### libraries: Julia 1.10.5/Pluto 0.19.46/Lux 0.5.63/LuxCUDA 0.3.3 
-##### code by *** PCM 2024/09/19 ***
+##### code by *** PCM 2024/09/20 ***
 
 ===================================================================================
 "
@@ -35,9 +35,9 @@ md"
 md"
 ---
 ##### 0. Introduction
-Here we implement a task according to the verbal instructions in Prince's [Notebook 6.1](https://github.com/udlbook/udlbook/blob/main/Notebooks/Chap06/6_1_Line_Search.ipynb). This task is a *gradient-free line search*, also known as [*zero order line search*](https://en.wikipedia.org/wiki/Line_search), in the special variant [*ternary search*](https://en.wikipedia.org/wiki/Ternary_search).
+Here we implement a task loosely according to the verbal instructions in Prince's [Notebook 6.1](https://github.com/udlbook/udlbook/blob/main/Notebooks/Chap06/6_1_Line_Search.ipynb). This task is a *gradient-free line search*, also known as [*zero order line search*](https://en.wikipedia.org/wiki/Line_search), in the special variant [*ternary search*](https://en.wikipedia.org/wiki/Ternary_search).
 
-Prince's verbal instructions contain three rules for determining a unimodal minimum. We found out that two rules are sufficient. Prince' rule 1 is only efficient if the minimum is in the first third of the linear search space. If you think that rule 1 makes sense, a new rule (our rule 2) should be added for antisymmetric reasons.
+Prince's verbal instructions propose three rules for determining a unimodal minimum. We found out that two rules are sufficient. Prince' rule 1 is only efficient if the minimum is in the first third of the linear search space. If you think that rule 1 makes sense, a new rule (our rule 4) should be added for antisymmetric reasons. 
 
 We have implemented a selection mode in our code so that we can choose between two rule sets with two or four rules.
 
@@ -72,8 +72,8 @@ end # function  drawFunction
 # ╔═╡ 93b273d2-e725-44fc-aa3b-cd97fbe02a3e
 md"
 ---
-###### 2.1 Definition of Unimodal Test Functions
-###### 2.1.1 Systematic Test Functions for Ternary Search
+###### 2.1 Definition of *Unimodal* Test Functions
+###### 2.1.1 Systematic Test Functions for *Ternary* Search
 
 $\;$
 
@@ -156,168 +156,223 @@ md"
 ---
 ###### 2.2 Line Search
 ###### 2.2.1 Zero-Order Line Search (a la [UDL Notebook 6.1](https://github.com/udlbook/udlbook/blob/main/Notebooks/Chap06/6_1_Line_Search.ipynb))
+In rules 1-3 instructions have been modified (** ... **), rule 4 is added.
+
 "
 
 # ╔═╡ 0c4d0a2f-78ff-404a-9263-231603efce35
-function lineSearch(lossFunction, xs; title="", thresh = 0.0001, maxIter = 10, solution=false, fullRuleSet=false)
-	# Initialization of four points
-    a = xs[1]
-    d = xs[end]
-	intValLen = abs(xs[end] - xs[1])   # interval length
-	nIter = 1
-	b = a + intValLen/3.0
-	c = d - intValLen/3.0
+function lineSearch(lossF; a=0.0, d=1.0, title="", thresh = 0.0001, maxIter = 10, solution=false, fullRuleSet=false)
+	nIter    = 0
 	solution = 0.0
+	#-----------------------------------------------------------------------------
+	# Initialization of four points
+	da   = abs(a - d)                       # interval length
+	b, c = a + da/3.0, d - da/3.0
 	#-----------------------------------------------------------------------------
 	# ... haven't found the minimum 
 	while thresh < abs(b-c) && nIter < maxIter
+		nIter += 1
 		println("\nnIter=$nIter")
 		# calculate loss for all four points
-		lossa = lossFunction(a)
-        lossb = lossFunction(b)
-        lossc = lossFunction(c)
-        lossd = lossFunction(d)
+		fa, fb, fc, fd = lossF(a), lossF(b), lossF(c), lossF(d)
 		#-------------------------------------------------------------------------
-		# Rule #1 If the HEIGHT at point A is less than the HEIGHT at points B, C, 	# and D then halve values of B, C, and D
+		# Rule #1 If the HEIGHT at point A is less than the HEIGHT at points B, C, 	# and D then **reduce** values of B, C, and D **to a third**
         # i.e. bring them closer to the original point
-        if 	!(fullRuleSet == false) && lossa < min(lossb, lossc, lossd)
-          	b, c, d = (b, c, d)./2
+        if 	fullRuleSet == true && fa < min(fb, fc, fd)
+          	b, c, d = (b, c, d)./3   # here we replaced 'halve' by 'reduce to third'
 			@printf "Rule=1, a = %4.2f, b = %4.2f, c = %4.2f, d = %4.2f" a b c d
 			println()
-			@printf "         fa= %4.2f, fb= %4.2f, cf= %4.2f, fd= %4.2f" lossa lossb lossc lossd
+			@printf "         fa= %4.2f, fb= %4.2f, cf= %4.2f, fd= %4.2f" fa fb fc fd
 			println()
+			continue          # jump, because only this rule should be triggered
 		end # if
 		#-------------------------------------------------------------------------
-		# Rule #2 If the HEIGHT at point D is less than the HEIGHT at points A, B, 	# and C then halve values of A, B, and C
+		# Rule #2 If the HEIGHT at point D is less than the HEIGHT at points A, B, 	# and C then **reduce** values of A, B, and C **to a third**
         # i.e. bring them closer to the original point
-        if 	!(fullRuleSet == false) && lossd < min(lossa, lossb, lossc)
-			a, b, c, d = abs.(((abs.((a, b, c, d) .- d) ./2) .- 1.0))
+        if 	fullRuleSet == true && fd < min(fa, fb, fc)
+			a, b, c, d = abs.(((abs.((a, b, c, d) .- d) ./3) .- 1.0))
 			@printf "Rule=2, a = %4.2f, b = %4.2f, c = %4.2f, d = %4.2f" a b c d
 			println()
-			@printf "         fa= %4.2f, fb= %4.2f, cf= %4.2f, fd= %4.2f" lossa lossb lossc lossd
+			@printf "         fa= %4.2f, fb= %4.2f, cf= %4.2f, fd= %4.2f" fa fb fc fd
 			println()
+			continue          # jump, because only this rule should be triggered
 		end # if
 		#--------------------------------------------------------------------------
 		# Rule #3 If the HEIGHT at point b is less than the HEIGHT at point c then
         #                     point d becomes point c, and
         #                     point b becomes 1/3 between a and new d
         #                     point c becomes 2/3 between a and new d
-        if (lossb < lossc)
-			d = c
-			da = abs(d - a)        # new interval length
-			b = a + da/3.0
-			c = d - da/3.0
+        if (fb < fc)
+			d    = c
+			da   = abs(d - a)        # new interval length
+			b, c = a + da/3.0, d - da/3.0
 			@printf "Rule=3, a = %4.2f, b = %4.2f, c = %4.2f, d = %4.2f" a b c d
 			println()
-			@printf "         fa= %4.2f, fb= %4.2f, cf= %4.2f, fd= %4.2f" lossa lossb lossc lossd
+			@printf "         fa= %4.2f, fb= %4.2f, cf= %4.2f, fd= %4.2f" fa fb fc fd
 			println()
+			continue          # jump, because only this rule should be triggered
 		end # if
 		#--------------------------------------------------------------------------
 		# Rule #4 If the HEIGHT at point c is less than the HEIGHT at point b then
         #                     point a becomes point b, and
         #                     point b becomes 1/3 between new a and d
         #                     point c becomes 2/3 between new a and d
-        if(lossc < lossb)
-			a = b
-			da = abs(d - a)        # new interval length
-			b = a + da/3
-			c = d - da/3
+        if(fc < fb)
+			a    = b
+			da   = abs(d - a)        # new interval length
+			b, c = a + da/3.0, d - da/3.0
 			@printf "Rule=4, a = %4.2f, b = %4.2f, c = %4.2f, d = %4.2f" a b c d
 			println()
-			@printf "         fa= %4.2f, fb= %4.2f, cf= %4.2f, fd= %4.2f" lossa lossb lossc lossd
+			@printf "         fa= %4.2f, fb= %4.2f, cf= %4.2f, fd= %4.2f" fa fb fc fd
 			println()
+			continue          # jump, because only this rule should be triggered
 		end # if 
 		#-------------------------------------------------------------------------
-		nIter += 1
 	end # while
 	# FINAL SOLUTION IS AVERAGE OF B and C
 	solution = (b + c)/2.0
-   	drawFunction(lossFunction, xs, title=title, 
+   	drawFunction(lossF, xs, title=title, 
 		a=a, b=b, c=c, d=d, solution=solution)
 end # function lineSearch
 
 # ╔═╡ 31059150-2869-4fc8-a30a-9776eb89de89
-lineSearch(f000, xs, maxIter=40, title=L"f000")
+lineSearch(f000, maxIter=40, title=L"f000")
 
 # ╔═╡ 72da834e-1b1c-4e0d-ba52-843aabef7a58
-lineSearch(f000, xs, maxIter=40, title=L"f000", fullRuleSet=true)
+lineSearch(f000, maxIter=40, title=L"f000", fullRuleSet=true)
 
 # ╔═╡ 0a5cc19f-3a5f-4e95-9d7a-23fa2748ec8c
-lineSearch(f025, xs, maxIter=40, title=L"f025")
+lineSearch(f025, maxIter=40, title=L"f025")
 
 # ╔═╡ 00bf8f5e-b389-4fbf-ae5e-eaf95f7b919d
-lineSearch(f025, xs, maxIter=40, title=L"f025", fullRuleSet=true)
+lineSearch(f025, maxIter=40, title=L"f025", fullRuleSet=true)
 
 # ╔═╡ 0e5e00f4-7413-4be8-bbc3-e16098a9c606
-lineSearch(f050, xs, maxIter=40, title=L"f050")
+lineSearch(f050, maxIter=40, title=L"f050")
 
 # ╔═╡ 8f27b412-135e-4e99-beb1-cbefce8963ff
-lineSearch(f050, xs, maxIter=40, title=L"f050", fullRuleSet=true)
+lineSearch(f050, maxIter=40, title=L"f050", fullRuleSet=true)
 
 # ╔═╡ fde4daf8-947e-4bb8-9c4a-5f44085fded0
-lineSearch(f075, xs, maxIter=40, title=L"f075")
+lineSearch(f075, maxIter=40, title=L"f075")
 
 # ╔═╡ e11ecb82-b39d-4abd-a8d6-6e6068450e60
-lineSearch(f075, xs, maxIter=40, title=L"f075", fullRuleSet=true)
+lineSearch(f075, maxIter=40, title=L"f075", fullRuleSet=true)
 
 # ╔═╡ 9428b675-4da2-4e82-8be2-9b8c09facdbc
-lineSearch(f100, xs, maxIter=40, title=L"f100")
+lineSearch(f100, maxIter=40, title=L"f100")
 
 # ╔═╡ 37d84b24-02b4-4d58-b97e-defeb668a52c
-lineSearch(f100, xs, maxIter=40, title=L"f100", fullRuleSet=true)
+lineSearch(f100, maxIter=40, title=L"f100", fullRuleSet=true)
 
 # ╔═╡ 6347ed78-6ed6-40a2-9d0d-d9527ad29b2f
-lineSearch(simple1D, xs, maxIter=40, title=L"simple1D")
+lineSearch(simple1D, maxIter=40, title=L"simple1D")
 
 # ╔═╡ 91efeb59-29ae-4706-a599-d37aefb43ac9
-lineSearch(simple1D, xs, maxIter=40, title=L"simple1D", fullRuleSet=true)
+lineSearch(simple1D, maxIter=40, title=L"simple1D", fullRuleSet=true)
 
 # ╔═╡ d53f1a12-5926-4cf7-97f8-2836cfceb150
 md"
 ---
 ###### 2.2.2 Zero-Order Line Search (a la [Wikipedia, *Ternary Search*](https://en.wikipedia.org/wiki/Ternary_search))
+
+$\;$
+
+[*Run-time order*](https://cp-algorithms.com/num_methods/ternary_search.html) using the [*master theorem*](https://en.wikipedia.org/wiki/Master_theorem_(analysis_of_algorithms)) has been reported as
+
+$T(n) = T \left(\frac{2 n}{3} \right) + O(1) = \Theta(\log ⁡ n ).$
+
+$\;$
+$\;$
+
+###### 2.2.2.1 Iterative *Ternary* Search
 "
 
 # ╔═╡ 8637818c-ccf3-4994-b192-18197f994357
-function ternarySearch(f::Function, l, r; eps=0.0001, maxIter=20)
+function iterativeTernarySearch(f::Function, l, r; eps=0.0001, maxIter=20)
 	drl   = abs(r - l)         # length of interval dlr = |r - l|
 	nIter = 0
 	while (eps < drl) && (nIter < maxIter)
 		nIter += 1
-		m1 = l + drl / 3
-		m2 = r - drl / 3
-		@printf "\nnIter=%3i, drl=%3.2f, l=%3.2f, m1=%3.2f, m2=%3.2f, r=%3.2f" nIter drl l m1 m2 r
-		f1 = f(m1)             # evaluates the function at m1
-		f2 = f(m2)             # evaluates the function at m2
-		if (f1 > f2)
-			l = m1
+		ml, mr = l + drl / 3.0, r - drl / 3.0
+		@printf "\nnIter=%3i, drl=%3.2f, l=%3.2f, ml=%3.2f, mr=%3.2f, r=%3.2f" nIter drl l ml mr r
+		fml, fmr = f(ml), f(mr)  # evaluates the function at middle left and right
+		if (fml > fmr)
+			l = ml
 		else
-			r = m2
+			r = mr
 		end # if
 		drl = abs(r - l)       # length of modified interval dlr = |r - l|
 	end # while
 	# return the minimmum of f(x) in [l, r]
-	fmin = (f(l) + f(r))/2.0
-	nIter, l, r, fmin      
-end # function ternarySearch
+	xmin, fmin = (l + r)/2.0, (f(l) + f(r))/2.0
+	(nIter=nIter, xmin=xmin, fmin=fmin)      
+end # function iterativeTernarySearch
 
 # ╔═╡ 4f60fc1e-a12e-45ba-9a19-efca894436be
-ternarySearch(f000, 0.0, 1.0, maxIter=30)
+iterativeTernarySearch(f000, 0.0, 1.0, maxIter=30)
 
 # ╔═╡ 65551d99-d9ca-4894-8b7d-a6d998fdf864
-ternarySearch(f025, 0.0, 1.0, maxIter=30)
+iterativeTernarySearch(f025, 0.0, 1.0, maxIter=30)
 
 # ╔═╡ 054e0144-158f-47be-8665-43f835b7b35b
-ternarySearch(f050, 0.0, 1.0, maxIter=30)
+iterativeTernarySearch(f050, 0.0, 1.0, maxIter=30)
 
 # ╔═╡ d9c5efb0-8f37-48f6-ab4e-4d26eaaeed39
-ternarySearch(f075, 0.0, 1.0, maxIter=30)
+iterativeTernarySearch(f075, 0.0, 1.0, maxIter=30)
 
 # ╔═╡ 67bc3003-8aae-4c8d-be2a-b0e0ab5be74b
-ternarySearch(f100, 0.0, 1.0, maxIter=30)
+iterativeTernarySearch(f100, 0.0, 1.0, maxIter=30)
 
 # ╔═╡ ea60704c-f603-4e5d-af4c-cb5118ac49cc
-ternarySearch(simple1D, 0.0, 1.0, maxIter=30)
+iterativeTernarySearch(simple1D, 0.0, 1.0, maxIter=30)
+
+# ╔═╡ e1419ea1-208e-4a80-b1f7-2865ed34b8c0
+md"
+---
+###### 2.2.2.2 Recursive *Ternary* Search
+"
+
+# ╔═╡ 291ad4b8-5060-406a-bc70-f418274ea980
+function recursiveTernarySearch(f::Function, l, r; eps=0.0001, nIter=0, maxIter=20)
+	drl   = abs(r - l)          # length of interval dlr = |r - l|
+	if (eps > drl) || (nIter > maxIter)
+		nIter += 1
+		# return the minimmum of f(x) in [l, r]
+		xmin, fmin = (l + r)/2.0, (f(l) + f(r))/2.0
+		return (nIter=nIter, xmin=xmin, fmin=fmin)
+	else
+		nIter += 1
+		ml, mr = l + drl / 3.0, r - drl / 3.0
+		@printf "\nnIter=%3i, drl=%3.2f, l=%3.2f, ml=%3.2f, mr=%3.2f, r=%3.2f" nIter drl l ml mr r
+		fml, fmr = f(ml), f(mr)  # evaluates the function at middle left and right
+		if (fml > fmr)
+			l = ml
+			recursiveTernarySearch(f::Function, l, r; eps=0.0001, nIter=nIter, maxIter=maxIter)
+		else
+			r = mr
+			recursiveTernarySearch(f::Function, l, r; eps=0.0001, nIter=nIter,maxIter=maxIter)
+		end # if
+	end # if
+end # function recursiveTernarySearch
+
+# ╔═╡ 42baafcb-8e7c-4bef-9348-567ec9bc18cd
+recursiveTernarySearch(f000, 0.0, 1.0, maxIter=30)
+
+# ╔═╡ 9e997463-e66c-4c68-a265-562bda03cd06
+recursiveTernarySearch(f025, 0.0, 1.0, maxIter=30)
+
+# ╔═╡ 23b8aaae-eb10-4e48-a50c-3292259fa926
+recursiveTernarySearch(f050, 0.0, 1.0, maxIter=30)
+
+# ╔═╡ 2bc49b98-83e7-4ed5-a1da-392f087256ff
+recursiveTernarySearch(f075, 0.0, 1.0, maxIter=30)
+
+# ╔═╡ 258508a6-05c4-4b02-abd8-9ff823f1ecd9
+recursiveTernarySearch(f100, 0.0, 1.0, maxIter=30)
+
+# ╔═╡ 5e3f787d-596b-4438-adf4-fd24b91d81e9
+recursiveTernarySearch(simple1D, 0.0, 1.0, maxIter=30)
 
 # ╔═╡ 93b3caf3-74aa-4ec0-b158-b7c1c116ed60
 md"
@@ -336,17 +391,19 @@ md"
 
 - **Murphy, K.P.**; *Machine Learning: A Probabilistic Perspective*, Cambridge,Mass.: MIT Press, 2012
 
-- **Murphy, K.P.**; [Probabilistic Machine Learning: An Introduction](https://probml.github.io/pml-book/book1.html), Cambridge,Mass.: MIT Press, 2022; last visit 2024/09/06
+- **Murphy, K.P.**; [Probabilistic Machine Learning: An Introduction](https://probml.github.io/pml-book/book1.html), Cambridge,Mass.: MIT Press, 2022; last visit: 2024/09/06
 
-- **Murphy, K.P.**; [Probabilistic Machine Learning: Advanced Topics](https://github.com/probml/pml2-book/releases/latest/download/book2.pdf), Cambridge,Mass.: MIT Press, 2023; last visit 2024/09/06
+- **Murphy, K.P.**; [Probabilistic Machine Learning: Advanced Topics](https://github.com/probml/pml2-book/releases/latest/download/book2.pdf), Cambridge,Mass.: MIT Press, 2023; last visit: 2024/09/06
 
-- **Prince, S.J.D.**; [*Understanding Deep Learning*](https://udlbook.github.io/udlbook/); MIT Press, 2024, last visit 2024/08/21
+- **Prince, S.J.D.**; [*Understanding Deep Learning*](https://udlbook.github.io/udlbook/); MIT Press, 2024, last visit: 2024/08/21
 
-- **Prince, S.J.D.**; [*Notebook 6.1 Line search*](https://github.com/udlbook/udlbook/blob/main/Notebooks/Chap06/6_1_Line_Search.ipynb); last visit 2024/09/16
+- **Prince, S.J.D.**; [*Notebook 6.1 Line search*](https://github.com/udlbook/udlbook/blob/main/Notebooks/Chap06/6_1_Line_Search.ipynb); last visit: 2024/09/16
 
-- **Wikipedia**; [*Line Search*](https://en.wikipedia.org/wiki/Line_search); last visit, 2024/09/16
+- **Wikipedia**; [*Line Search*](https://en.wikipedia.org/wiki/Line_search); last visit: 2024/09/16
 
-- **Wikipedia**; [*Ternary Search*](https://en.wikipedia.org/wiki/Ternary_search); last visit, 2024/09/16
+- **Wikipedia**; [*Master Theorem*](https://en.wikipedia.org/wiki/Master_theorem_(analysis_of_algorithms)); last visit: 2024/09/20
+
+- **Wikipedia**; [*Ternary Search*](https://en.wikipedia.org/wiki/Ternary_search); last visit: 2024/09/16
 
 "
 
@@ -2504,6 +2561,14 @@ version = "1.4.1+1"
 # ╠═d9c5efb0-8f37-48f6-ab4e-4d26eaaeed39
 # ╠═67bc3003-8aae-4c8d-be2a-b0e0ab5be74b
 # ╠═ea60704c-f603-4e5d-af4c-cb5118ac49cc
+# ╟─e1419ea1-208e-4a80-b1f7-2865ed34b8c0
+# ╠═291ad4b8-5060-406a-bc70-f418274ea980
+# ╠═42baafcb-8e7c-4bef-9348-567ec9bc18cd
+# ╠═9e997463-e66c-4c68-a265-562bda03cd06
+# ╠═23b8aaae-eb10-4e48-a50c-3292259fa926
+# ╠═2bc49b98-83e7-4ed5-a1da-392f087256ff
+# ╠═258508a6-05c4-4b02-abd8-9ff823f1ecd9
+# ╠═5e3f787d-596b-4438-adf4-fd24b91d81e9
 # ╟─93b3caf3-74aa-4ec0-b158-b7c1c116ed60
 # ╟─72754696-589b-404e-9ee2-eca1f5916783
 # ╟─f2249c7f-0246-4f70-848a-22aec7fecf2a
