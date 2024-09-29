@@ -38,6 +38,7 @@ md"
 md"
 ---
 ##### 0. Introduction
+In this subchapter we deal with *gradient-free* search methods in $\mathbb R^2$-parameter space. Here we estimate the *two* parameters (intercept and slope) of simple *univariate* regression. The first method is the brute-force *grid search*. The second is the *multivariate* extension of the univariate *ternary* line-search of the former chapter. Wereas the first method was already proposed in [Prince's notebook 6.2](https://github.com/udlbook/udlbook/blob/main/Notebooks/Chap06/6_2_Gradient_Descent.ipynb), the second method is new and presented here for the first time.
 "
 
 # ╔═╡ d604d796-072d-442b-bfc3-0000d5b6464d
@@ -415,6 +416,9 @@ end # let
 md"
 ---
 ##### 4. Summary
+We presented two *gradient-free* search methods in $\mathbb R^2$-parameter space. We estimated the *two* parameters (intercept and slope) of simple *univariate* regression. The first method was the brute-force *grid search*. The second is the *multivariate* extension of the univariate *ternary* line-search of the former chapter. Wereas the first method was already proposed in [Prince's notebook 6.2](https://github.com/udlbook/udlbook/blob/main/Notebooks/Chap06/6_2_Gradient_Descent.ipynb), the second method is new and presented here for the first time.
+
+Of course both methods generate approximately identical solutions. The second method reuses the *univariate ternary line* search algorithm. But instead of moving *several* search steps along *one* parameter dimension and the move on to the next dimension the new algorithm moves only *one* step in *each* dimension and then selects the next dimension.
 "
 
 # ╔═╡ 6264f7fc-c988-40e3-9b7f-6e8aa335de2a
