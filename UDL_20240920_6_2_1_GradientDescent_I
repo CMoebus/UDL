@@ -29,7 +29,7 @@ md"
 #### UDL\_20240920\_6\_2\_1\_Gradient\_Descent\_I
 ##### file: UDL\_20240920\_6\_2\_1\_GradientDescent\_I.jl
 ##### libraries: Julia 1.10.5/Pluto 0.19.46/Lux 0.5.63/LuxCUDA 0.3.3 
-##### code by *** PCM 2024/09/29 ***
+##### code by *** PCM 2024/09/30 ***
 
 ===================================================================================
 "
@@ -152,9 +152,11 @@ end # let
 # Initialize the parameters to argmin loss values
 let
 	ϕ    = zeros(Float64, M)
-	ϕ[1] =  0.65     # Intercept
-	ϕ[2] =  0.65     # Slope
-	drawModelLine(data, model, ϕ, title=L"best\ fit\ regression")
+	ϕ[1] =  ϕ1 = 0.65     # Intercept
+	ϕ[2] =  ϕ2 = 0.65     # Slope
+	drawModelLine(data, model, ϕ, title=L"grid\ search\ regression")
+	annotate!(1.5, 0.4, "intercept = $ϕ1", 10)
+	annotate!(1.5, 0.3, "slope = $ϕ2", 10)
 end # let
 
 # ╔═╡ 17f85bb5-a649-442b-8296-9e5e46dd9107
@@ -352,25 +354,22 @@ Each unidimensional line search algorithm runs only *one* step. This is controll
 "
 
 # ╔═╡ 113e94f0-50c3-4dd9-8c33-132bca06b427
-let myLoss    = mySumOfSquares,
-	maxLoop   = 30,
-	maxIter   =  1,
-	thresh    = 0.0001,
-	whileLoop = 0,
-	ϕ0        = 0.0, ϕ1 = 0.0,                           # initial values
-    oneThird  = 1.0/3.0,
+function lineSearch2D(myLoss, ϕs; xs=xs, a=0.0, d=1.0, title="", thresh = 0.0001,maxLoop   = 30, maxIter = 1, fullRuleSet=false)
+	whileLoop = 0                                       # counter
+	ϕ0        = ϕs[1]; ϕ1 = ϕs[2]                       # initial values
+    oneThird  = 1.0/3.0
 	#------------------------------------------------------------------------------
-	aϕ0   = 0.0, dϕ0 = 1.0,                              # initial values
-	dadϕ0 = abs(aϕ0 - dϕ0), 
-	bϕ0 = aϕ0 + oneThird*dadϕ0, 
-	cϕ0 = dϕ0 - oneThird*dadϕ0,
-	ϕ0 = (bϕ0 + cϕ0)/2.0,
+	aϕ0   = 0.0; dϕ0 = 1.0                              # initial values
+	dadϕ0 = abs(aϕ0 - dϕ0) 
+	bϕ0   = aϕ0 + oneThird * dadϕ0 
+	cϕ0   = dϕ0 - oneThird * dadϕ0
+	ϕ0    = (bϕ0 + cϕ0)/2.0
 	#------------------------------------------------------------------------------
-	aϕ1   = 0.0, dϕ1 = 1.0,                              # initial values
-	dadϕ1 = abs(aϕ1 - dϕ1), 
-	bϕ1   = aϕ1 + oneThird*dadϕ1, 
-	cϕ1   = dϕ1 - oneThird*dadϕ1,
-	ϕ1 = (bϕ1 + cϕ1)/2.0
+	aϕ1   = 0.0; dϕ1 = 1.0                              # initial values
+	dadϕ1 = abs(aϕ1 - dϕ1) 
+	bϕ1   = aϕ1 + oneThird * dadϕ1 
+	cϕ1   = dϕ1 - oneThird * dadϕ1
+	ϕ1    = (bϕ1 + cϕ1)/2.0
 	#-------------------------------------------------------------------------------
 	while (thresh < abs(bϕ0 - cϕ0) || thresh < abs(bϕ1 - cϕ1)) && whileLoop < maxLoop
 		whileLoop += 1
@@ -379,11 +378,11 @@ let myLoss    = mySumOfSquares,
 		#---------------------------------------------------------------------------
 		lossFϕ0 = makeLossFϕ0(ϕ0, myLoss, model)                    # make closure
 		(aϕ0, bϕ0, cϕ0, dϕ0, ϕ0) = 
-			lineSearch(lossFϕ0; a=aϕ0, d=dϕ0, title="ϕ0", thresh = 0.0001, maxIter = maxIter)
+			lineSearch(lossFϕ0; a=aϕ0, d=dϕ0, title="ϕ0", thresh = thresh, maxIter = maxIter)
 		#---------------------------------------------------------------------------
 		lossFϕ1 = makeLossFϕ1(ϕ1, myLoss, model)                    # make closure
 		(aϕ1, bϕ1, cϕ1, dϕ1, ϕ1) = 
-			lineSearch(lossFϕ1; a=aϕ1, d=dϕ1, title="ϕ1", thresh = 0.0001, maxIter = maxIter)
+			lineSearch(lossFϕ1; a=aϕ1, d=dϕ1, title="ϕ1", thresh = thresh, maxIter = maxIter)
 		#---------------------------------------------------------------------------
 	end # while
 	#------------------------------------------------------------------------------
@@ -394,22 +393,29 @@ let myLoss    = mySumOfSquares,
 	plot2 = drawFunction(lossFϕ1, [ϕ1 for ϕ1 in 0.0:0.01:2.0]; title="", a=aϕ1, b=bϕ1, c=cϕ1, d=dϕ1, solution=ϕ1, xlimits=(-0.003, +2.003), ylimits=(0.0, 3.0))
 	#------------------------------------------------------------------------------
 	plot(plot1, plot2)	
-end # let
+end # function lineSearch2D
+
+# ╔═╡ 38109e77-0e50-40d1-bd51-3557c9ff59bd
+lineSearch2D(mySumOfSquares, [0.0, 1.0])
 
 # ╔═╡ 517cd6e5-45f3-4a2a-b0ec-492c12e4d80b
 # Initialize the parameters to argmin loss values
 let ϕ    = zeros(Float64, M)
-	ϕ[1] =  0.68     # Intercept ϕ0
-	ϕ[2] =  0.65     # Slope ϕ1
-	drawModelLine(data, model, ϕ, title=L"grid\ search:\ best\ fit\ regression")
+	ϕ[1] = ϕ1 = 0.65     # Intercept
+	ϕ[2] = ϕ2 = 0.65     # Slope
+	drawModelLine(data, model, ϕ, title=L"grid\ search:\ regression")
+	annotate!(1.5, 0.4, "intercept = $ϕ1", 10)
+	annotate!(1.5, 0.3, "slope = $ϕ2", 10)
 end # let
 
 # ╔═╡ b0d59e8d-1e11-41e4-8abb-8f44d623de1a
 # Initialize the parameters to argmin loss values
 let ϕ    = zeros(Float64, M)
-	ϕ[1] =  0.68     # Intercept ϕ0
-	ϕ[2] =  0.65     # Slope ϕ1
-	drawModelLine(data, model, ϕ, title=L"nested\ iteration:\ best\ fit\ regression")
+	ϕ[1] = ϕ1 = 0.68     # Intercept
+	ϕ[2] = ϕ2 = 0.65     # Slope
+	drawModelLine(data, model, ϕ, title=L"lineSearch2D:\ best\ fit\ regression")
+	annotate!(1.5, 0.4, "intercept = $ϕ1", 10)
+	annotate!(1.5, 0.3, "slope = $ϕ2", 10)
 end # let
 
 # ╔═╡ 17eae731-0711-4977-b11f-0a32e8787e7e
@@ -2929,6 +2935,7 @@ version = "1.4.1+1"
 # ╠═e9080985-5bd9-4558-81f3-bf99ae1af4f0
 # ╟─eb34214b-90dd-44d4-b675-06fb5d4c6b58
 # ╠═113e94f0-50c3-4dd9-8c33-132bca06b427
+# ╠═38109e77-0e50-40d1-bd51-3557c9ff59bd
 # ╠═517cd6e5-45f3-4a2a-b0ec-492c12e4d80b
 # ╠═b0d59e8d-1e11-41e4-8abb-8f44d623de1a
 # ╟─17eae731-0711-4977-b11f-0a32e8787e7e
