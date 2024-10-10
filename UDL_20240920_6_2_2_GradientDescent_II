@@ -74,6 +74,7 @@ end # begin
 # ╔═╡ 52e4a0f1-6617-4072-bb54-3f7baf0dfefc
 begin
 	X    = hcat(xs, ones(Float64, length(xs)))
+	# matrix division '\'
 	dataMatrix = hcat(ys, X)
 	ϕs = X \ ys                          # ϕs = [slope, intercept]
 	ϕ1 = ϕs[1]                           # slope
@@ -271,6 +272,7 @@ let ϕs0 = [0.0, 0.0]                               # initial start vector
 	ϕ1   = round(Optim.minimizer(result)[2], digits=3)
 	fmin = round(Optim.minimum(result), digits=4)
 	println("intercept ϕ0 = $ϕ0, slope ϕ1 = $ϕ1, minimum = $fmin") 
+	result
 end # let
 
 # ╔═╡ 9d5843f1-ab2a-4991-94ab-27caa857983c
@@ -287,6 +289,7 @@ let ϕs0 = [0.0, 0.0]                               # initial start vector
 	ϕ1   = round(Optim.minimizer(result)[2], digits=3)
 	fmin = round(Optim.minimum(result), digits=4)
 	println("intercept ϕ0 = $ϕ0, slope ϕ1 = $ϕ1, minimum = $fmin") 
+	result
 end # let
 
 # ╔═╡ 957cc415-1acb-404f-8774-ccbb42d6e9c9
@@ -303,6 +306,7 @@ let ϕs0 = [0.0, 0.0]                               # initial start vector
 	ϕ1   = round(Optim.minimizer(result)[2], digits=3)
 	fmin = round(Optim.minimum(result), digits=4)
 	println("intercept ϕ0 = $ϕ0, slope ϕ1 = $ϕ1, minimum = $fmin") 
+	result
 end # let
 
 # ╔═╡ 58db7524-9511-4e81-af91-479939bedd16
@@ -319,6 +323,7 @@ let ϕs0 = [0.0, 0.0]                               # initial start vector
 	ϕ1   = round(Optim.minimizer(result)[2], digits=3)
 	fmin = round(Optim.minimum(result), digits=4)
 	println("intercept ϕ0 = $ϕ0, slope ϕ1 = $ϕ1, minimum = $fmin") 
+	result
 end # let
 
 # ╔═╡ afc76958-3f88-411d-b3b1-e7f22d749e68
@@ -335,6 +340,7 @@ let ϕs0 = [0.0, 0.0]                               # initial start vector
 	ϕ1   = round(Optim.minimizer(result)[2], digits=3)
 	fmin = round(Optim.minimum(result), digits=4)
 	println("intercept ϕ0 = $ϕ0, slope ϕ1 = $ϕ1, minimum = $fmin") 
+	result
 end # let
 
 # ╔═╡ ae2c2fa8-9650-4270-bd2e-d78aa0ff0e79
@@ -367,6 +373,7 @@ let x0 = [0.0, 0.0]
 	x2   = round(Optim.minimizer(result)[2], digits=3)
 	fmin = round(Optim.minimum(result), digits=4)
 	println("x1 = $x1, x2 = $ϕ1, minimum = $fmin") 
+	result
 end # let
 
 # ╔═╡ 73f3c42a-f9de-462b-9c3e-c422b99a7bfd
@@ -456,6 +463,7 @@ let ϕs0 = [0.0, 0.0]                               # initial start vector
 	ϕ1   = round(Optim.minimizer(result)[2], digits=3)
 	fmin = round(Optim.minimum(result), digits=4)
 	println("intercept ϕ0 = $ϕ0, slope ϕ1 = $ϕ1, minimum = $fmin") 
+	result
 end # let
 
 # ╔═╡ 506a80e9-e209-4596-a32c-a8eb7766496e
@@ -470,6 +478,7 @@ let ϕs0 = [0.0, 0.0]                               # initial start vector
 	ϕ1   = round(Optim.minimizer(result)[2], digits=3)
 	fmin = round(Optim.minimum(result), digits=4)
 	println("intercept ϕ0 = $ϕ0, slope ϕ1 = $ϕ1, minimum = $fmin") 
+	result
 end # let
 
 # ╔═╡ 690e7a77-6086-4596-a7e1-27e822efbdca
