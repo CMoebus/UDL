@@ -266,7 +266,11 @@ end # function f_SoSq_Resid
 
 # ╔═╡ 8bbc11bd-aeb3-488b-9600-0b1a64c948a9
 let ϕs0 = [0.0, 0.0]                               # initial start vector
-	optimize(f_SoSq_Resid, ϕs0, NelderMead())
+	result = optimize(f_SoSq_Resid, ϕs0, NelderMead())
+	ϕ0   = round(Optim.minimizer(result)[1], digits=3)
+	ϕ1   = round(Optim.minimizer(result)[2], digits=3)
+	fmin = round(Optim.minimum(result), digits=4)
+	println("intercept ϕ0 = $ϕ0, slope ϕ1 = $ϕ1, minimum = $fmin") 
 end # let
 
 # ╔═╡ 9d5843f1-ab2a-4991-94ab-27caa857983c
@@ -278,7 +282,11 @@ md"
 
 # ╔═╡ caa6b443-d585-4a30-a588-b16bd0f0ea3e
 let ϕs0 = [0.0, 0.0]                               # initial start vector
-	optimize(f_SoSq_Resid, ϕs0, BFGS())
+	result = optimize(f_SoSq_Resid, ϕs0, BFGS())
+	ϕ0   = round(Optim.minimizer(result)[1], digits=3)
+	ϕ1   = round(Optim.minimizer(result)[2], digits=3)
+	fmin = round(Optim.minimum(result), digits=4)
+	println("intercept ϕ0 = $ϕ0, slope ϕ1 = $ϕ1, minimum = $fmin") 
 end # let
 
 # ╔═╡ 957cc415-1acb-404f-8774-ccbb42d6e9c9
@@ -290,7 +298,11 @@ md"
 
 # ╔═╡ fdf8a1ac-a367-4442-8d21-e4a40f268f61
 let ϕs0 = [0.0, 0.0]                               # initial start vector
-	optimize(f_SoSq_Resid, ϕs0, BFGS(); autodiff = :forward)
+	result = optimize(f_SoSq_Resid, ϕs0, BFGS(); autodiff = :forward)
+	ϕ0   = round(Optim.minimizer(result)[1], digits=3)
+	ϕ1   = round(Optim.minimizer(result)[2], digits=3)
+	fmin = round(Optim.minimum(result), digits=4)
+	println("intercept ϕ0 = $ϕ0, slope ϕ1 = $ϕ1, minimum = $fmin") 
 end # let
 
 # ╔═╡ 58db7524-9511-4e81-af91-479939bedd16
@@ -302,7 +314,11 @@ md"
 
 # ╔═╡ 9d96e2d2-1305-4895-a797-ee7cd001a990
 let ϕs0 = [0.0, 0.0]                               # initial start vector
-	optimize(f_SoSq_Resid, ϕs0, LBFGS())
+	result = optimize(f_SoSq_Resid, ϕs0, LBFGS())
+	ϕ0   = round(Optim.minimizer(result)[1], digits=3)
+	ϕ1   = round(Optim.minimizer(result)[2], digits=3)
+	fmin = round(Optim.minimum(result), digits=4)
+	println("intercept ϕ0 = $ϕ0, slope ϕ1 = $ϕ1, minimum = $fmin") 
 end # let
 
 # ╔═╡ afc76958-3f88-411d-b3b1-e7f22d749e68
@@ -314,7 +330,11 @@ md"
 
 # ╔═╡ 9226f38a-7653-4089-ab00-ff7255f17971
 let ϕs0 = [0.0, 0.0]                               # initial start vector
-	optimize(f_SoSq_Resid, ϕs0, LBFGS(); autodiff = :forward)
+	result = optimize(f_SoSq_Resid, ϕs0, LBFGS(); autodiff = :forward)
+	ϕ0   = round(Optim.minimizer(result)[1], digits=3)
+	ϕ1   = round(Optim.minimizer(result)[2], digits=3)
+	fmin = round(Optim.minimum(result), digits=4)
+	println("intercept ϕ0 = $ϕ0, slope ϕ1 = $ϕ1, minimum = $fmin") 
 end # let
 
 # ╔═╡ ae2c2fa8-9650-4270-bd2e-d78aa0ff0e79
@@ -342,7 +362,11 @@ md"
 
 # ╔═╡ b8261a18-a166-4eac-96ba-2be6ab30ecd6
 let x0 = [0.0, 0.0]  
-	optimize(f_Rosenbrock, g!, x0, BFGS())
+	result = optimize(f_Rosenbrock, g!, x0, BFGS())
+	x1   = round(Optim.minimizer(result)[1], digits=3)
+	x2   = round(Optim.minimizer(result)[2], digits=3)
+	fmin = round(Optim.minimum(result), digits=4)
+	println("x1 = $x1, x2 = $ϕ1, minimum = $fmin") 
 end # let
 
 # ╔═╡ 73f3c42a-f9de-462b-9c3e-c422b99a7bfd
@@ -352,7 +376,11 @@ md"
 
 # ╔═╡ 31040720-a55a-4ce7-8da3-9ae9c8594f55
 let x0 = [0.0, 0.0]  
-	optimize(f_Rosenbrock, g!, x0, LBFGS())
+	result = optimize(f_Rosenbrock, g!, x0, LBFGS())
+	x1   = round(Optim.minimizer(result)[1], digits=3)
+	x2   = round(Optim.minimizer(result)[2], digits=3)
+	fmin = round(Optim.minimum(result), digits=4)
+	println("x1 = $x1, x2 = $ϕ1, minimum = $fmin") 
 end # let
 
 # ╔═╡ 66851374-631f-40d5-9015-49336354597c
@@ -423,7 +451,11 @@ md"
 
 # ╔═╡ 51db07d2-bbc0-4fad-9fbe-c9d2ad869d0f
 let ϕs0 = [0.0, 0.0]                               # initial start vector
-	optimize(f_SoSq_Resid, gSoSq!, ϕs0, BFGS())
+	result = optimize(f_SoSq_Resid, gSoSq!, ϕs0, BFGS())
+	ϕ0   = round(Optim.minimizer(result)[1], digits=3)
+	ϕ1   = round(Optim.minimizer(result)[2], digits=3)
+	fmin = round(Optim.minimum(result), digits=4)
+	println("intercept ϕ0 = $ϕ0, slope ϕ1 = $ϕ1, minimum = $fmin") 
 end # let
 
 # ╔═╡ 506a80e9-e209-4596-a32c-a8eb7766496e
@@ -433,7 +465,11 @@ md"
 
 # ╔═╡ fde39536-9e0c-48dd-803b-43869c9ae7ba
 let ϕs0 = [0.0, 0.0]                               # initial start vector
-	optimize(f_SoSq_Resid, gSoSq!, ϕs0, LBFGS())
+	result = optimize(f_SoSq_Resid, gSoSq!, ϕs0, LBFGS())
+	ϕ0   = round(Optim.minimizer(result)[1], digits=3)
+	ϕ1   = round(Optim.minimizer(result)[2], digits=3)
+	fmin = round(Optim.minimum(result), digits=4)
+	println("intercept ϕ0 = $ϕ0, slope ϕ1 = $ϕ1, minimum = $fmin") 
 end # let
 
 # ╔═╡ 690e7a77-6086-4596-a7e1-27e822efbdca
