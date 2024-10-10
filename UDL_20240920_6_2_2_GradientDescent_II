@@ -16,10 +16,12 @@ begin
 	using LuxCUDA
 	using ADTypes, Zygote
 	using Symbolics
+	using Optim
 	println("pkgversion(Pluto)     = ", pkgversion(Pluto))
 	println("pkgversion(Lux)       = ", pkgversion(Lux))
 	println("pkgversion(LuxCUDA)   = ", pkgversion(LuxCUDA))
 	println("pkgversion(Symbolics) = ", pkgversion(Symbolics))
+	println("pkgversion(Optim)     = ", pkgversion(Optim))
 end # begin
 
 # ╔═╡ 69cab7ae-7a75-11ef-10af-abb7c0706f1c
@@ -28,7 +30,7 @@ md"
 #### UDL\_20240920\_6\_2\_2\_Gradient\_Descent\_II
 ##### file: UDL\_20240920\_6\_2\_2\_GradientDescent\_II.jl
 ##### libraries: Julia 1.10.5/Pluto 0.19.46/Lux 0.5.63/LuxCUDA 0.3.3 
-##### code by *** PCM 2024/10/09 ***
+##### code by *** PCM 2024/10/10 ***
 
 ===================================================================================
 "
@@ -37,7 +39,11 @@ md"
 md"
 ---
 ##### 0. Introduction
-The problem is to find the *gradient vector* of a simple univariate regression model. First,  we hand calculate the gradient according the rules we learnt in school. Then, we try to solve this problem symbolically by using $Symbolics.jl$. 
+The problem is to *minimize* the *residual sum-of-squares* loss function of a simple *univariate regression* model. To that end we try to find the *gradient vector* of the loss $mySumOfSquares$. The symbolic gradient is useful for some minimizing algorithms.
+
+First,  we try to get the *symbolical form* of the gradient. We calculate the gradient by hand according to the rules we learnt in school. As an alternative we try to obtain the symbolic form of the gradient by machine using the library $Symbolics.jl$. Unfortunately this ends in a failure. $Symbolics.jl$ is in a premature state.
+
+Second, we minimize $mySumOfSquares$ *gradient-free*, with *numerical approximated* gradients, and then provided with our symbolic hand-calculated gradients as explicit code.
 "
 
 # ╔═╡ 5e71c231-5266-4f87-98f4-bf1c7c5b491f
@@ -244,12 +250,200 @@ The result is only partial correct. The $sum$ is missing. This is due to the fac
 
 "
 
+# ╔═╡ 8d5953fc-a9ea-467d-ada7-c3154a96f816
+md"
+---
+##### 4. Minimization with $Optim.jl$
+###### 4.1 *Gradient-free* or *Gradient-approximated* Minimization
+###### 4.1.1 Residual $mySumOfSquares$ Minimization with *Nelder-Mead*
+
+"
+
+# ╔═╡ 3015e363-77f8-4974-b6f3-33f2059d59f9
+function f_SoSq_Resid(ϕs) 
+	mySumOfSquares(ys, xs, ϕs)
+end # function f_SoSq_Resid
+
+# ╔═╡ 8bbc11bd-aeb3-488b-9600-0b1a64c948a9
+let ϕs0 = [0.0, 0.0]                               # initial start vector
+	optimize(f_SoSq_Resid, ϕs0, NelderMead())
+end # let
+
+# ╔═╡ 9d5843f1-ab2a-4991-94ab-27caa857983c
+md"
+---
+###### 4.1.2 *Gradient-free* Minimization with *BFGS*, a quasi-Newton method
+
+"
+
+# ╔═╡ caa6b443-d585-4a30-a588-b16bd0f0ea3e
+let ϕs0 = [0.0, 0.0]                               # initial start vector
+	optimize(f_SoSq_Resid, ϕs0, BFGS())
+end # let
+
+# ╔═╡ 957cc415-1acb-404f-8774-ccbb42d6e9c9
+md"
+---
+###### 4.1.3 *Gradient-free* Minimization with *BFGS* and *Auto-differentiation*
+
+"
+
+# ╔═╡ fdf8a1ac-a367-4442-8d21-e4a40f268f61
+let ϕs0 = [0.0, 0.0]                               # initial start vector
+	optimize(f_SoSq_Resid, ϕs0, BFGS(); autodiff = :forward)
+end # let
+
+# ╔═╡ 58db7524-9511-4e81-af91-479939bedd16
+md"
+---
+###### 4.1.4 *Gradient-free* Minimization with *L-BFGS*, a quasi-Newton method
+
+"
+
+# ╔═╡ 9d96e2d2-1305-4895-a797-ee7cd001a990
+let ϕs0 = [0.0, 0.0]                               # initial start vector
+	optimize(f_SoSq_Resid, ϕs0, LBFGS())
+end # let
+
+# ╔═╡ afc76958-3f88-411d-b3b1-e7f22d749e68
+md"
+---
+###### 4.1.5 *Gradient-free* Minimization with *L-BFGS* and *Auto-differentiation*
+
+"
+
+# ╔═╡ 9226f38a-7653-4089-ab00-ff7255f17971
+let ϕs0 = [0.0, 0.0]                               # initial start vector
+	optimize(f_SoSq_Resid, ϕs0, LBFGS(); autodiff = :forward)
+end # let
+
+# ╔═╡ ae2c2fa8-9650-4270-bd2e-d78aa0ff0e79
+md"
+---
+###### 4.2 *Gradient-based* Minimization
+###### 4.2.1 Minimization of *Rosenbrock*-Function
+
+"
+
+# ╔═╡ 8dfed8e9-ef1b-40ea-863b-21272b6b5a29
+# Rosenbrock function
+f_Rosenbrock(x) = (1.0 - x[1])^2 + 100.0 * (x[2] - x[1]^2)^2
+
+# ╔═╡ 550a3eed-23fb-4321-be4c-2403c3c0d454
+function g!(G, x)
+    G[1] = -2.0 * (1.0 - x[1]) - 400.0 * (x[2] - x[1]^2) * x[1]
+    G[2] = 200.0 * (x[2] - x[1]^2)
+end
+
+# ╔═╡ bc25c407-0522-409c-9f43-7babaf5f63f5
+md"
+###### *Gradient-based* Minimization with *BFGS*, a quasi-Newton method
+"
+
+# ╔═╡ b8261a18-a166-4eac-96ba-2be6ab30ecd6
+let x0 = [0.0, 0.0]  
+	optimize(f_Rosenbrock, g!, x0, BFGS())
+end # let
+
+# ╔═╡ 73f3c42a-f9de-462b-9c3e-c422b99a7bfd
+md"
+###### *Gradient-based* Minimization with *L-BFGS*, a quasi-Newton method
+"
+
+# ╔═╡ 31040720-a55a-4ce7-8da3-9ae9c8594f55
+let x0 = [0.0, 0.0]  
+	optimize(f_Rosenbrock, g!, x0, LBFGS())
+end # let
+
+# ╔═╡ 66851374-631f-40d5-9015-49336354597c
+md"
+---
+###### 4.2.2 Minimization of Loss $mySumOfSquares$
+
+$\;$
+
+$\nabla L = 
+\frac{\partial L}{\partial \mathbf{\phi}} = 
+
+\left[
+	\begin{array}{c}
+	  \frac{\partial L}{\partial \phi_0} \\
+	  \frac{\partial L}{\partial \phi_1}
+	\end{array}
+\right] = 
+
+\left[
+	\begin{array}{c}
+  		\sum_{i=1}^N(-2y_i + 2\phi_0 + 2\phi_1x_i) \\
+		\sum_{i=1}^N(-2x_i y_i + 2\phi_0x_i + 2\phi_1x_i^2) 
+	\end{array}
+\right] = 
+
+\left[
+	\begin{array}{c}
+  		- 2\sum_{i=1}^N(y_i - (\phi_0 + \phi_1x_i)) \\
+		- 2\sum_{i=1}^N x_i(y_i - (\phi_0 + \phi_1x_i)) 
+	\end{array}
+\right]$
+
+$\;$
+$\;$
+$\;$
+$\;$
+"
+
+# ╔═╡ aa8d9da3-7a03-4057-a7ec-9e0a41255ac8
+function grad1(ϕs)
+	residuals = Array{Float64}(undef, N)
+	for i in 1:N
+		residuals[i] = ys[i] - (ϕs[1] + ϕs[2]*xs[i])
+	end # for i
+	-2.0 * sum(residual -> residual, residuals)
+end # function grad1
+
+# ╔═╡ 9a087780-1b64-4430-8347-3625c844c7a9
+function grad2(ϕs)
+	x_residuals = Array{Float64}(undef, N)
+	for i in 1:N
+		x_residuals[i] = xs[i]*(ys[i] - (ϕs[1] + ϕs[2]*xs[i]))
+	end # for i
+	-2.0 * sum(residual -> residual, x_residuals)
+end # function grad2
+
+# ╔═╡ f160f7e3-71d1-4701-b093-fc925bef419d
+function gSoSq!(G, ϕs)
+    G[1] = grad1(ϕs)
+    G[2] = grad2(ϕs)
+end # gSoSq!
+
+# ╔═╡ 923c3180-54f5-4ef3-a5d0-4ffb6aa86a9e
+md"
+###### *Gradient-based* Minimization with *BFGS*, a quasi-Newton method
+"
+
+# ╔═╡ 51db07d2-bbc0-4fad-9fbe-c9d2ad869d0f
+let ϕs0 = [0.0, 0.0]                               # initial start vector
+	optimize(f_SoSq_Resid, gSoSq!, ϕs0, BFGS())
+end # let
+
+# ╔═╡ 506a80e9-e209-4596-a32c-a8eb7766496e
+md"
+###### *Gradient-based* Minimization with *LBFGS*, a quasi-Newton method
+"
+
+# ╔═╡ fde39536-9e0c-48dd-803b-43869c9ae7ba
+let ϕs0 = [0.0, 0.0]                               # initial start vector
+	optimize(f_SoSq_Resid, gSoSq!, ϕs0, LBFGS())
+end # let
+
 # ╔═╡ 690e7a77-6086-4596-a7e1-27e822efbdca
 md"
 ---
-##### 4. Summary
+##### 5. Summary
 
 We hand-calculated the gradient vector with the rules we learnt in school. then we tried the same with $symbolics.jl$. This was a complete failure when there are arrays in the code.
+
+After that we tried various minimization algorithms provided by $Optim.jl$. They ranged from *gradient-free* over *gradient-approximated* to *gradient-based* minimization methods. All worked - as expected - satisfactorily.
 
 "
 
@@ -292,6 +486,7 @@ LaTeXStrings = "b964fa9f-0449-5b57-a5c2-d3ea65f4040f"
 Latexify = "23fbe1c1-3f47-55db-b15f-69d7ec21a316"
 Lux = "b2108857-7c20-44ae-9111-449ecde12c47"
 LuxCUDA = "d0bbae9a-e099-4d5b-a835-1c6931763bda"
+Optim = "429524aa-4258-5aef-a3af-852621145aeb"
 Optimisers = "3bd65402-5787-11e9-1adc-39752487f4e2"
 Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
 Pluto = "c3e4b0f8-55cb-11ea-2926-15256bba5781"
@@ -307,6 +502,7 @@ LaTeXStrings = "~1.3.1"
 Latexify = "~0.16.5"
 Lux = "~0.5.63"
 LuxCUDA = "~0.3.3"
+Optim = "~1.9.4"
 Optimisers = "~0.3.3"
 Plots = "~1.40.8"
 Pluto = "~0.19.46"
@@ -320,7 +516,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.10.5"
 manifest_format = "2.0"
-project_hash = "8a7bc63b9fc87d3fcf9c430cae9db4fbc899c40a"
+project_hash = "0e90f0efc183ca852cf28a715d40082fd667e5a0"
 
 [[deps.ADTypes]]
 git-tree-sha1 = "99a6f5d0ce1c7c6afdb759daa30226f71c54f6b0"
@@ -862,6 +1058,22 @@ weakdeps = ["PDMats", "SparseArrays", "Statistics"]
     FillArraysSparseArraysExt = "SparseArrays"
     FillArraysStatisticsExt = "Statistics"
 
+[[deps.FiniteDiff]]
+deps = ["ArrayInterface", "LinearAlgebra", "Setfield", "SparseArrays"]
+git-tree-sha1 = "f9219347ebf700e77ca1d48ef84e4a82a6701882"
+uuid = "6a86dc24-6348-571c-b903-95158fe2bd41"
+version = "2.24.0"
+
+    [deps.FiniteDiff.extensions]
+    FiniteDiffBandedMatricesExt = "BandedMatrices"
+    FiniteDiffBlockBandedMatricesExt = "BlockBandedMatrices"
+    FiniteDiffStaticArraysExt = "StaticArrays"
+
+    [deps.FiniteDiff.weakdeps]
+    BandedMatrices = "aae01518-5342-5314-be14-df237901396f"
+    BlockBandedMatrices = "ffab5731-97b5-5995-9138-79e8c1846df0"
+    StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
+
 [[deps.FixedPointNumbers]]
 deps = ["Statistics"]
 git-tree-sha1 = "05882d6995ae5c12bb5f36dd2ed3f61c98cbb172"
@@ -1305,6 +1517,12 @@ git-tree-sha1 = "5ee6203157c120d79034c748a2acba45b82b8807"
 uuid = "38a345b3-de98-5d2b-a5d3-14cd9215e700"
 version = "2.40.1+0"
 
+[[deps.LineSearches]]
+deps = ["LinearAlgebra", "NLSolversBase", "NaNMath", "Parameters", "Printf"]
+git-tree-sha1 = "e4c3be53733db1051cc15ecf573b1042b3a712a1"
+uuid = "d3d80556-e9d4-5f37-9878-2ab0fcc64255"
+version = "7.3.0"
+
 [[deps.LinearAlgebra]]
 deps = ["Libdl", "OpenBLAS_jll", "libblastrampoline_jll"]
 uuid = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
@@ -1585,6 +1803,12 @@ git-tree-sha1 = "d0a6b1096b584a2b88efb70a92f8cb8c881eb38a"
 uuid = "d8a4904e-b15c-11e9-3269-09a3773c0cb0"
 version = "1.4.6"
 
+[[deps.NLSolversBase]]
+deps = ["DiffResults", "Distributed", "FiniteDiff", "ForwardDiff"]
+git-tree-sha1 = "a0b464d183da839699f4c79e7606d9d186ec172c"
+uuid = "d41bc354-129a-5804-8e4c-c37616107c6c"
+version = "7.8.3"
+
 [[deps.NNlib]]
 deps = ["Adapt", "Atomix", "ChainRulesCore", "GPUArraysCore", "KernelAbstractions", "LinearAlgebra", "Random", "Statistics"]
 git-tree-sha1 = "4a83c2e01027a0bfcea28589222f2df60b2e20cb"
@@ -1686,6 +1910,18 @@ git-tree-sha1 = "13652491f6856acfd2db29360e1bbcd4565d04f1"
 uuid = "efe28fd5-8261-553b-a9e1-b2916fc3738e"
 version = "0.5.5+0"
 
+[[deps.Optim]]
+deps = ["Compat", "FillArrays", "ForwardDiff", "LineSearches", "LinearAlgebra", "NLSolversBase", "NaNMath", "Parameters", "PositiveFactorizations", "Printf", "SparseArrays", "StatsBase"]
+git-tree-sha1 = "d9b79c4eed437421ac4285148fcadf42e0700e89"
+uuid = "429524aa-4258-5aef-a3af-852621145aeb"
+version = "1.9.4"
+
+    [deps.Optim.extensions]
+    OptimMOIExt = "MathOptInterface"
+
+    [deps.Optim.weakdeps]
+    MathOptInterface = "b8f27783-ece8-5eb3-8dc8-9495eed66fee"
+
 [[deps.Optimisers]]
 deps = ["ChainRulesCore", "Functors", "LinearAlgebra", "Random", "Statistics"]
 git-tree-sha1 = "6572fe0c5b74431aaeb0b18a4aa5ef03c84678be"
@@ -1719,6 +1955,12 @@ deps = ["Artifacts", "Cairo_jll", "Fontconfig_jll", "FreeType2_jll", "FriBidi_jl
 git-tree-sha1 = "e127b609fb9ecba6f201ba7ab753d5a605d53801"
 uuid = "36c8627f-9965-5494-a995-c6b170f724f3"
 version = "1.54.1+0"
+
+[[deps.Parameters]]
+deps = ["OrderedCollections", "UnPack"]
+git-tree-sha1 = "34c0e9ad262e5f7fc75b10a9952ca7692cfc5fbe"
+uuid = "d96e819e-fc66-5662-9728-84c9c7592b0a"
+version = "0.12.3"
 
 [[deps.Parsers]]
 deps = ["Dates", "PrecompileTools", "UUIDs"]
@@ -1803,6 +2045,12 @@ deps = ["DataAPI", "Future"]
 git-tree-sha1 = "36d8b4b899628fb92c2749eb488d884a926614d3"
 uuid = "2dfb63ee-cc39-5dd5-95bd-886bf059d720"
 version = "1.4.3"
+
+[[deps.PositiveFactorizations]]
+deps = ["LinearAlgebra"]
+git-tree-sha1 = "17275485f373e6673f7e7f97051f703ed5b15b20"
+uuid = "85a6dd25-e78a-55b7-8502-1745935b8125"
+version = "0.2.4"
 
 [[deps.PrecompileSignatures]]
 git-tree-sha1 = "18ef344185f25ee9d51d80e179f8dad33dc48eb1"
@@ -2752,6 +3000,32 @@ version = "1.4.1+1"
 # ╟─bce71087-2096-4547-9761-733db52c4970
 # ╠═f089ccff-96fe-4730-aa51-5c2376b0d60d
 # ╟─2d27cbaf-30fe-483f-ab5b-68e20c5aba6d
+# ╟─8d5953fc-a9ea-467d-ada7-c3154a96f816
+# ╠═3015e363-77f8-4974-b6f3-33f2059d59f9
+# ╠═8bbc11bd-aeb3-488b-9600-0b1a64c948a9
+# ╟─9d5843f1-ab2a-4991-94ab-27caa857983c
+# ╠═caa6b443-d585-4a30-a588-b16bd0f0ea3e
+# ╟─957cc415-1acb-404f-8774-ccbb42d6e9c9
+# ╠═fdf8a1ac-a367-4442-8d21-e4a40f268f61
+# ╟─58db7524-9511-4e81-af91-479939bedd16
+# ╠═9d96e2d2-1305-4895-a797-ee7cd001a990
+# ╟─afc76958-3f88-411d-b3b1-e7f22d749e68
+# ╠═9226f38a-7653-4089-ab00-ff7255f17971
+# ╟─ae2c2fa8-9650-4270-bd2e-d78aa0ff0e79
+# ╠═8dfed8e9-ef1b-40ea-863b-21272b6b5a29
+# ╠═550a3eed-23fb-4321-be4c-2403c3c0d454
+# ╟─bc25c407-0522-409c-9f43-7babaf5f63f5
+# ╠═b8261a18-a166-4eac-96ba-2be6ab30ecd6
+# ╟─73f3c42a-f9de-462b-9c3e-c422b99a7bfd
+# ╠═31040720-a55a-4ce7-8da3-9ae9c8594f55
+# ╟─66851374-631f-40d5-9015-49336354597c
+# ╠═aa8d9da3-7a03-4057-a7ec-9e0a41255ac8
+# ╠═9a087780-1b64-4430-8347-3625c844c7a9
+# ╠═f160f7e3-71d1-4701-b093-fc925bef419d
+# ╟─923c3180-54f5-4ef3-a5d0-4ffb6aa86a9e
+# ╠═51db07d2-bbc0-4fad-9fbe-c9d2ad869d0f
+# ╟─506a80e9-e209-4596-a32c-a8eb7766496e
+# ╠═fde39536-9e0c-48dd-803b-43869c9ae7ba
 # ╟─690e7a77-6086-4596-a7e1-27e822efbdca
 # ╟─fe147f1a-fe64-44fc-ab10-ee4e0d7e392c
 # ╟─81dc7d42-d3ab-45f5-94ee-648cbb8bbbea
