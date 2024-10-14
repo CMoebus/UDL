@@ -12,14 +12,14 @@ begin
 	using LaTeXStrings, Latexify
 	using Statistics
 	using Printf
-	using Lux, Optimisers, Random
-	using LuxCUDA
-	using ADTypes, Zygote
+	# using Lux, Optimisers, Random
+	# using LuxCUDA
+	# using ADTypes, Zygote
 	using Symbolics
 	using Optim
 	println("pkgversion(Pluto)     = ", pkgversion(Pluto))
-	println("pkgversion(Lux)       = ", pkgversion(Lux))
-	println("pkgversion(LuxCUDA)   = ", pkgversion(LuxCUDA))
+	# println("pkgversion(Lux)       = ", pkgversion(Lux))
+	# println("pkgversion(LuxCUDA)   = ", pkgversion(LuxCUDA))
 	println("pkgversion(Symbolics) = ", pkgversion(Symbolics))
 	println("pkgversion(Optim)     = ", pkgversion(Optim))
 end # begin
@@ -29,8 +29,8 @@ md"
 =====================================================================================
 #### UDL\_20240920\_6\_2\_2\_Gradient\_Descent\_II
 ##### file: UDL\_20240920\_6\_2\_2\_GradientDescent\_II.jl
-##### libraries: Julia 1.10.5/Pluto 0.19.46/Lux 0.5.63/LuxCUDA 0.3.3 
-##### code by *** PCM 2024/10/10 ***
+##### libraries: Julia 1.10.5/Pluto 19.46/Symbolics 6.7.0/Optim 1.9.4
+##### code by *** PCM 2024/10/14 ***
 
 ===================================================================================
 "
@@ -39,11 +39,11 @@ md"
 md"
 ---
 ##### 0. Introduction
-The problem is to *minimize* the *residual sum-of-squares* loss function of a simple *univariate regression* model. To that end we try to find the *gradient vector* of the loss $mySumOfSquares$. The symbolic gradient is useful for some minimizing algorithms.
+The task is to *minimize* the *residual sum-of-squares* (*RSS*) loss of a simple *univariate regression* model. Some minimization algorithms expect explicitly coded *gradients* and even *Hessians* of the loss function. To that end we try to find the *gradient* vector and the *Hessian* matrix of *RSS*.
 
-First,  we try to get the *symbolical form* of the gradient. We calculate the gradient by hand according to the rules we learnt in school. As an alternative we try to obtain the symbolic form of the gradient by machine using the library $Symbolics.jl$. Unfortunately this ends in a failure. $Symbolics.jl$ is in a premature state.
+First,  we obtain the *symbolical* form of gradient and Hessian. We calculate both by applying scalar and matrix calculus according to the rules some of us learnt in school or university. As a more modern alternative we try to obtain the symbolic form of the gradient by machine using $Symbolics.jl$.
 
-Second, we minimize $mySumOfSquares$ *gradient-free*, with *numerical approximated* gradients, and then provided with our symbolic hand-calculated gradients as explicit code.
+Then, we minimize $myRSS$ *gradient-free*, with *numerical approximated*, and with *explicitly coded* gradients and Hessians.
 "
 
 # ╔═╡ 5e71c231-5266-4f87-98f4-bf1c7c5b491f
@@ -56,14 +56,15 @@ md"
 md"
 ---
 ##### 2. Training Data
+(obtained from Prince's [Notebook 6.2 Gradient descent](https://github.com/udlbook/udlbook/blob/main/Notebooks/Chap06/6_2_Gradient_Descent.ipynb))
 
 "
 
 # ╔═╡ 01a61a30-e22c-4907-9e38-c6a045e8bd06
-# training data 12 pairs {x_i, y_i}
+# training data: 12 pairs {x_i, y_i}
 begin
-	N = 12; M =  2
-	data = Array{Float64}(undef, (M, N))
+	n = 12; m =  2
+	data = Array{Float64}(undef, (m, n))
 	data = [
 		[0.03, 0.19, 0.34, 0.46, 0.78, 0.81, 1.08, 1.18, 1.39, 1.60, 1.65, 1.90],
     	[0.67, 0.85, 1.05, 1.00, 1.40, 1.50, 1.30, 1.54, 1.55, 1.68, 1.73, 1.60]]
@@ -73,66 +74,91 @@ end # begin
 
 # ╔═╡ 52e4a0f1-6617-4072-bb54-3f7baf0dfefc
 begin
-	X    = hcat(xs, ones(Float64, length(xs)))
+	X    = hcat(ones(Float64, length(xs)), xs)
 	# matrix division '\'
-	dataMatrix = hcat(ys, X)
-	ϕs = X \ ys                          # ϕs = [slope, intercept]
-	ϕ1 = ϕs[1]                           # slope
-	ϕ0 = ϕs[2]                           # intercept
-	ϕs, dataMatrix
+	ysX = hcat(ys, X)                    # data matrix
+	ϕs = X \ ys                          # ϕs = [intercept, slope]
+	ϕ0 = ϕs[1]                           # intercept
+	ϕ1 = ϕs[2]                           # slope
+	ϕs, ysX 
 end # begin
 
+# ╔═╡ 17fbe234-61b1-47bd-ad4d-0e7a902dccdf
+X
+
 # ╔═╡ 692866e7-2a2e-4604-be0c-8348e3112044
-dataMatrix
+ysX                     # dataMatrix
 
 # ╔═╡ 39b048c3-9103-4b45-9067-8884a4deea30
 typeof(xs)
 
+# ╔═╡ bd4ca233-86c9-47a4-b3a1-bcb440c72e8e
+ϕs
+
 # ╔═╡ 39834ab0-a965-47cc-bdd8-b73aaac376de
-# residuals sum of squares with one vector parameter ϕs
-function mySumOfSquares(ys, xs, ϕs) # 1st method
-	ϕ0 = ϕs[1]
-	ϕ1 = ϕs[2]
-	ysHat     = ϕ0 .+ ϕ1 .* xs      # broadcasting shows that xs and ysHat are arrays
-	residuals = ys - ysHat          # if ysHat is array the residuals and ys are, too
-	mySoSq = sum(residual -> residual^2, residuals, init=0.0)
-end # function mySumOfSquares
+# 1st method: residuals sum of squares with vectors ys, xs, 
+#   and parameter vector ϕs
+function myRSS(ys::Vector{Float64}, xs::Vector{Float64}, ϕs::Vector{Float64})
+	# ϕs[1] = ϕ0 = intercept 
+	# ϕs[2] = ϕ1 = slope
+	ysHat = ϕs[1] .+ ϕs[2] .* xs   # broadcasting shows that xs, ysHat are arrays
+	es    = ys - ysHat          # if ysHat is array the residuals and ys are, too
+	soSq  = sum(e -> e^2, es, init=0.0)
+end # function myRSS
 
 # ╔═╡ 981e6fa9-f7b2-45d1-ac55-f626bfc799f8
-# residuals sum of squares with two scalar parameters ϕ0, ϕ1
-function mySumOfSquares(ys, xs, ϕ0, ϕ1) # 2nd method
-	ysHat     = ϕ0 .+ ϕ1 .* xs      # broadcasting shows that xs and ysHat are arrays
-	residuals = ys - ysHat          # if ysHat is array the residuals and ys are, too
-	mySoSq = sum(residual -> residual^2, residuals, init=0.0)
-end # function mySumOfSquares
+# 2nd method: residuals sum of squares with vectors ys, xs, 
+#   and scalar parameters ϕ0, ϕ1
+function myRSS(ys::Vector{Float64}, xs::Vector{Float64}, 
+	ϕ0::Float64, ϕ1::Float64)  
+	ysHat = ϕ0 .+ ϕ1 .* xs      # broadcasting shows that xs and ysHat are arrays
+	es    = ys - ysHat          # if ysHat is array the residuals es and ys are, too
+	soSq  = sum(e -> e^2, es, init=0.0)
+end # function myRSS
+
+# ╔═╡ 283b1783-c58c-454a-b0a0-3639f2f17be3
+# 3rd method: residuals sum of squares with matrix X, vector ys,
+#   and parameter vector ϕs
+function myRSS(ys::Vector{Float64}, X::Matrix{Float64}, ϕs::Vector{Float64})
+	ysHat = X * ϕs       
+	es    = ys - ysHat         
+	soSq  = es' * es
+end # function myRSS
 
 # ╔═╡ c96d95f9-3b0b-4271-8620-276f658794a1
-mySumOfSquares(ys, xs, [ϕ0, ϕ1])
+myRSS(ys, xs, ϕs)          # ==> 0.19 --> :)
 
 # ╔═╡ 7769114d-41b8-480d-8bcf-a491dfe48db6
-mySumOfSquares(ys, xs, ϕ0, ϕ1)
+myRSS(ys, xs, ϕ0, ϕ1)      # ==> 0.19 --> :)
+
+# ╔═╡ b25a77e3-9a24-4d09-ae78-f74b7343170d
+myRSS(ys, X, ϕs)          # ==> 0.19 --> :)
 
 # ╔═╡ 4fdefe6f-4100-4753-a94d-8f76bc5a7512
 md"
 ---
 ##### 3. Gradients
-###### 3.1 Old School *Hand-calculated* Partial Derivatives
-Now let's compute the *gradient* vector for a given set of parameters of the loss function $L$:
+###### 3.1 *Gradient*, *Jacobian*, and *Hessian* with Scalar Components
+###### 3.1.1 *Gradient* with Scalar Components
+---
+###### 3.1.1.1 Old-school Hand-calculated
+Now let's compute the *gradient* vector for a given set of parameters of the loss function $L_{sosq}$:
 
-$L = \sum_{i=1}^N \left(y_i - \hat y_i\right)^2 = \sum_{i=1}^N \left(y_i - (\phi_0 + \phi_1 x_i)\right)^2 = \sum_{i=1}^N \left(y_i - \phi_0 - \phi_1 x_i\right)^2$
+
+$L_{RSS} = \sum_{i=1}^N \left(y_i - \hat y_i\right)^2 = \sum_{i=1}^N \left(y_i - (\phi_0 + \phi_1 x_i)\right)^2 = \sum_{i=1}^N \left(y_i - \phi_0 - \phi_1 x_i\right)^2$
 
 $\;$
 $\;$
 $\;$
 
 
-$\nabla L = 
-\frac{\partial L}{\partial \mathbf{\phi}} = 
+$\mathbf{\nabla} L_{RSS} = 
+\frac{\partial L_{RSS}}{\partial \mathbf{\phi}} = 
 
 \left[
 	\begin{array}{c}
-	  \frac{\partial L}{\partial \phi_0} \\
-	  \frac{\partial L}{\partial \phi_1}
+	  \frac{\partial L_{RSS}}{\partial \phi_0} \\
+	  \frac{\partial L_{RSS}}{\partial \phi_1}
 	\end{array}
 \right] = 
 
@@ -153,121 +179,229 @@ $\nabla L =
 $\;$
 $\;$
 $\;$
-$\;$
-
-or in *finite differences* 
-
-
-$\nabla L = \frac{\partial L}{\partial \mathbf{\phi}} = \left[
-	\begin{array}{c}
-  		\frac{\partial L}{\partial \phi_0} \\
-  		\frac{\partial L}{\partial \phi_1}
-	\end{array} \right] 
-\approx \left[
-	\begin{array}{c}
-		\frac{L[ϕ_0 + δ_0, ϕ_1] − L[ϕ_0, ϕ_1]}{δ_0} \\
- 		\frac{L[ϕ_0, ϕ_1 + δ_1] − L[ϕ_0, ϕ_1]}{δ_1} 
-	\end{array} \right]$
-
-$\;$
-$\;$
-$\;$
-$\;$
 
 "
 
 # ╔═╡ 8b008bd5-f7c2-41c3-ae88-9a95fc23e6a6
 md"
 ---
-###### 3.2 *Machine-calculated* Partial Derivatives with $Symbolics.jl$
-###### 3.2.1 Partial Derivative with Vector Parameter $\phi s$
+###### 3.1.1.2 *Machine-calculated* with [Symbolics.jl](https://symbolics.juliasymbolics.org/stable/)
 
-"
+After studying the rather cryptic doc, consulting Chris Rackauckas, and even ChatGPT this is the most I could press out of Symbolics.jl. The result is correct but rather low level. It has to be abstracted by hand :(.
 
-# ╔═╡ 0ffcd2db-1013-41ae-b63a-650af43f8bbb
-let 
-	@variables sym_xs[1:N], sym_ys[1:N], sym_ϕs[1:2]
-	println(typeof(sym_xs)), println(typeof(sym_ys)), println(typeof(sym_ϕs))
-	Dsym_ϕs = Differential(sym_ϕs)
-	println(Dsym_ϕs)
-    println(typeof(Dsym_ϕs))
-	println(expand_derivatives(Dsym_ϕs(mySumOfSquares(sym_ys, sym_xs, sym_ϕs))))
-	#-----------------------------------------------------------------------------
-end # let
-
-# ╔═╡ c212455d-713a-4de6-91ea-c4ddc5baf658
-md"
-The disappointing result message is that Symbolics.jl *fails* to differentiate the *residual sum of squares* of the fairly standard simple univariate regression problem.
-"
-
-# ╔═╡ 5f7c5140-72fd-453c-a74a-c701f25d70c1
-md"
----
-###### 3.2.2 Partial Derivative with Scalar Parameters $\phi 0, \phi 1$
 "
 
 # ╔═╡ d23e6ce3-fbbc-459a-8701-15ea71aab820
 let 
-	@variables sym_xs[1:N], sym_ys[1:N], sym_ϕ0, sym_ϕ1
-	println(typeof(sym_xs)), println(typeof(sym_ys)), println(typeof(sym_ϕ0)), println(typeof(sym_ϕ1)) 
-	Dsym_ϕ0 = Differential(sym_ϕ0)
-	Dsym_ϕ1 = Differential(sym_ϕ1)
-	println(Dsym_ϕ0)
-	println(Dsym_ϕ1)
-	println(typeof(Dsym_ϕ0)), println(typeof(Dsym_ϕ1))
-	println(expand_derivatives(Dsym_ϕ0(mySumOfSquares(sym_ys, sym_xs, sym_ϕ0, sym_ϕ1))))
-	println(expand_derivatives(Dsym_ϕ1(mySumOfSquares(sym_ys, sym_xs, sym_ϕ0, sym_ϕ1))))
-	#-----------------------------------------------------------------------------
+	@variables x[1:n], y[1:n], ϕ0, ϕ1
+	rSS = sum((y[i]- (ϕ0 + ϕ1*x[i]))^2 for i in 1:n)
+	grad_rSS = Symbolics.gradient(rSS, [ϕ0, ϕ1])
+	simplify(grad_rSS)
 end # let
 
-# ╔═╡ e5c2911e-34be-4135-8f8e-fb9170c4e2d0
-md"
-Here also the disappointing result message is that Symbolics.jl *fails* to differentiate the *residual sum of squares* of the fairly standard simple univariate regression problem.
-"
-
-# ╔═╡ bce71087-2096-4547-9761-733db52c4970
+# ╔═╡ 78dde7e2-ba95-4fa1-84b5-dbb49e015beb
 md"
 ---
-###### 3.2.3 Partial Derivative of Scalars with Scalar Parameters $\phi 0, \phi 1$
+###### 3.1.2 *Jacobian* with Scalar Components
+
 "
 
-# ╔═╡ f089ccff-96fe-4730-aa51-5c2376b0d60d
-let 
-	@variables sym_xs, sym_ys, sym_ϕ0, sym_ϕ1
-	println(typeof(sym_xs)), println(typeof(sym_ys)), println(typeof(sym_ϕ0)), println(typeof(sym_ϕ1)) 
-	Dsym_ϕ0 = Differential(sym_ϕ0)
-	Dsym_ϕ1 = Differential(sym_ϕ1)
-	println(Dsym_ϕ0)
-	println(Dsym_ϕ1)
-	println(typeof(Dsym_ϕ0)), println(typeof(Dsym_ϕ1))
-	println(expand_derivatives(Dsym_ϕ0(mySumOfSquares(sym_ys, sym_xs, sym_ϕ0, sym_ϕ1))))
-	println(expand_derivatives(Dsym_ϕ1(mySumOfSquares(sym_ys, sym_xs, sym_ϕ0, sym_ϕ1))))
-	#-----------------------------------------------------------------------------
-end # let
-
-# ╔═╡ 2d27cbaf-30fe-483f-ab5b-68e20c5aba6d
+# ╔═╡ a6c23967-24d7-4921-af8e-a64a61522c87
 md"
-The result is only partial correct. The $sum$ is missing. This is due to the fact that $sym_xs, sym_ys$ were *not* declared as *arrays* and that $Symbolics.jl$ ignored the $sum$-function in the body of the 2nd method $mySumOfSquares(ys, xs, ϕs)$.
 
+The *Jacobian* matrix $\mathbf J_{RSS}$ is the transponent of the gradient vector $\nabla L_{RSS}$
+
+$\mathbf J_{RSS} = \nabla' L_{RSS} = 
+\left[\frac{\partial L_{RSS}}{\partial \mathbf{\phi}}\right]' = 
+
+\left[
+	\begin{array}{c}
+	  \frac{\partial L_{RSS}}{\partial \phi_0} \\
+	  \frac{\partial L_{RSS}}{\partial \phi_1}
+	\end{array}
+\right]' =
+
+\left[
+	\begin{array}{cc}
+	  \frac{\partial L_{RSS}}{\partial \phi_0} &&
+	  \frac{\partial L_{RSS}}{\partial \phi_1}
+	\end{array}
+\right] =$ 
+
+$\;$
+$\;$
+$\;$
+$\;$
+
+$= \left[
+	\begin{array}{cc}
+  		- 2\sum_{i=1}^N(y_i - (\phi_0 + \phi_1x_i)) &&
+		- 2\sum_{i=1}^N x_i(y_i - (\phi_0 + \phi_1x_i))
+	\end{array}
+\right]$
+
+$\;$
+$\;$
+$\;$
+
+"
+
+# ╔═╡ a3be7271-30ed-4e9f-86f3-073acd298521
+md"
+---
+###### 3.1.3 *Hessian* with Scalar Components
+
+$\mathbf H = \frac{\partial \mathbf J_{RSS}}{\partial \mathbf \phi} = \left[\begin{array}{cc}
+	  \frac{\partial^2 L_{RSS}}{\partial \phi_0^2} &&
+	  \frac{\partial^2 L_{RSS}}{\partial \phi_0 \partial \phi_1} \\
+	  \frac{\partial^2 L_{RSS}}{\partial \phi_1 \partial \phi_0} &&
+	  \frac{\partial^2 L_{RSS}}{\partial \phi_1^2}
+\end{array}\right] =$
+
+$\;$
+$\;$
+$\;$
+$\;$
+$\;$
+$\;$
+
+$=\left[\begin{array}{cc}
+\frac{- 2\sum_{i=1}^N(y_i - (\phi_0 + \phi_1x_i))}{\partial \phi_0} && 
+\frac{- 2\sum_{i=1}^N(y_i - (\phi_0 + \phi_1x_i))}{\partial \phi_1} \\
+\frac{- 2\sum_{i=1}^N x_i(y_i - (\phi_0 + \phi_1x_i)))}{\partial \phi_0} && 
+\frac{- 2\sum_{i=1}^N x_i(y_i - (\phi_0 + \phi_1x_i)))}{\partial \phi_1}
+\end{array}\right]=$
+
+$\;$
+$\;$
+$\;$
+$\;$
+$\;$
+$\;$
+
+$=\left[\begin{array}{cc}
+2 \sum_{i=1}^N 1 && 2 \sum_{i=1}^N x_i \\
+2 \sum_{i=1}^N x_i && 2 \sum_{i=1}^N x_i^2
+\end{array}\right]=
+
+\left[\begin{array}{cc}
+2 N && 2 \sum_{i=1}^N x_i \\
+2 \sum_{i=1}^N x_i && 2 \sum_{i=1}^N x_i^2
+\end{array}\right].$
+
+$\;$
+$\;$
+$\;$
+$\;$
+$\;$
+$\;$
+
+"
+
+# ╔═╡ 75bd4938-d1bd-4be4-af75-3322c7232f57
+md"
+---
+###### 3.2 *Gradient*, *Jacobian*, and *Hessian* with Vectors and Matrices
+###### 3.2.1 *Gradient* of Univariate Regression Model as *Vector, Matrix* Product
+"
+
+# ╔═╡ 51fcb396-61fb-44f3-b400-6e725a6afa1b
+md"
+The univariate regression model in matrix form is:
+
+$_n\mathbf{y}_1 = _n\mathbf{X}_m \mathbf{\phi}_1 + _n\mathbf{e}_1$
+
+where:
+
+$_n\mathbf y_1 \text{ = vector of dependent variable }$
+
+$\;$
+
+$_n\mathbf X_m \text{ = matrix of m independent variables (incl. dummy variable '1')}$
+
+$\;$
+
+$_m\mathbf \phi_1 \text{ = parameter vector for m independent variables (incl. intercept)}$
+
+$\;$
+
+$_n\mathbf e_1 \text{ = vector of errors }$
+
+$\;$
+$\;$
+
+The vector of errors is
+
+$_n\mathbf e_1 = _n\mathbf y_1 - _n\mathbf X_m \mathbf \phi_1$
+
+$\;$
+$\;$
+
+and *residual sum of squares* $rSS$
+
+$\;$
+
+$L_{RSS} = \mathbf{_1e'e_1} = \mathbf{(y - X\phi)'(y - X\phi) = y'y - y'X\phi - \phi'X'y + \phi'X'X\phi}$
+
+$\;$
+
+$= \mathbf{y'y - 2y'X\phi + \phi'X'X\phi = y'y - (2y'X - \phi'X'X)\phi}$
+
+$\;$
+$\;$
+
+and the *gradient* is (s.a. [Deisenroth et al., 2024, p.158, (5.108)](https://mml-book.github.io/book/mml-book.pdf)):
+
+$\;$
+
+$\mathbf{\nabla} L_{RSS} = 
+\frac{\partial L_{RSS}}{\partial \mathbf{\phi}} =
+
+\mathbf{-2y'X - 2\phi'X'X = -2(y' - \phi'X')X = -2(y - X\phi)'X}$
+
+
+$\;$
+$\;$
+$\;$
+
+"
+
+# ╔═╡ 212a8e67-0469-4f2c-8465-f1f04945f512
+md"
+---
+###### 3.2.2 *Hessian* of Univariate Regression Model as *Matrix* Product
+
+The *Hessian* is
+
+$\;$
+
+$\frac{\partial^2 L_{RSS}}{\partial \mathbf{\phi}^2} = \frac{\partial \mathbf{\nabla} L_{RSS}}{\partial \phi} = 
+
+ \frac{\partial (\mathbf{-2(y - X\phi)'X)}}{\partial \mathbf{\phi}} = 2\mathbf{X'X}$
+
+
+$\;$
+$\;$
+$\;$
 "
 
 # ╔═╡ 8d5953fc-a9ea-467d-ada7-c3154a96f816
 md"
 ---
-##### 4. Minimization with $Optim.jl$
+##### 4. Unconstrained Minimization of RSS with [*Optim.jl*](https://julianlsolvers.github.io/Optim.jl/stable/)
 ###### 4.1 *Gradient-free* or *Gradient-approximated* Minimization
-###### 4.1.1 Residual $mySumOfSquares$ Minimization with *Nelder-Mead*
+###### 4.1.1 Minimization of RSS with [*Nelder-Mead*](https://julianlsolvers.github.io/Optim.jl/v0.9.3/algo/nelder_mead/)
 
 "
 
-# ╔═╡ 3015e363-77f8-4974-b6f3-33f2059d59f9
-function f_SoSq_Resid(ϕs) 
-	mySumOfSquares(ys, xs, ϕs)
-end # function f_SoSq_Resid
-
 # ╔═╡ 8bbc11bd-aeb3-488b-9600-0b1a64c948a9
 let ϕs0 = [0.0, 0.0]                               # initial start vector
-	result = optimize(f_SoSq_Resid, ϕs0, NelderMead())
+	#----------------------------------------------------------------------
+	function f_myRSS(ϕs::Vector{Float64}) 
+		myRSS(ys, X, ϕs)
+	end # function f_myRSS
+	#----------------------------------------------------------------------
+	result = optimize(f_myRSS, ϕs0, NelderMead())
 	ϕ0   = round(Optim.minimizer(result)[1], digits=3)
 	ϕ1   = round(Optim.minimizer(result)[2], digits=3)
 	fmin = round(Optim.minimum(result), digits=4)
@@ -278,30 +412,19 @@ end # let
 # ╔═╡ 9d5843f1-ab2a-4991-94ab-27caa857983c
 md"
 ---
-###### 4.1.2 *Gradient-free* Minimization with *BFGS*, a quasi-Newton method
+###### 4.1.2 *Gradient-free* Minimization of RSS with [*BFGS*](https://julianlsolvers.github.io/Optim.jl/v0.9.3/algo/lbfgs/), a quasi-Newton method
 
 "
 
 # ╔═╡ caa6b443-d585-4a30-a588-b16bd0f0ea3e
 let ϕs0 = [0.0, 0.0]                               # initial start vector
-	result = optimize(f_SoSq_Resid, ϕs0, BFGS())
-	ϕ0   = round(Optim.minimizer(result)[1], digits=3)
-	ϕ1   = round(Optim.minimizer(result)[2], digits=3)
-	fmin = round(Optim.minimum(result), digits=4)
-	println("intercept ϕ0 = $ϕ0, slope ϕ1 = $ϕ1, minimum = $fmin") 
-	result
-end # let
-
-# ╔═╡ 957cc415-1acb-404f-8774-ccbb42d6e9c9
-md"
----
-###### 4.1.3 *Gradient-free* Minimization with *BFGS* and *Auto-differentiation*
-
-"
-
-# ╔═╡ fdf8a1ac-a367-4442-8d21-e4a40f268f61
-let ϕs0 = [0.0, 0.0]                               # initial start vector
-	result = optimize(f_SoSq_Resid, ϕs0, BFGS(); autodiff = :forward)
+	#----------------------------------------------------------------------
+	function f_myRSS(ϕs::Vector{Float64}) 
+		myRSS(ys, X, ϕs)
+	end # function f_myRSS
+	#----------------------------------------------------------------------
+	options = Optim.Options(iterations = 2000)
+	result = optimize(f_myRSS, ϕs0, BFGS(), options)
 	ϕ0   = round(Optim.minimizer(result)[1], digits=3)
 	ϕ1   = round(Optim.minimizer(result)[2], digits=3)
 	fmin = round(Optim.minimum(result), digits=4)
@@ -312,30 +435,18 @@ end # let
 # ╔═╡ 58db7524-9511-4e81-af91-479939bedd16
 md"
 ---
-###### 4.1.4 *Gradient-free* Minimization with *L-BFGS*, a quasi-Newton method
+###### 4.1.4 *Gradient-free* Minimization of RSS with *L-BFGS*, a quasi-Newton method
 
 "
 
 # ╔═╡ 9d96e2d2-1305-4895-a797-ee7cd001a990
 let ϕs0 = [0.0, 0.0]                               # initial start vector
-	result = optimize(f_SoSq_Resid, ϕs0, LBFGS())
-	ϕ0   = round(Optim.minimizer(result)[1], digits=3)
-	ϕ1   = round(Optim.minimizer(result)[2], digits=3)
-	fmin = round(Optim.minimum(result), digits=4)
-	println("intercept ϕ0 = $ϕ0, slope ϕ1 = $ϕ1, minimum = $fmin") 
-	result
-end # let
-
-# ╔═╡ afc76958-3f88-411d-b3b1-e7f22d749e68
-md"
----
-###### 4.1.5 *Gradient-free* Minimization with *L-BFGS* and *Auto-differentiation*
-
-"
-
-# ╔═╡ 9226f38a-7653-4089-ab00-ff7255f17971
-let ϕs0 = [0.0, 0.0]                               # initial start vector
-	result = optimize(f_SoSq_Resid, ϕs0, LBFGS(); autodiff = :forward)
+	#----------------------------------------------------------------------
+	function f_myRSS(ϕs::Vector{Float64}) 
+		myRSS(ys, X, ϕs)
+	end # function f_myRSS
+	#----------------------------------------------------------------------
+	result = optimize(f_myRSS, ϕs0, LBFGS())
 	ϕ0   = round(Optim.minimizer(result)[1], digits=3)
 	ϕ1   = round(Optim.minimizer(result)[2], digits=3)
 	fmin = round(Optim.minimum(result), digits=4)
@@ -346,64 +457,23 @@ end # let
 # ╔═╡ ae2c2fa8-9650-4270-bd2e-d78aa0ff0e79
 md"
 ---
-###### 4.2 *Gradient-based* Minimization
-###### 4.2.1 Minimization of *Rosenbrock*-Function
+###### 4.2 *Gradient-based* Minimization of $L_{RSS}$
 
 "
-
-# ╔═╡ 8dfed8e9-ef1b-40ea-863b-21272b6b5a29
-# Rosenbrock function
-f_Rosenbrock(x) = (1.0 - x[1])^2 + 100.0 * (x[2] - x[1]^2)^2
-
-# ╔═╡ 550a3eed-23fb-4321-be4c-2403c3c0d454
-function g!(G, x)
-    G[1] = -2.0 * (1.0 - x[1]) - 400.0 * (x[2] - x[1]^2) * x[1]
-    G[2] = 200.0 * (x[2] - x[1]^2)
-end
-
-# ╔═╡ bc25c407-0522-409c-9f43-7babaf5f63f5
-md"
-###### *Gradient-based* Minimization with *BFGS*, a quasi-Newton method
-"
-
-# ╔═╡ b8261a18-a166-4eac-96ba-2be6ab30ecd6
-let x0 = [0.0, 0.0]  
-	result = optimize(f_Rosenbrock, g!, x0, BFGS())
-	x1   = round(Optim.minimizer(result)[1], digits=3)
-	x2   = round(Optim.minimizer(result)[2], digits=3)
-	fmin = round(Optim.minimum(result), digits=4)
-	println("x1 = $x1, x2 = $ϕ1, minimum = $fmin") 
-	result
-end # let
-
-# ╔═╡ 73f3c42a-f9de-462b-9c3e-c422b99a7bfd
-md"
-###### *Gradient-based* Minimization with *L-BFGS*, a quasi-Newton method
-"
-
-# ╔═╡ 31040720-a55a-4ce7-8da3-9ae9c8594f55
-let x0 = [0.0, 0.0]  
-	result = optimize(f_Rosenbrock, g!, x0, LBFGS())
-	x1   = round(Optim.minimizer(result)[1], digits=3)
-	x2   = round(Optim.minimizer(result)[2], digits=3)
-	fmin = round(Optim.minimum(result), digits=4)
-	println("x1 = $x1, x2 = $ϕ1, minimum = $fmin") 
-end # let
 
 # ╔═╡ 66851374-631f-40d5-9015-49336354597c
 md"
----
-###### 4.2.2 Minimization of Loss $mySumOfSquares$
+###### 4.2.1 *Gradient* with *Scalar* Components of Loss $L_{RSS}$
 
 $\;$
 
-$\nabla L = 
-\frac{\partial L}{\partial \mathbf{\phi}} = 
+$\nabla L_{RSS} = 
+\frac{\partial L_{RSS}}{\partial \mathbf{\phi}} = 
 
 \left[
 	\begin{array}{c}
-	  \frac{\partial L}{\partial \phi_0} \\
-	  \frac{\partial L}{\partial \phi_1}
+	  \frac{\partial L_{RSS}}{\partial \phi_0} \\
+	  \frac{\partial L_{RSS}}{\partial \phi_1}
 	\end{array}
 \right] = 
 
@@ -428,37 +498,61 @@ $\;$
 "
 
 # ╔═╡ aa8d9da3-7a03-4057-a7ec-9e0a41255ac8
+# 1st component of gradient
 function grad1(ϕs)
-	residuals = Array{Float64}(undef, N)
-	for i in 1:N
-		residuals[i] = ys[i] - (ϕs[1] + ϕs[2]*xs[i])
+	resSum = 0.0
+	for i in 1:n
+		resSum += ys[i] - (ϕs[1] + ϕs[2]*xs[i])
 	end # for i
-	-2.0 * sum(residual -> residual, residuals)
+	-2.0 * resSum
 end # function grad1
 
 # ╔═╡ 9a087780-1b64-4430-8347-3625c844c7a9
+# 2nd component of gradient
 function grad2(ϕs)
-	x_residuals = Array{Float64}(undef, N)
-	for i in 1:N
-		x_residuals[i] = xs[i]*(ys[i] - (ϕs[1] + ϕs[2]*xs[i]))
+	xResSum = 0.0
+	for i in 1:n
+		xResSum += xs[i]*(ys[i] - (ϕs[1] + ϕs[2]*xs[i]))
 	end # for i
-	-2.0 * sum(residual -> residual, x_residuals)
+	-2.0 * xResSum
 end # function grad2
-
-# ╔═╡ f160f7e3-71d1-4701-b093-fc925bef419d
-function gSoSq!(G, ϕs)
-    G[1] = grad1(ϕs)
-    G[2] = grad2(ϕs)
-end # gSoSq!
 
 # ╔═╡ 923c3180-54f5-4ef3-a5d0-4ffb6aa86a9e
 md"
-###### *Gradient-based* Minimization with *BFGS*, a quasi-Newton method
+###### 4.2.1.1 *Scalar-based* Gradient and Minimization with *BFGS*, a Quasi-Newton Method
+
 "
 
 # ╔═╡ 51db07d2-bbc0-4fad-9fbe-c9d2ad869d0f
 let ϕs0 = [0.0, 0.0]                               # initial start vector
-	result = optimize(f_SoSq_Resid, gSoSq!, ϕs0, BFGS())
+	#--------------------------------------------------------------------------
+	function f_myRSS(ϕs::Vector{Float64}) 
+		myRSS(ys, X, ϕs)
+	end # function f_myRSS
+	#--------------------------------------------------------------------------
+	function grad1(ϕs)
+		resSum = 0.0
+		for i in 1:n
+			resSum += (ys[i] - (ϕs[1] + ϕs[2]*xs[i]))
+		end # for i
+		-2.0 * resSum
+	end # function grad1
+	#--------------------------------------------------------------------------
+	function grad2(ϕs)
+		xResSum = 0.0
+		for i in 1:n
+			xResSum += xs[i]*(ys[i] - (ϕs[1] + ϕs[2]*xs[i]))
+		end # for i
+		-2.0 * xResSum
+	end # function grad2
+	#--------------------------------------------------------------------------
+	function g!(G, ϕs)
+	    G[1] = grad1(ϕs)
+	    G[2] = grad2(ϕs)
+	end # g!
+	#--------------------------------------------------------------------------
+	options = Optim.Options(iterations = 2000)
+	result = optimize(f_myRSS, g!, ϕs0, BFGS(), options)
 	ϕ0   = round(Optim.minimizer(result)[1], digits=3)
 	ϕ1   = round(Optim.minimizer(result)[2], digits=3)
 	fmin = round(Optim.minimum(result), digits=4)
@@ -468,12 +562,177 @@ end # let
 
 # ╔═╡ 506a80e9-e209-4596-a32c-a8eb7766496e
 md"
-###### *Gradient-based* Minimization with *LBFGS*, a quasi-Newton method
+###### 4.2.1.2 *Scalar-based* Gradient and Minimization with *LBFGS*, a Quasi-Newton Method
 "
 
 # ╔═╡ fde39536-9e0c-48dd-803b-43869c9ae7ba
 let ϕs0 = [0.0, 0.0]                               # initial start vector
-	result = optimize(f_SoSq_Resid, gSoSq!, ϕs0, LBFGS())
+	#--------------------------------------------------------------------------
+	function f_myRSS(ϕs::Vector{Float64}) 
+		myRSS(ys, X, ϕs)
+	end # function f_myRSS
+	#--------------------------------------------------------------------------
+	function g!(G, ϕs)
+	    G[1] = grad1(ϕs)
+	    G[2] = grad2(ϕs)
+	end # g!
+	#--------------------------------------------------------------------------
+	options = Optim.Options(iterations = 2000)
+	result = optimize(f_myRSS, g!, ϕs0, LBFGS(), options)
+	ϕ0   = round(Optim.minimizer(result)[1], digits=3)
+	ϕ1   = round(Optim.minimizer(result)[2], digits=3)
+	fmin = round(Optim.minimum(result), digits=4)
+	println("intercept ϕ0 = $ϕ0, slope ϕ1 = $ϕ1, minimum = $fmin") 
+	result
+end # let
+
+# ╔═╡ 2fb3c498-b8b5-40d8-9770-e6f8b6ea520b
+md"
+###### 4.2.1.3 *Scalar-based* Gradient and Hessian and Minimization with *Newton's* Method
+"
+
+# ╔═╡ 6cfd5be6-7efd-4626-a1ab-8f63a17b3d09
+let ϕs0 = [0.0, 0.0]                               # initial start vector
+	#--------------------------------------------------------------------------
+	function f_myRSS(ϕs::Vector{Float64}) 
+		myRSS(ys, X, ϕs)
+	end # function f_myRSS
+	#--------------------------------------------------------------------------
+	function g!(G, ϕs)
+	    G[1] = grad1(ϕs)
+	    G[2] = grad2(ϕs)
+	end # g!
+	#--------------------------------------------------------------------------
+	function h!(H::Array{Float64}, ϕs::Vector{Float64})     
+		H[1, 1] = 2*n
+		H[1, 2] = 2.0 * sum(x -> x,   xs, init=0.0)
+		H[2, 1] = 2.0 * sum(x -> x,   xs, init=0.0)
+		H[2, 2] = 2.0 * sum(x -> x^2, xs, init=0.0)
+	end
+	#--------------------------------------------------------------------------
+	options = Optim.Options(iterations = 2000)
+	result = optimize(f_myRSS, g!, h!, ϕs0, options)
+	ϕ0   = round(Optim.minimizer(result)[1], digits=3)
+	ϕ1   = round(Optim.minimizer(result)[2], digits=3)
+	fmin = round(Optim.minimum(result), digits=4)
+	println("intercept ϕ0 = $ϕ0, slope ϕ1 = $ϕ1, minimum = $fmin") 
+	result
+end # let
+
+# ╔═╡ 97249b0d-e02d-4fc0-9730-de1aa1702c7d
+md"
+---
+###### 4.2.2 *Gradient* Vector and *Hessian* Matrix of Loss $$L_{RSS}$$ 
+"
+
+# ╔═╡ 7b294c9d-159d-4dec-bac8-bfbef527a7fa
+X                                          # predictor matrix
+
+# ╔═╡ e7ec6823-1150-424b-86b4-1d2a01184b8c
+es = (ys - X*ϕs)                           # residuals
+
+# ╔═╡ 544581e9-cfe1-48b2-95f8-f8a6596e6867
+(ys - X * ϕs)' * (ys - X * ϕs)             # residual sum-of-squares RSS
+
+# ╔═╡ 05bd7f8a-310c-4aa3-9514-4ee8eb611567
+es'*es                                     # residual sum-of-squares RSS
+
+# ╔═╡ 24569e07-61fb-4883-ae0c-2396769d9b11
+-2.0 .*(ys - X * ϕs)'X                     # gradient
+
+# ╔═╡ f5b4928b-1b4f-499e-b426-afaa3fcb3606
+2.0 .* X'*X                                # Hessian
+
+# ╔═╡ 1c4788c1-223e-4772-a792-94bd0af66006
+md"
+---
+###### 4.2.2.1 *Vector-based* Gradient and Minimization with *BFGS*, a quasi-Newton Method
+
+"
+
+# ╔═╡ d2c844f5-3ead-438e-8e52-407000ca72b4
+let ϕs0 = [0.0, 0.0]                               # initial start vector
+	#--------------------------------------------------------------------------
+	function f_myRSS(ϕs::Vector{Float64}) 
+		myRSS(ys, X, ϕs)
+	end # function f_myRSS
+	#--------------------------------------------------------------------------
+	function g!(G::Array{Float64}, ϕs::Vector{Float64})
+		let gradVect = (-2.0 .*(ys - X * ϕs)'X)
+			G[1] = gradVect[1]
+			G[2] = gradVect[2]
+		end # let
+	end # function g!
+	#--------------------------------------------------------------------------
+	options = Optim.Options(iterations = 2000)
+	result = optimize(f_myRSS, g!, ϕs0, BFGS(), options)
+	ϕ0   = round(Optim.minimizer(result)[1], digits=3)
+	ϕ1   = round(Optim.minimizer(result)[2], digits=3)
+	fmin = round(Optim.minimum(result), digits=4)
+	println("intercept ϕ0 = $ϕ0, slope ϕ1 = $ϕ1, minimum = $fmin") 
+	result
+end # let
+
+# ╔═╡ 88533867-3a4e-48ad-9c55-5cf2fc6eab2b
+md"
+###### 4.2.2.2 *Vector-based* Gradient and Minimization with *LBFGS*, a Quasi-Newton Method
+
+"
+
+# ╔═╡ 1e1d4cf1-a092-4c08-b41d-8fc2828c6b56
+let ϕs0 = [0.0, 0.0]                               # initial start vector
+	#--------------------------------------------------------------------------
+	function f_myRSS(ϕs::Vector{Float64}) 
+		myRSS(ys, X, ϕs)
+	end # function f_myRSS
+	#--------------------------------------------------------------------------
+	function g!(G::Array{Float64}, ϕs::Vector{Float64})
+		let gradVect = (-2.0 .*(ys - X * ϕs)'X)
+			G[1] = gradVect[1]
+			G[2] = gradVect[2]
+		end # let
+	end # function g!
+	#--------------------------------------------------------------------------
+	options = Optim.Options(iterations = 2000)
+	result = optimize(f_myRSS, g!, ϕs0, LBFGS(), options)
+	ϕ0   = round(Optim.minimizer(result)[1], digits=3)
+	ϕ1   = round(Optim.minimizer(result)[2], digits=3)
+	fmin = round(Optim.minimum(result), digits=4)
+	println("intercept ϕ0 = $ϕ0, slope ϕ1 = $ϕ1, minimum = $fmin") 
+	result
+end # let
+
+# ╔═╡ 441b39fc-87ea-4bdd-b795-0aa5bc4179b8
+md"
+###### 4.2.2.3 *Vector-* Gradient and *Matrix-based* Hessian and Minimization with *Newton's* Method
+
+"
+
+# ╔═╡ 8124add9-049c-4d46-96a5-d5dde5ddd42f
+let ϕs0 = [0.0, 0.0]                               # initial start vector
+	#--------------------------------------------------------------------------
+	function f_myRSS(ϕs::Vector{Float64}) 
+		myRSS(ys, X, ϕs)
+	end # function f_myRSS
+	#--------------------------------------------------------------------------
+	function g!(G::Array{Float64}, ϕs::Vector{Float64})
+		let gradVect = (-2.0 .*(ys - X * ϕs)'X)
+			G[1] = gradVect[1]
+			G[2] = gradVect[2]
+		end # let
+	end # function g!
+	#--------------------------------------------------------------------------
+	function h!(H::Array{Float64}, ϕs::Vector{Float64})
+		let hessianMat = 2.0 .* X'*X     
+		    H[1, 1] = hessianMat[1, 1]
+		    H[1, 2] = hessianMat[1, 2]
+		    H[2, 1] = hessianMat[2, 1]
+		    H[2, 2] = hessianMat[2, 2]
+		end # let
+	end
+	#--------------------------------------------------------------------------
+	options = Optim.Options(iterations = 2000)
+	result = optimize(f_myRSS, g!, h!, ϕs0, options)
 	ϕ0   = round(Optim.minimizer(result)[1], digits=3)
 	ϕ1   = round(Optim.minimizer(result)[2], digits=3)
 	fmin = round(Optim.minimum(result), digits=4)
@@ -486,9 +745,19 @@ md"
 ---
 ##### 5. Summary
 
-We hand-calculated the gradient vector with the rules we learnt in school. then we tried the same with $symbolics.jl$. This was a complete failure when there are arrays in the code.
+We obtained the estimates $\hat \phi_s$ of the parameters  of a simple univariate regression in various different ways: *gradient-free*, *gradient-based*, and *Hessian-based*. We obtained *symbolic* forms of gradients and Hessians by applying *scalar*- and *matrix*-based calculus. 
 
-After that we tried various minimization algorithms provided by $Optim.jl$. They ranged from *gradient-free* over *gradient-approximated* to *gradient-based* minimization methods. All worked - as expected - satisfactorily.
+The old-school application of the rules by hand were successful. The more modern alternative by using $Symbolics.jl$ was only partly a success. $Symbolics.jl$ was unable to abstract intermediate results to final results. Software and documentation of $Symbolics.jl$ seem to be in a premature state.
+
+Then we tried various *numerical* minimization algorithms provided by $Optim.jl$. They ranged from *gradient-free* over *gradient-approximated* to *gradient-based* minimization methods. All algorithms provide $Optim.j$ worked - as expected - satisfactorily.
+
+"
+
+# ╔═╡ dabdd24f-8205-4fa5-9d97-f9186433e9ee
+md"
+---
+##### 6. Acknowledgements
+We thank Chris Rackauckas for replying to my issue 'Where's the sum ?' in GitHub. In this issue I complained the partial failure of $Symbolics.jl$. 
 
 "
 
@@ -501,6 +770,10 @@ md"
 
 - **Bishop, C.M. & Bishop, H.**; *Deep Learning: Foundations and Concepts*, Cham, Swiss: Springer, 2024
 
+- **Deisenroth, Faisal & Ong**; [*Mathematics for Machine Learning*](https://mml-book.github.io/book/mml-book.pdf), Cambridge, UK: Cambridge University Press, 2020; last visit 2024/10/13 
+
+- **Gowda, S., Ma, Y., Cheli, A., Gwozdz, M., Shah, V., Edelman, A., Rackauckas, Chr.**, [*High-performance symbolic-numerics via multiple dispatch*](https://arxiv.org/abs/2105.03949), last visit 2024/10/14
+
 - **Murphy, K.P.**; *Machine Learning: A Probabilistic Perspective*, Cambridge,Mass.: MIT Press, 2012
 
 - **Murphy, K.P.**; [Probabilistic Machine Learning: An Introduction](https://probml.github.io/pml-book/book1.html), Cambridge,Mass.: MIT Press, 2022; last visit: 2024/09/06
@@ -510,7 +783,6 @@ md"
 - **Prince, S.J.D.**; [*Understanding Deep Learning*](https://udlbook.github.io/udlbook/); MIT Press, 2024, last visit: 2024/08/21
 
 - **Prince, S.J.D.**; [*Notebook 6.2 Gradient Descent*](https://github.com/udlbook/udlbook/blob/main/Notebooks/Chap06/6_2_Gradient_Descent.ipynb); last visit: 2024/09/20
-
 
 "
 
@@ -526,33 +798,22 @@ This is a **draft** under the Attribution-NonCommercial-ShareAlike 4.0 Internati
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
-ADTypes = "47edcb42-4c32-4615-8424-f2b9edc5f35b"
 LaTeXStrings = "b964fa9f-0449-5b57-a5c2-d3ea65f4040f"
 Latexify = "23fbe1c1-3f47-55db-b15f-69d7ec21a316"
-Lux = "b2108857-7c20-44ae-9111-449ecde12c47"
-LuxCUDA = "d0bbae9a-e099-4d5b-a835-1c6931763bda"
 Optim = "429524aa-4258-5aef-a3af-852621145aeb"
-Optimisers = "3bd65402-5787-11e9-1adc-39752487f4e2"
 Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
 Pluto = "c3e4b0f8-55cb-11ea-2926-15256bba5781"
 Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
-Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 Symbolics = "0c5d862f-8b57-4792-8d23-62f2024744c7"
-Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
 
 [compat]
-ADTypes = "~1.7.1"
 LaTeXStrings = "~1.3.1"
 Latexify = "~0.16.5"
-Lux = "~0.5.63"
-LuxCUDA = "~0.3.3"
 Optim = "~1.9.4"
-Optimisers = "~0.3.3"
 Plots = "~1.40.8"
 Pluto = "~0.19.46"
 Symbolics = "~6.7.0"
-Zygote = "~0.6.70"
 """
 
 # ╔═╡ 00000000-0000-0000-0000-000000000002
@@ -561,28 +822,20 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.10.5"
 manifest_format = "2.0"
-project_hash = "0e90f0efc183ca852cf28a715d40082fd667e5a0"
+project_hash = "5a2200f55b090d03aad003d7f8b81e551f4c68aa"
 
 [[deps.ADTypes]]
 git-tree-sha1 = "99a6f5d0ce1c7c6afdb759daa30226f71c54f6b0"
 uuid = "47edcb42-4c32-4615-8424-f2b9edc5f35b"
 version = "1.7.1"
-weakdeps = ["ChainRulesCore", "EnzymeCore"]
 
     [deps.ADTypes.extensions]
     ADTypesChainRulesCoreExt = "ChainRulesCore"
     ADTypesEnzymeCoreExt = "EnzymeCore"
 
-[[deps.AbstractFFTs]]
-deps = ["LinearAlgebra"]
-git-tree-sha1 = "d92ad398961a3ed262d8bf04a1a2b8340f915fef"
-uuid = "621f4979-c628-5d54-868e-fcf4e3e8185c"
-version = "1.5.0"
-weakdeps = ["ChainRulesCore", "Test"]
-
-    [deps.AbstractFFTs.extensions]
-    AbstractFFTsChainRulesCoreExt = "ChainRulesCore"
-    AbstractFFTsTestExt = "Test"
+    [deps.ADTypes.weakdeps]
+    ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
+    EnzymeCore = "f151be2c-9106-41f4-ab19-57ee4f262869"
 
 [[deps.AbstractTrees]]
 git-tree-sha1 = "2d9c9a55f9c93e8887ad391fbae72f8ef55e1177"
@@ -626,11 +879,6 @@ git-tree-sha1 = "9876e1e164b144ca45e9e3198d0b689cadfed9ff"
 uuid = "66dad0bd-aa9a-41b7-9441-69ab47430ed8"
 version = "1.1.3"
 
-[[deps.ArgCheck]]
-git-tree-sha1 = "a3a402a35a2f7e0b87828ccabbd5ebfbebe356b4"
-uuid = "dce04be8-c92d-5529-be00-80e4d2c0e197"
-version = "2.3.0"
-
 [[deps.ArgTools]]
 uuid = "0dad84c5-d112-42e6-8d28-ef12dabb789f"
 version = "1.1.1"
@@ -668,18 +916,6 @@ version = "7.16.0"
 [[deps.Artifacts]]
 uuid = "56f22d72-fd6d-98f1-02f0-08ddc0907c33"
 
-[[deps.Atomix]]
-deps = ["UnsafeAtomics"]
-git-tree-sha1 = "c06a868224ecba914baa6942988e2f2aade419be"
-uuid = "a9b6321e-bd34-4604-b9c9-b65b8de01458"
-version = "0.1.0"
-
-[[deps.BFloat16s]]
-deps = ["LinearAlgebra", "Printf", "Random", "Test"]
-git-tree-sha1 = "2c7cc21e8678eff479978a0a2ef5ce2f51b63dff"
-uuid = "ab4f0b2a-ad5b-11e8-123f-65d77653426b"
-version = "0.5.0"
-
 [[deps.Base64]]
 uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
 
@@ -693,76 +929,17 @@ git-tree-sha1 = "0691e34b3bb8be9307330f88d1a3c3f25466c24d"
 uuid = "d1d4a3ce-64b1-5f1a-9ba4-7e7e69966f35"
 version = "0.1.9"
 
-[[deps.BitTwiddlingConvenienceFunctions]]
-deps = ["Static"]
-git-tree-sha1 = "f21cfd4950cb9f0587d5067e69405ad2acd27b87"
-uuid = "62783981-4cbd-42fc-bca8-16325de8dc4b"
-version = "0.1.6"
-
 [[deps.Bzip2_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
 git-tree-sha1 = "9e2a6b69137e6969bab0152632dcb3bc108c8bdd"
 uuid = "6e34b625-4abd-537c-b88f-471c36dfa7a0"
 version = "1.0.8+1"
 
-[[deps.CEnum]]
-git-tree-sha1 = "389ad5c84de1ae7cf0e28e381131c98ea87d54fc"
-uuid = "fa961155-64e5-5f13-b03f-caf6b980ea82"
-version = "0.5.0"
-
-[[deps.CPUSummary]]
-deps = ["CpuId", "IfElse", "PrecompileTools", "Static"]
-git-tree-sha1 = "5a97e67919535d6841172016c9530fd69494e5ec"
-uuid = "2a0fbf3d-bb9c-48f3-b0a9-814d99fd7ab9"
-version = "0.2.6"
-
-[[deps.CUDA]]
-deps = ["AbstractFFTs", "Adapt", "BFloat16s", "CEnum", "CUDA_Driver_jll", "CUDA_Runtime_Discovery", "CUDA_Runtime_jll", "Crayons", "DataFrames", "ExprTools", "GPUArrays", "GPUCompiler", "KernelAbstractions", "LLVM", "LLVMLoopInfo", "LazyArtifacts", "Libdl", "LinearAlgebra", "Logging", "NVTX", "Preferences", "PrettyTables", "Printf", "Random", "Random123", "RandomNumbers", "Reexport", "Requires", "SparseArrays", "StaticArrays", "Statistics"]
-git-tree-sha1 = "fdd9dfb67dfefd548f51000cc400bb51003de247"
-uuid = "052768ef-5323-5732-b1bb-66c8b64840ba"
-version = "5.4.3"
-weakdeps = ["ChainRulesCore", "EnzymeCore", "SpecialFunctions"]
-
-    [deps.CUDA.extensions]
-    ChainRulesCoreExt = "ChainRulesCore"
-    EnzymeCoreExt = "EnzymeCore"
-    SpecialFunctionsExt = "SpecialFunctions"
-
-[[deps.CUDA_Driver_jll]]
-deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
-git-tree-sha1 = "325058b426c2b421e3d2df3d5fa646d72d2e3e7e"
-uuid = "4ee394cb-3365-5eb0-8335-949819d2adfc"
-version = "0.9.2+0"
-
-[[deps.CUDA_Runtime_Discovery]]
-deps = ["Libdl"]
-git-tree-sha1 = "33576c7c1b2500f8e7e6baa082e04563203b3a45"
-uuid = "1af6417a-86b4-443c-805f-a4643ffb695f"
-version = "0.3.5"
-
-[[deps.CUDA_Runtime_jll]]
-deps = ["Artifacts", "CUDA_Driver_jll", "JLLWrappers", "LazyArtifacts", "Libdl", "TOML"]
-git-tree-sha1 = "afea94249b821dc754a8ca6695d3daed851e1f5a"
-uuid = "76a88914-d11a-5bdc-97e0-2f5a05c973a2"
-version = "0.14.1+0"
-
-[[deps.CUDNN_jll]]
-deps = ["Artifacts", "CUDA_Runtime_jll", "JLLWrappers", "LazyArtifacts", "Libdl", "TOML"]
-git-tree-sha1 = "cbf7d75f8c58b147bdf6acea2e5bc96cececa6d4"
-uuid = "62b44479-cb7b-5706-934f-f13b2eb2e645"
-version = "9.0.0+1"
-
 [[deps.Cairo_jll]]
 deps = ["Artifacts", "Bzip2_jll", "CompilerSupportLibraries_jll", "Fontconfig_jll", "FreeType2_jll", "Glib_jll", "JLLWrappers", "LZO_jll", "Libdl", "Pixman_jll", "Xorg_libXext_jll", "Xorg_libXrender_jll", "Zlib_jll", "libpng_jll"]
 git-tree-sha1 = "a2f1c8c668c8e3cb4cca4e57a8efdb09067bb3fd"
 uuid = "83423d85-b0ee-5818-9007-b63ccbeb887a"
 version = "1.18.0+2"
-
-[[deps.ChainRules]]
-deps = ["Adapt", "ChainRulesCore", "Compat", "Distributed", "GPUArraysCore", "IrrationalConstants", "LinearAlgebra", "Random", "RealDot", "SparseArrays", "SparseInverseSubset", "Statistics", "StructArrays", "SuiteSparse"]
-git-tree-sha1 = "83806b5196e1e9827db0429a7579824c8b0e03ce"
-uuid = "082447d4-558c-5d27-93f4-14fc19e9eca2"
-version = "1.70.0"
 
 [[deps.ChainRulesCore]]
 deps = ["Compat", "LinearAlgebra"]
@@ -773,12 +950,6 @@ weakdeps = ["SparseArrays"]
 
     [deps.ChainRulesCore.extensions]
     ChainRulesCoreSparseArraysExt = "SparseArrays"
-
-[[deps.CloseOpenIntervals]]
-deps = ["Static", "StaticArrayInterface"]
-git-tree-sha1 = "05ba0d07cd4fd8b7a39541e31a7b0254704ea581"
-uuid = "fb6a15b2-703c-40df-9091-08a04967cfa9"
-version = "0.1.13"
 
 [[deps.CodecZlib]]
 deps = ["TranscodingStreams", "Zlib_jll"]
@@ -864,11 +1035,6 @@ weakdeps = ["InverseFunctions"]
     [deps.CompositionsBase.extensions]
     CompositionsBaseInverseFunctionsExt = "InverseFunctions"
 
-[[deps.ConcreteStructs]]
-git-tree-sha1 = "f749037478283d372048690eb3b5f92a79432b34"
-uuid = "2569d6c7-a4a2-43d3-a901-331e8e4be471"
-version = "0.2.3"
-
 [[deps.ConcurrentUtilities]]
 deps = ["Serialization", "Sockets"]
 git-tree-sha1 = "ea32b83ca4fefa1768dc84e504cc0a94fb1ab8d1"
@@ -897,27 +1063,10 @@ git-tree-sha1 = "439e35b0b36e2e5881738abc8857bd92ad6ff9a8"
 uuid = "d38c429a-6771-53c6-b99e-75d170b6e991"
 version = "0.6.3"
 
-[[deps.CpuId]]
-deps = ["Markdown"]
-git-tree-sha1 = "fcbb72b032692610bfbdb15018ac16a36cf2e406"
-uuid = "adafc99b-e345-5852-983c-f28acb93d879"
-version = "0.3.1"
-
-[[deps.Crayons]]
-git-tree-sha1 = "249fe38abf76d48563e2f4556bebd215aa317e15"
-uuid = "a8cc5b0e-0ffa-5ad4-8c14-923d3ee1735f"
-version = "4.1.1"
-
 [[deps.DataAPI]]
 git-tree-sha1 = "abe83f3a2f1b857aac70ef8b269080af17764bbe"
 uuid = "9a962f9c-6df0-11e9-0e5d-c546b8b5ee8a"
 version = "1.16.0"
-
-[[deps.DataFrames]]
-deps = ["Compat", "DataAPI", "DataStructures", "Future", "InlineStrings", "InvertedIndices", "IteratorInterfaceExtensions", "LinearAlgebra", "Markdown", "Missings", "PooledArrays", "PrecompileTools", "PrettyTables", "Printf", "REPL", "Random", "Reexport", "SentinelArrays", "SortingAlgorithms", "Statistics", "TableTraits", "Tables", "Unicode"]
-git-tree-sha1 = "04c738083f29f86e62c8afc341f0967d8717bdb8"
-uuid = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
-version = "1.6.1"
 
 [[deps.DataStructures]]
 deps = ["Compat", "InteractiveUtils", "OrderedCollections"]
@@ -957,17 +1106,6 @@ deps = ["IrrationalConstants", "LogExpFunctions", "NaNMath", "Random", "SpecialF
 git-tree-sha1 = "23163d55f885173722d1e4cf0f6110cdbaf7e272"
 uuid = "b552c78f-8df3-52c6-915a-8e097449b14b"
 version = "1.15.1"
-
-[[deps.DispatchDoctor]]
-deps = ["MacroTools", "Preferences"]
-git-tree-sha1 = "c2acd1de2c4c357928f9fb6b60b402d914621378"
-uuid = "8d63f2c5-f18a-4cf2-ba9d-b3f60fc568c8"
-version = "0.4.14"
-weakdeps = ["ChainRulesCore", "EnzymeCore"]
-
-    [deps.DispatchDoctor.extensions]
-    DispatchDoctorChainRulesCoreExt = "ChainRulesCore"
-    DispatchDoctorEnzymeCoreExt = "EnzymeCore"
 
 [[deps.Distributed]]
 deps = ["Random", "Serialization", "Sockets"]
@@ -1023,15 +1161,6 @@ git-tree-sha1 = "bdb1942cd4c45e3c678fd11569d5cccd80976237"
 uuid = "4e289a0a-7415-4d19-859d-a7e5c4648b56"
 version = "1.0.4"
 
-[[deps.EnzymeCore]]
-git-tree-sha1 = "8f205a601760f4798a10f138c3940f0451d95188"
-uuid = "f151be2c-9106-41f4-ab19-57ee4f262869"
-version = "0.7.8"
-weakdeps = ["Adapt"]
-
-    [deps.EnzymeCore.extensions]
-    AdaptExt = "Adapt"
-
 [[deps.EpollShim_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl"]
 git-tree-sha1 = "8e9441ee83492030ace98f9789a654a6d0b1f643"
@@ -1082,11 +1211,6 @@ deps = ["Artifacts", "Bzip2_jll", "FreeType2_jll", "FriBidi_jll", "JLLWrappers",
 git-tree-sha1 = "466d45dc38e15794ec7d5d63ec03d776a9aff36e"
 uuid = "b22a6f82-2f65-5046-a5b2-351ab43fb4e5"
 version = "4.4.4+1"
-
-[[deps.FastClosures]]
-git-tree-sha1 = "acebe244d53ee1b461970f8910c235b259e772ef"
-uuid = "9aa1b823-49e4-5ca5-8b0f-3971ec8bab6a"
-version = "0.3.2"
 
 [[deps.FileWatching]]
 uuid = "7b1f6079-737a-58dc-b8bc-7a2ca5c1b5ee"
@@ -1169,12 +1293,6 @@ git-tree-sha1 = "b104d487b34566608f8b4e1c39fb0b10aa279ff8"
 uuid = "77dc65aa-8811-40c2-897b-53d922fa7daf"
 version = "0.1.3"
 
-[[deps.Functors]]
-deps = ["LinearAlgebra"]
-git-tree-sha1 = "64d8e93700c7a3f28f717d265382d52fac9fa1c1"
-uuid = "d9f16b24-f501-4c13-a1f2-28368ffc5196"
-version = "0.4.12"
-
 [[deps.Future]]
 deps = ["Random"]
 uuid = "9fa8497b-333b-5362-9e8d-4d0656e87820"
@@ -1191,23 +1309,11 @@ git-tree-sha1 = "532f9126ad901533af1d4f5c198867227a7bb077"
 uuid = "0656b61e-2033-5cc2-a64a-77c0f6c09b89"
 version = "3.4.0+1"
 
-[[deps.GPUArrays]]
-deps = ["Adapt", "GPUArraysCore", "LLVM", "LinearAlgebra", "Printf", "Random", "Reexport", "Serialization", "Statistics"]
-git-tree-sha1 = "62ee71528cca49be797076a76bdc654a170a523e"
-uuid = "0c68f7d7-f131-5f86-a1c3-88cf8149b2d7"
-version = "10.3.1"
-
 [[deps.GPUArraysCore]]
 deps = ["Adapt"]
 git-tree-sha1 = "ec632f177c0d990e64d955ccc1b8c04c485a0950"
 uuid = "46192b85-c4d5-4398-a991-12ede77f4527"
 version = "0.1.6"
-
-[[deps.GPUCompiler]]
-deps = ["ExprTools", "InteractiveUtils", "LLVM", "Libdl", "Logging", "Preferences", "Scratch", "Serialization", "TOML", "TimerOutputs", "UUIDs"]
-git-tree-sha1 = "ab29216184312f99ff957b32cd63c2fe9c928b91"
-uuid = "61eb1bfa-7361-4325-ad38-22787b887f55"
-version = "0.26.7"
 
 [[deps.GR]]
 deps = ["Artifacts", "Base64", "DelimitedFiles", "Downloads", "GR_jll", "HTTP", "JSON", "Libdl", "LinearAlgebra", "Preferences", "Printf", "Qt6Wayland_jll", "Random", "Serialization", "Sockets", "TOML", "Tar", "Test", "p7zip_jll"]
@@ -1256,28 +1362,6 @@ git-tree-sha1 = "401e4f3f30f43af2c8478fc008da50096ea5240f"
 uuid = "2e76f6c2-a576-52d4-95c1-20adfe4de566"
 version = "8.3.1+0"
 
-[[deps.HostCPUFeatures]]
-deps = ["BitTwiddlingConvenienceFunctions", "IfElse", "Libdl", "Static"]
-git-tree-sha1 = "8e070b599339d622e9a081d17230d74a5c473293"
-uuid = "3e5b6fbb-0976-4d2c-9146-d79de83f2fb0"
-version = "0.1.17"
-
-[[deps.Hwloc]]
-deps = ["CEnum", "Hwloc_jll", "Printf"]
-git-tree-sha1 = "6a3d80f31ff87bc94ab22a7b8ec2f263f9a6a583"
-uuid = "0e44f5e4-bd66-52a0-8798-143a42290a1d"
-version = "3.3.0"
-weakdeps = ["AbstractTrees"]
-
-    [deps.Hwloc.extensions]
-    HwlocTrees = "AbstractTrees"
-
-[[deps.Hwloc_jll]]
-deps = ["Artifacts", "JLLWrappers", "Libdl"]
-git-tree-sha1 = "5e19e1e4fa3e71b774ce746274364aef0234634e"
-uuid = "e33a78d0-f292-5ffc-b300-72abe9b543c8"
-version = "2.11.1+0"
-
 [[deps.HypergeometricFunctions]]
 deps = ["LinearAlgebra", "OpenLibm_jll", "SpecialFunctions"]
 git-tree-sha1 = "7c4195be1649ae622304031ed46a2f4df989f1eb"
@@ -1290,29 +1374,10 @@ git-tree-sha1 = "7134810b1afce04bbc1045ca1985fbe81ce17653"
 uuid = "ac1192a8-f4b3-4bfe-ba22-af5b92cd3ab2"
 version = "0.9.5"
 
-[[deps.IRTools]]
-deps = ["InteractiveUtils", "MacroTools"]
-git-tree-sha1 = "950c3717af761bc3ff906c2e8e52bd83390b6ec2"
-uuid = "7869d1d1-7146-5819-86e3-90919afe41df"
-version = "0.4.14"
-
 [[deps.IfElse]]
 git-tree-sha1 = "debdd00ffef04665ccbb3e150747a77560e8fad1"
 uuid = "615f187c-cbe4-4ef1-ba3b-2fcf58d6d173"
 version = "0.1.1"
-
-[[deps.InlineStrings]]
-git-tree-sha1 = "45521d31238e87ee9f9732561bfee12d4eebd52d"
-uuid = "842dd82b-1e85-43dc-bf29-5d0ee9dffc48"
-version = "1.4.2"
-
-    [deps.InlineStrings.extensions]
-    ArrowTypesExt = "ArrowTypes"
-    ParsersExt = "Parsers"
-
-    [deps.InlineStrings.weakdeps]
-    ArrowTypes = "31f734f8-188a-4ce0-8406-c8a06bd891cd"
-    Parsers = "69de0a69-1ddd-5017-9359-2bf0b02dc9f0"
 
 [[deps.IntegerMathUtils]]
 git-tree-sha1 = "b8ffb903da9f7b8cf695a8bead8e01814aa24b30"
@@ -1343,11 +1408,6 @@ weakdeps = ["Dates", "Test"]
     [deps.InverseFunctions.extensions]
     InverseFunctionsDatesExt = "Dates"
     InverseFunctionsTestExt = "Test"
-
-[[deps.InvertedIndices]]
-git-tree-sha1 = "0dc7b50b8d436461be01300fd8cd45aa0274b038"
-uuid = "41ab1584-1d38-5bbf-9106-f11c6c58b48f"
-version = "1.3.0"
 
 [[deps.IrrationalConstants]]
 git-tree-sha1 = "630b497eafcc20001bba38a4651b327dcfc491d2"
@@ -1383,24 +1443,6 @@ git-tree-sha1 = "c84a835e1a09b289ffcd2271bf2a337bbdda6637"
 uuid = "aacddb02-875f-59d6-b918-886e6ef4fbf8"
 version = "3.0.3+0"
 
-[[deps.JuliaNVTXCallbacks_jll]]
-deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
-git-tree-sha1 = "af433a10f3942e882d3c671aacb203e006a5808f"
-uuid = "9c1d0b0a-7046-5b2e-a33f-ea22f176ac7e"
-version = "0.2.1+0"
-
-[[deps.KernelAbstractions]]
-deps = ["Adapt", "Atomix", "InteractiveUtils", "MacroTools", "PrecompileTools", "Requires", "StaticArrays", "UUIDs", "UnsafeAtomics", "UnsafeAtomicsLLVM"]
-git-tree-sha1 = "cb1cff88ef2f3a157cbad75bbe6b229e1975e498"
-uuid = "63c18a36-062a-441e-b654-da1e3ab1ce7c"
-version = "0.9.25"
-weakdeps = ["EnzymeCore", "LinearAlgebra", "SparseArrays"]
-
-    [deps.KernelAbstractions.extensions]
-    EnzymeExt = "EnzymeCore"
-    LinearAlgebraExt = "LinearAlgebra"
-    SparseArraysExt = "SparseArrays"
-
 [[deps.LAME_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl"]
 git-tree-sha1 = "170b660facf5df5de098d866564877e119141cbd"
@@ -1412,27 +1454,6 @@ deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
 git-tree-sha1 = "bf36f528eec6634efc60d7ec062008f171071434"
 uuid = "88015f11-f218-50d7-93a8-a6af411a945d"
 version = "3.0.0+1"
-
-[[deps.LLVM]]
-deps = ["CEnum", "LLVMExtra_jll", "Libdl", "Preferences", "Printf", "Requires", "Unicode"]
-git-tree-sha1 = "2470e69781ddd70b8878491233cd09bc1bd7fc96"
-uuid = "929cbde3-209d-540e-8aea-75f648917ca0"
-version = "8.1.0"
-weakdeps = ["BFloat16s"]
-
-    [deps.LLVM.extensions]
-    BFloat16sExt = "BFloat16s"
-
-[[deps.LLVMExtra_jll]]
-deps = ["Artifacts", "JLLWrappers", "LazyArtifacts", "Libdl", "TOML"]
-git-tree-sha1 = "597d1c758c9ae5d985ba4202386a607c675ee700"
-uuid = "dad2f222-ce93-54a1-a47d-0025e8a3acab"
-version = "0.0.31+0"
-
-[[deps.LLVMLoopInfo]]
-git-tree-sha1 = "2e5c102cfc41f48ae4740c7eca7743cc7e7b75ea"
-uuid = "8b046642-f1f6-4319-8d3c-209ddc03c586"
-version = "1.0.0"
 
 [[deps.LLVMOpenMP_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl"]
@@ -1472,20 +1493,10 @@ version = "0.16.5"
     SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
     SymEngine = "123dc426-2d89-5057-bbad-38513e3affd8"
 
-[[deps.LayoutPointers]]
-deps = ["ArrayInterface", "LinearAlgebra", "ManualMemory", "SIMDTypes", "Static", "StaticArrayInterface"]
-git-tree-sha1 = "a9eaadb366f5493a5654e843864c13d8b107548c"
-uuid = "10f19ff3-798f-405d-979b-55457f8fc047"
-version = "0.1.17"
-
 [[deps.LazilyInitializedFields]]
 git-tree-sha1 = "8f7f3cabab0fd1800699663533b6d5cb3fc0e612"
 uuid = "0e77f7df-68c5-4e49-93ce-4cd80f5598bf"
 version = "1.2.2"
-
-[[deps.LazyArtifacts]]
-deps = ["Artifacts", "Pkg"]
-uuid = "4af54fe1-eca0-43a8-85a7-787d91b784e3"
 
 [[deps.LibCURL]]
 deps = ["LibCURL_jll", "MozillaCACerts_jll"]
@@ -1597,183 +1608,10 @@ git-tree-sha1 = "c1dd6d7978c12545b4179fb6153b9250c96b0075"
 uuid = "e6f89c97-d47a-5376-807f-9c37f3926c36"
 version = "1.0.3"
 
-[[deps.LoopVectorization]]
-deps = ["ArrayInterface", "CPUSummary", "CloseOpenIntervals", "DocStringExtensions", "HostCPUFeatures", "IfElse", "LayoutPointers", "LinearAlgebra", "OffsetArrays", "PolyesterWeave", "PrecompileTools", "SIMDTypes", "SLEEFPirates", "Static", "StaticArrayInterface", "ThreadingUtilities", "UnPack", "VectorizationBase"]
-git-tree-sha1 = "8084c25a250e00ae427a379a5b607e7aed96a2dd"
-uuid = "bdcacae8-1622-11e9-2a5c-532679323890"
-version = "0.12.171"
-weakdeps = ["ChainRulesCore", "ForwardDiff", "SpecialFunctions"]
-
-    [deps.LoopVectorization.extensions]
-    ForwardDiffExt = ["ChainRulesCore", "ForwardDiff"]
-    SpecialFunctionsExt = "SpecialFunctions"
-
-[[deps.LossFunctions]]
-deps = ["Markdown", "Requires", "Statistics"]
-git-tree-sha1 = "8073538845227d3acf8a0c149bf0e150e60d0ced"
-uuid = "30fc2ffe-d236-52d8-8643-a9d8f7c094a7"
-version = "0.11.2"
-
-    [deps.LossFunctions.extensions]
-    LossFunctionsCategoricalArraysExt = "CategoricalArrays"
-
-    [deps.LossFunctions.weakdeps]
-    CategoricalArrays = "324d7699-5711-5eae-9e2f-1d82baa6b597"
-
-[[deps.Lux]]
-deps = ["ADTypes", "Adapt", "ArgCheck", "ArrayInterface", "ChainRulesCore", "Compat", "ConcreteStructs", "ConstructionBase", "DispatchDoctor", "EnzymeCore", "FastClosures", "ForwardDiff", "Functors", "GPUArraysCore", "LinearAlgebra", "LossFunctions", "LuxCore", "LuxDeviceUtils", "LuxLib", "MacroTools", "Markdown", "NNlib", "Optimisers", "Preferences", "Random", "Reexport", "Setfield", "Statistics", "UnrolledUtilities", "WeightInitializers"]
-git-tree-sha1 = "80db23a3cb1de02c82b603d10bb013e0e87e56d4"
-uuid = "b2108857-7c20-44ae-9111-449ecde12c47"
-version = "0.5.63"
-
-    [deps.Lux.extensions]
-    LuxComponentArraysExt = "ComponentArrays"
-    LuxDynamicExpressionsExt = "DynamicExpressions"
-    LuxEnzymeExt = "Enzyme"
-    LuxFluxExt = "Flux"
-    LuxMLUtilsExt = "MLUtils"
-    LuxMPIExt = "MPI"
-    LuxMPINCCLExt = ["CUDA", "MPI", "NCCL"]
-    LuxReverseDiffExt = ["FunctionWrappers", "ReverseDiff"]
-    LuxSimpleChainsExt = "SimpleChains"
-    LuxTrackerExt = "Tracker"
-    LuxZygoteExt = "Zygote"
-
-    [deps.Lux.weakdeps]
-    CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
-    ComponentArrays = "b0b7db55-cfe3-40fc-9ded-d10e2dbeff66"
-    DynamicExpressions = "a40a106e-89c9-4ca8-8020-a735e8728b6b"
-    Enzyme = "7da242da-08ed-463a-9acd-ee780be4f1d9"
-    Flux = "587475ba-b771-5e3f-ad9e-33799f191a9c"
-    FunctionWrappers = "069b7b12-0de2-55c6-9aab-29f3d0a68a2e"
-    MLUtils = "f1d291b0-491e-4a28-83b9-f70985020b54"
-    MPI = "da04e1cc-30fd-572f-bb4f-1f8673147195"
-    NCCL = "3fe64909-d7a1-4096-9b7d-7a0f12cf0f6b"
-    ReverseDiff = "37e2e3b7-166d-5795-8a7a-e32c996b4267"
-    SimpleChains = "de6bee2f-e2f4-4ec7-b6ed-219cc6f6e9e5"
-    Tracker = "9f7883ad-71c0-57eb-9f7f-b5c9e6d3789c"
-    Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
-
-[[deps.LuxCUDA]]
-deps = ["CUDA", "Reexport", "cuDNN"]
-git-tree-sha1 = "a8a5906be27c42ea0705a2daed04fd57fd12d055"
-uuid = "d0bbae9a-e099-4d5b-a835-1c6931763bda"
-version = "0.3.3"
-
-[[deps.LuxCore]]
-deps = ["Compat", "DispatchDoctor", "Functors", "Random", "Setfield"]
-git-tree-sha1 = "f1312b4295c21e8681f8661d9893fd3ba522d7c9"
-uuid = "bb33d45b-7691-41d6-9220-0943567d0623"
-version = "0.1.23"
-weakdeps = ["ChainRulesCore", "EnzymeCore", "MLDataDevices"]
-
-    [deps.LuxCore.extensions]
-    LuxCoreChainRulesCoreExt = "ChainRulesCore"
-    LuxCoreEnzymeCoreExt = "EnzymeCore"
-    LuxCoreMLDataDevicesExt = "MLDataDevices"
-
-[[deps.LuxDeviceUtils]]
-deps = ["Adapt", "ChainRulesCore", "Functors", "LuxCore", "Preferences", "Random", "UnrolledUtilities"]
-git-tree-sha1 = "494db99a113c3a5a0b637d788a65494732f4558e"
-uuid = "34f89e08-e1d5-43b4-8944-0b49ac560553"
-version = "0.1.27"
-
-    [deps.LuxDeviceUtils.extensions]
-    LuxDeviceUtilsAMDGPUExt = "AMDGPU"
-    LuxDeviceUtilsCUDAExt = "CUDA"
-    LuxDeviceUtilsFillArraysExt = "FillArrays"
-    LuxDeviceUtilsGPUArraysExt = "GPUArrays"
-    LuxDeviceUtilsLuxCUDAExt = "LuxCUDA"
-    LuxDeviceUtilsMetalExt = ["GPUArrays", "Metal"]
-    LuxDeviceUtilsRecursiveArrayToolsExt = "RecursiveArrayTools"
-    LuxDeviceUtilsReverseDiffExt = "ReverseDiff"
-    LuxDeviceUtilsSparseArraysExt = "SparseArrays"
-    LuxDeviceUtilsTrackerExt = "Tracker"
-    LuxDeviceUtilsZygoteExt = "Zygote"
-    LuxDeviceUtilsoneAPIExt = ["GPUArrays", "oneAPI"]
-
-    [deps.LuxDeviceUtils.weakdeps]
-    AMDGPU = "21141c5a-9bdb-4563-92ae-f87d6854732e"
-    CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
-    FillArrays = "1a297f60-69ca-5386-bcde-b61e274b549b"
-    GPUArrays = "0c68f7d7-f131-5f86-a1c3-88cf8149b2d7"
-    LuxCUDA = "d0bbae9a-e099-4d5b-a835-1c6931763bda"
-    Metal = "dde4c033-4e86-420c-a63e-0dd931031962"
-    RecursiveArrayTools = "731186ca-8d62-57ce-b412-fbd966d074cd"
-    ReverseDiff = "37e2e3b7-166d-5795-8a7a-e32c996b4267"
-    SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
-    Tracker = "9f7883ad-71c0-57eb-9f7f-b5c9e6d3789c"
-    Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
-    oneAPI = "8f75cd03-7ff8-4ecb-9b8f-daf728133b1b"
-
-[[deps.LuxLib]]
-deps = ["ArrayInterface", "ChainRulesCore", "Compat", "CpuId", "DispatchDoctor", "EnzymeCore", "FastClosures", "ForwardDiff", "Hwloc", "KernelAbstractions", "LinearAlgebra", "LoopVectorization", "LuxCore", "MLDataDevices", "Markdown", "NNlib", "Octavian", "Polyester", "Random", "Reexport", "SLEEFPirates", "Static", "StaticArraysCore", "Statistics", "UnrolledUtilities"]
-git-tree-sha1 = "ccba7c272e6f96758be8da15eb0083f52b032307"
-uuid = "82251201-b29d-42c6-8e01-566dec8acb11"
-version = "0.3.51"
-
-    [deps.LuxLib.extensions]
-    LuxLibAppleAccelerateExt = "AppleAccelerate"
-    LuxLibBLISBLASExt = "BLISBLAS"
-    LuxLibCUDAExt = "CUDA"
-    LuxLibMKLExt = "MKL"
-    LuxLibReverseDiffExt = "ReverseDiff"
-    LuxLibTrackerAMDGPUExt = ["AMDGPU", "Tracker"]
-    LuxLibTrackerExt = "Tracker"
-    LuxLibcuDNNExt = ["CUDA", "cuDNN"]
-
-    [deps.LuxLib.weakdeps]
-    AMDGPU = "21141c5a-9bdb-4563-92ae-f87d6854732e"
-    AppleAccelerate = "13e28ba4-7ad8-5781-acae-3021b1ed3924"
-    BLISBLAS = "6f275bd8-fec0-4d39-945b-7e95a765fa1e"
-    CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
-    MKL = "33e6dc65-8f57-5167-99aa-e5a354878fb2"
-    ReverseDiff = "37e2e3b7-166d-5795-8a7a-e32c996b4267"
-    Tracker = "9f7883ad-71c0-57eb-9f7f-b5c9e6d3789c"
-    cuDNN = "02a925ec-e4fe-4b08-9a7e-0d78e3d38ccd"
-
 [[deps.MIMEs]]
 git-tree-sha1 = "65f28ad4b594aebe22157d6fac869786a255b7eb"
 uuid = "6c6e2e6c-3030-632d-7369-2d6c69616d65"
 version = "0.1.4"
-
-[[deps.MLDataDevices]]
-deps = ["Adapt", "Functors", "Preferences", "Random"]
-git-tree-sha1 = "bf8bca6f9f9fa3fa984ba5d358595033f0aace2a"
-uuid = "7e8f7934-dd98-4c1a-8fe8-92b47a384d40"
-version = "1.1.1"
-
-    [deps.MLDataDevices.extensions]
-    MLDataDevicesAMDGPUExt = "AMDGPU"
-    MLDataDevicesCUDAExt = "CUDA"
-    MLDataDevicesChainRulesCoreExt = "ChainRulesCore"
-    MLDataDevicesFillArraysExt = "FillArrays"
-    MLDataDevicesGPUArraysExt = "GPUArrays"
-    MLDataDevicesMLUtilsExt = "MLUtils"
-    MLDataDevicesMetalExt = ["GPUArrays", "Metal"]
-    MLDataDevicesRecursiveArrayToolsExt = "RecursiveArrayTools"
-    MLDataDevicesReverseDiffExt = "ReverseDiff"
-    MLDataDevicesSparseArraysExt = "SparseArrays"
-    MLDataDevicesTrackerExt = "Tracker"
-    MLDataDevicesZygoteExt = "Zygote"
-    MLDataDevicescuDNNExt = ["CUDA", "cuDNN"]
-    MLDataDevicesoneAPIExt = ["GPUArrays", "oneAPI"]
-
-    [deps.MLDataDevices.weakdeps]
-    AMDGPU = "21141c5a-9bdb-4563-92ae-f87d6854732e"
-    CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
-    ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
-    FillArrays = "1a297f60-69ca-5386-bcde-b61e274b549b"
-    GPUArrays = "0c68f7d7-f131-5f86-a1c3-88cf8149b2d7"
-    MLUtils = "f1d291b0-491e-4a28-83b9-f70985020b54"
-    Metal = "dde4c033-4e86-420c-a63e-0dd931031962"
-    RecursiveArrayTools = "731186ca-8d62-57ce-b412-fbd966d074cd"
-    ReverseDiff = "37e2e3b7-166d-5795-8a7a-e32c996b4267"
-    SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
-    Tracker = "9f7883ad-71c0-57eb-9f7f-b5c9e6d3789c"
-    Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
-    cuDNN = "02a925ec-e4fe-4b08-9a7e-0d78e3d38ccd"
-    oneAPI = "8f75cd03-7ff8-4ecb-9b8f-daf728133b1b"
 
 [[deps.MLStyle]]
 git-tree-sha1 = "bc38dff0548128765760c79eb7388a4b37fae2c8"
@@ -1791,11 +1629,6 @@ deps = ["Distributed", "Logging", "RelocatableFolders", "Serialization", "Socket
 git-tree-sha1 = "18cf4151e390fce29ca846b92b06baf9bc6e002e"
 uuid = "36869731-bdee-424d-aa32-cab38c994e3b"
 version = "1.1.1"
-
-[[deps.ManualMemory]]
-git-tree-sha1 = "bcaef4fc7a0cfe2cba636d84cda54b5e4e4ca3cd"
-uuid = "d125e4d3-2237-4719-b19c-fa641b8a4667"
-version = "0.1.8"
 
 [[deps.Markdown]]
 deps = ["Base64"]
@@ -1854,40 +1687,6 @@ git-tree-sha1 = "a0b464d183da839699f4c79e7606d9d186ec172c"
 uuid = "d41bc354-129a-5804-8e4c-c37616107c6c"
 version = "7.8.3"
 
-[[deps.NNlib]]
-deps = ["Adapt", "Atomix", "ChainRulesCore", "GPUArraysCore", "KernelAbstractions", "LinearAlgebra", "Random", "Statistics"]
-git-tree-sha1 = "4a83c2e01027a0bfcea28589222f2df60b2e20cb"
-uuid = "872c559c-99b0-510c-b3b7-b6c96a88d5cd"
-version = "0.9.23"
-
-    [deps.NNlib.extensions]
-    NNlibAMDGPUExt = "AMDGPU"
-    NNlibCUDACUDNNExt = ["CUDA", "cuDNN"]
-    NNlibCUDAExt = "CUDA"
-    NNlibEnzymeCoreExt = "EnzymeCore"
-    NNlibFFTWExt = "FFTW"
-    NNlibForwardDiffExt = "ForwardDiff"
-
-    [deps.NNlib.weakdeps]
-    AMDGPU = "21141c5a-9bdb-4563-92ae-f87d6854732e"
-    CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
-    EnzymeCore = "f151be2c-9106-41f4-ab19-57ee4f262869"
-    FFTW = "7a1cc6ca-52ef-59f5-83cd-3a7055c09341"
-    ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
-    cuDNN = "02a925ec-e4fe-4b08-9a7e-0d78e3d38ccd"
-
-[[deps.NVTX]]
-deps = ["Colors", "JuliaNVTXCallbacks_jll", "Libdl", "NVTX_jll"]
-git-tree-sha1 = "53046f0483375e3ed78e49190f1154fa0a4083a1"
-uuid = "5da4648a-3479-48b8-97b9-01cb529c0a1f"
-version = "0.3.4"
-
-[[deps.NVTX_jll]]
-deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
-git-tree-sha1 = "ce3269ed42816bf18d500c9f63418d4b0d9f5a3b"
-uuid = "e98f9f5b-d649-5603-91fd-7774390e6439"
-version = "3.1.0+2"
-
 [[deps.NaNMath]]
 deps = ["OpenLibm_jll"]
 git-tree-sha1 = "0877504529a3e5c3343c6f8b4c0381e57e4387e4"
@@ -1897,29 +1696,6 @@ version = "1.0.2"
 [[deps.NetworkOptions]]
 uuid = "ca575930-c2e3-43a9-ace4-1e988b2c1908"
 version = "1.2.0"
-
-[[deps.Octavian]]
-deps = ["CPUSummary", "IfElse", "LoopVectorization", "ManualMemory", "PolyesterWeave", "PrecompileTools", "Static", "StaticArrayInterface", "ThreadingUtilities", "VectorizationBase"]
-git-tree-sha1 = "92410e147bdcaf9e2f982a7cc9b1341fc5dd1a77"
-uuid = "6fd5a793-0b7e-452c-907f-f8bfe9c57db4"
-version = "0.3.28"
-
-    [deps.Octavian.extensions]
-    ForwardDiffExt = "ForwardDiff"
-    HyperDualNumbersExt = "HyperDualNumbers"
-
-    [deps.Octavian.weakdeps]
-    ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
-    HyperDualNumbers = "50ceba7f-c3ee-5a84-a6e8-3ad40456ec97"
-
-[[deps.OffsetArrays]]
-git-tree-sha1 = "1a27764e945a152f7ca7efa04de513d473e9542e"
-uuid = "6fe1bfb0-de20-5000-8ca7-80f57d26f881"
-version = "1.14.1"
-weakdeps = ["Adapt"]
-
-    [deps.OffsetArrays.extensions]
-    OffsetArraysAdaptExt = "Adapt"
 
 [[deps.Ogg_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
@@ -1966,12 +1742,6 @@ version = "1.9.4"
 
     [deps.Optim.weakdeps]
     MathOptInterface = "b8f27783-ece8-5eb3-8dc8-9495eed66fee"
-
-[[deps.Optimisers]]
-deps = ["ChainRulesCore", "Functors", "LinearAlgebra", "Random", "Statistics"]
-git-tree-sha1 = "6572fe0c5b74431aaeb0b18a4aa5ef03c84678be"
-uuid = "3bd65402-5787-11e9-1adc-39752487f4e2"
-version = "0.3.3"
 
 [[deps.Opus_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl"]
@@ -2073,24 +1843,6 @@ git-tree-sha1 = "4bc5284f77d731196d3e97f23abb732ad6f2a6e4"
 uuid = "72656b73-756c-7461-726b-72656b6b696b"
 version = "1.0.4"
 
-[[deps.Polyester]]
-deps = ["ArrayInterface", "BitTwiddlingConvenienceFunctions", "CPUSummary", "IfElse", "ManualMemory", "PolyesterWeave", "Static", "StaticArrayInterface", "StrideArraysCore", "ThreadingUtilities"]
-git-tree-sha1 = "6d38fea02d983051776a856b7df75b30cf9a3c1f"
-uuid = "f517fe37-dbe3-4b94-8317-1923a5111588"
-version = "0.7.16"
-
-[[deps.PolyesterWeave]]
-deps = ["BitTwiddlingConvenienceFunctions", "CPUSummary", "IfElse", "Static", "ThreadingUtilities"]
-git-tree-sha1 = "645bed98cd47f72f67316fd42fc47dee771aefcd"
-uuid = "1d0040c9-8b98-4ee7-8388-3f51789ca0ad"
-version = "0.2.2"
-
-[[deps.PooledArrays]]
-deps = ["DataAPI", "Future"]
-git-tree-sha1 = "36d8b4b899628fb92c2749eb488d884a926614d3"
-uuid = "2dfb63ee-cc39-5dd5-95bd-886bf059d720"
-version = "1.4.3"
-
 [[deps.PositiveFactorizations]]
 deps = ["LinearAlgebra"]
 git-tree-sha1 = "17275485f373e6673f7e7f97051f703ed5b15b20"
@@ -2113,12 +1865,6 @@ deps = ["TOML"]
 git-tree-sha1 = "9306f6085165d270f7e3db02af26a400d580f5c6"
 uuid = "21216c6a-2e73-6563-6e65-726566657250"
 version = "1.4.3"
-
-[[deps.PrettyTables]]
-deps = ["Crayons", "LaTeXStrings", "Markdown", "PrecompileTools", "Printf", "Reexport", "StringManipulation", "Tables"]
-git-tree-sha1 = "66b20dd35966a748321d3b2537c4584cf40387c7"
-uuid = "08abe8d2-0d0c-5749-adfa-8a2ac140af0d"
-version = "2.3.2"
 
 [[deps.Primes]]
 deps = ["IntegerMathUtils"]
@@ -2178,24 +1924,6 @@ uuid = "3fa0cd96-eef1-5676-8a61-b3b8758bbffb"
 [[deps.Random]]
 deps = ["SHA"]
 uuid = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
-
-[[deps.Random123]]
-deps = ["Random", "RandomNumbers"]
-git-tree-sha1 = "4743b43e5a9c4a2ede372de7061eed81795b12e7"
-uuid = "74087812-796a-5b5d-8853-05524746bad3"
-version = "1.7.0"
-
-[[deps.RandomNumbers]]
-deps = ["Random"]
-git-tree-sha1 = "c6ec94d2aaba1ab2ff983052cf6a606ca5985902"
-uuid = "e6cf234a-135c-5ec9-84dd-332b85af5143"
-version = "1.6.0"
-
-[[deps.RealDot]]
-deps = ["LinearAlgebra"]
-git-tree-sha1 = "9f0a1b71baaf7650f4fa8a1d168c7fb6ee41f0c9"
-uuid = "c1ae055f-0cd5-4b69-90a6-9a35b1a98df9"
-version = "0.1.0"
 
 [[deps.RecipesBase]]
 deps = ["PrecompileTools"]
@@ -2280,17 +2008,6 @@ version = "0.5.13"
 uuid = "ea8e919c-243c-51af-8825-aaa63cd721ce"
 version = "0.7.0"
 
-[[deps.SIMDTypes]]
-git-tree-sha1 = "330289636fb8107c5f32088d2741e9fd7a061a5c"
-uuid = "94e857df-77ce-4151-89e5-788b33177be4"
-version = "0.1.0"
-
-[[deps.SLEEFPirates]]
-deps = ["IfElse", "Static", "VectorizationBase"]
-git-tree-sha1 = "456f610ca2fbd1c14f5fcf31c6bfadc55e7d66e0"
-uuid = "476501e8-09a2-5ece-8869-fb82de89a1fa"
-version = "0.6.43"
-
 [[deps.SciMLBase]]
 deps = ["ADTypes", "Accessors", "ArrayInterface", "CommonSolve", "ConstructionBase", "Distributed", "DocStringExtensions", "EnumX", "Expronicon", "FunctionWrappersWrappers", "IteratorInterfaceExtensions", "LinearAlgebra", "Logging", "Markdown", "PrecompileTools", "Preferences", "Printf", "RecipesBase", "RecursiveArrayTools", "Reexport", "RuntimeGeneratedFunctions", "SciMLOperators", "SciMLStructures", "StaticArraysCore", "Statistics", "SymbolicIndexingInterface", "Tables"]
 git-tree-sha1 = "c96f81c3e98d5e2f0848fb42aba4383d772c3bb7"
@@ -2339,12 +2056,6 @@ git-tree-sha1 = "3bac05bc7e74a75fd9cba4295cde4045d9fe2386"
 uuid = "6c6a2e73-6563-6170-7368-637461726353"
 version = "1.2.1"
 
-[[deps.SentinelArrays]]
-deps = ["Dates", "Random"]
-git-tree-sha1 = "ff11acffdb082493657550959d4feb4b6149e73a"
-uuid = "91c51154-3ec4-41a3-a24f-3f23e20d615c"
-version = "1.4.5"
-
 [[deps.Serialization]]
 uuid = "9e88b42a-f829-5b0c-bbe9-9e923198166b"
 
@@ -2379,12 +2090,6 @@ deps = ["Libdl", "LinearAlgebra", "Random", "Serialization", "SuiteSparse_jll"]
 uuid = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 version = "1.10.0"
 
-[[deps.SparseInverseSubset]]
-deps = ["LinearAlgebra", "SparseArrays", "SuiteSparse"]
-git-tree-sha1 = "52962839426b75b3021296f7df242e40ecfc0852"
-uuid = "dc90abb0-5640-4711-901d-7e5b23a2fada"
-version = "0.1.2"
-
 [[deps.SpecialFunctions]]
 deps = ["IrrationalConstants", "LogExpFunctions", "OpenLibm_jll", "OpenSpecFun_jll"]
 git-tree-sha1 = "2f5d4697f21388cbe1ff299430dd169ef97d7e14"
@@ -2394,23 +2099,6 @@ weakdeps = ["ChainRulesCore"]
 
     [deps.SpecialFunctions.extensions]
     SpecialFunctionsChainRulesCoreExt = "ChainRulesCore"
-
-[[deps.Static]]
-deps = ["CommonWorldInvalidations", "IfElse", "PrecompileTools"]
-git-tree-sha1 = "87d51a3ee9a4b0d2fe054bdd3fc2436258db2603"
-uuid = "aedffcd0-7271-4cad-89d0-dc628f76c6d3"
-version = "1.1.1"
-
-[[deps.StaticArrayInterface]]
-deps = ["ArrayInterface", "Compat", "IfElse", "LinearAlgebra", "PrecompileTools", "Static"]
-git-tree-sha1 = "96381d50f1ce85f2663584c8e886a6ca97e60554"
-uuid = "0d7ed370-da01-4f52-bd93-41d350b8b718"
-version = "1.8.0"
-weakdeps = ["OffsetArrays", "StaticArrays"]
-
-    [deps.StaticArrayInterface.extensions]
-    StaticArrayInterfaceOffsetArraysExt = "OffsetArrays"
-    StaticArrayInterfaceStaticArraysExt = "StaticArrays"
 
 [[deps.StaticArrays]]
 deps = ["LinearAlgebra", "PrecompileTools", "Random", "StaticArraysCore"]
@@ -2455,31 +2143,6 @@ weakdeps = ["ChainRulesCore", "InverseFunctions"]
     [deps.StatsFuns.extensions]
     StatsFunsChainRulesCoreExt = "ChainRulesCore"
     StatsFunsInverseFunctionsExt = "InverseFunctions"
-
-[[deps.StrideArraysCore]]
-deps = ["ArrayInterface", "CloseOpenIntervals", "IfElse", "LayoutPointers", "LinearAlgebra", "ManualMemory", "SIMDTypes", "Static", "StaticArrayInterface", "ThreadingUtilities"]
-git-tree-sha1 = "f35f6ab602df8413a50c4a25ca14de821e8605fb"
-uuid = "7792a7ef-975c-4747-a70f-980b88e8d1da"
-version = "0.5.7"
-
-[[deps.StringManipulation]]
-deps = ["PrecompileTools"]
-git-tree-sha1 = "a04cabe79c5f01f4d723cc6704070ada0b9d46d5"
-uuid = "892a3eda-7b42-436c-8928-eab12a02cf0e"
-version = "0.3.4"
-
-[[deps.StructArrays]]
-deps = ["ConstructionBase", "DataAPI", "Tables"]
-git-tree-sha1 = "f4dc295e983502292c4c3f951dbb4e985e35b3be"
-uuid = "09ab397b-f2b6-538f-b94a-2f83cf4a842a"
-version = "0.6.18"
-weakdeps = ["Adapt", "GPUArraysCore", "SparseArrays", "StaticArrays"]
-
-    [deps.StructArrays.extensions]
-    StructArraysAdaptExt = "Adapt"
-    StructArraysGPUArraysCoreExt = "GPUArraysCore"
-    StructArraysSparseArraysExt = "SparseArrays"
-    StructArraysStaticArraysExt = "StaticArrays"
 
 [[deps.SuiteSparse]]
 deps = ["Libdl", "LinearAlgebra", "Serialization", "SparseArrays"]
@@ -2575,12 +2238,6 @@ version = "2.0.0"
 deps = ["InteractiveUtils", "Logging", "Random", "Serialization"]
 uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
-[[deps.ThreadingUtilities]]
-deps = ["ManualMemory"]
-git-tree-sha1 = "eda08f7e9818eb53661b3deb74e3159460dfbc27"
-uuid = "8290d209-cae3-49c0-8002-c8c24d57dab5"
-version = "0.5.2"
-
 [[deps.TimerOutputs]]
 deps = ["ExprTools", "Printf"]
 git-tree-sha1 = "5a13ae8a41237cff5ecf34f73eb1b8f42fff6531"
@@ -2643,36 +2300,10 @@ git-tree-sha1 = "25008b734a03736c41e2a7dc314ecb95bd6bbdb0"
 uuid = "a7c27f48-0311-42f6-a7f8-2c11e75eb415"
 version = "0.1.6"
 
-[[deps.UnrolledUtilities]]
-git-tree-sha1 = "d0b2aa2d71fa2f4494cb3cf69719a6807ea0df40"
-uuid = "0fe1646c-419e-43be-ac14-22321958931b"
-version = "0.1.4"
-weakdeps = ["StaticArrays"]
-
-    [deps.UnrolledUtilities.extensions]
-    UnrolledUtilitiesStaticArraysExt = "StaticArrays"
-
-[[deps.UnsafeAtomics]]
-git-tree-sha1 = "6331ac3440856ea1988316b46045303bef658278"
-uuid = "013be700-e6cd-48c3-b4a1-df204f14c38f"
-version = "0.2.1"
-
-[[deps.UnsafeAtomicsLLVM]]
-deps = ["LLVM", "UnsafeAtomics"]
-git-tree-sha1 = "2d17fabcd17e67d7625ce9c531fb9f40b7c42ce4"
-uuid = "d80eeb9a-aca5-4d75-85e5-170c8b632249"
-version = "0.2.1"
-
 [[deps.Unzip]]
 git-tree-sha1 = "ca0969166a028236229f63514992fc073799bb78"
 uuid = "41fe7b60-77ed-43a1-b4f0-825fd5a5650d"
 version = "0.2.0"
-
-[[deps.VectorizationBase]]
-deps = ["ArrayInterface", "CPUSummary", "HostCPUFeatures", "IfElse", "LayoutPointers", "Libdl", "LinearAlgebra", "SIMDTypes", "Static", "StaticArrayInterface"]
-git-tree-sha1 = "e7f5b81c65eb858bed630fe006837b935518aca5"
-uuid = "3d5dd08c-fd9d-11e8-17fa-ed2836048c2f"
-version = "0.21.70"
 
 [[deps.Vulkan_Loader_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Wayland_jll", "Xorg_libX11_jll", "Xorg_libXrandr_jll", "xkbcommon_jll"]
@@ -2691,28 +2322,6 @@ deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
 git-tree-sha1 = "93f43ab61b16ddfb2fd3bb13b3ce241cafb0e6c9"
 uuid = "2381bf8a-dfd0-557d-9999-79630e7b1b91"
 version = "1.31.0+0"
-
-[[deps.WeightInitializers]]
-deps = ["ArgCheck", "ConcreteStructs", "GPUArraysCore", "LinearAlgebra", "Random", "SpecialFunctions", "Statistics"]
-git-tree-sha1 = "ed1cfb44422eaa9804c8a596a8227a6e2baaeef7"
-uuid = "d49dbf32-c5c2-4618-8acc-27bb2598ef2d"
-version = "1.0.3"
-
-    [deps.WeightInitializers.extensions]
-    WeightInitializersAMDGPUExt = ["AMDGPU", "GPUArrays"]
-    WeightInitializersCUDAExt = ["CUDA", "GPUArrays"]
-    WeightInitializersChainRulesCoreExt = "ChainRulesCore"
-    WeightInitializersGPUArraysExt = "GPUArrays"
-    WeightInitializersMetalExt = ["Metal", "GPUArrays"]
-    WeightInitializersoneAPIExt = ["oneAPI", "GPUArrays"]
-
-    [deps.WeightInitializers.weakdeps]
-    AMDGPU = "21141c5a-9bdb-4563-92ae-f87d6854732e"
-    CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
-    ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
-    GPUArrays = "0c68f7d7-f131-5f86-a1c3-88cf8149b2d7"
-    Metal = "dde4c033-4e86-420c-a63e-0dd931031962"
-    oneAPI = "8f75cd03-7ff8-4ecb-9b8f-daf728133b1b"
 
 [[deps.XML2_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Libiconv_jll", "Zlib_jll"]
@@ -2887,34 +2496,6 @@ git-tree-sha1 = "e678132f07ddb5bfa46857f0d7620fb9be675d3b"
 uuid = "3161d3a3-bdf6-5164-811a-617609db77b4"
 version = "1.5.6+0"
 
-[[deps.Zygote]]
-deps = ["AbstractFFTs", "ChainRules", "ChainRulesCore", "DiffRules", "Distributed", "FillArrays", "ForwardDiff", "GPUArrays", "GPUArraysCore", "IRTools", "InteractiveUtils", "LinearAlgebra", "LogExpFunctions", "MacroTools", "NaNMath", "PrecompileTools", "Random", "Requires", "SparseArrays", "SpecialFunctions", "Statistics", "ZygoteRules"]
-git-tree-sha1 = "19c586905e78a26f7e4e97f81716057bd6b1bc54"
-uuid = "e88e6eb3-aa80-5325-afca-941959d7151f"
-version = "0.6.70"
-
-    [deps.Zygote.extensions]
-    ZygoteColorsExt = "Colors"
-    ZygoteDistancesExt = "Distances"
-    ZygoteTrackerExt = "Tracker"
-
-    [deps.Zygote.weakdeps]
-    Colors = "5ae59095-9a9b-59fe-a467-6f913c188581"
-    Distances = "b4f34e82-e78d-54a5-968a-f98e89d6e8f7"
-    Tracker = "9f7883ad-71c0-57eb-9f7f-b5c9e6d3789c"
-
-[[deps.ZygoteRules]]
-deps = ["ChainRulesCore", "MacroTools"]
-git-tree-sha1 = "27798139afc0a2afa7b1824c206d5e87ea587a00"
-uuid = "700de1a5-db45-46bc-99cf-38207098b444"
-version = "0.2.5"
-
-[[deps.cuDNN]]
-deps = ["CEnum", "CUDA", "CUDA_Runtime_Discovery", "CUDNN_jll"]
-git-tree-sha1 = "4909e87d6d62c29a897d54d9001c63932e41cb0e"
-uuid = "02a925ec-e4fe-4b08-9a7e-0d78e3d38ccd"
-version = "1.3.2"
-
 [[deps.eudev_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg", "gperf_jll"]
 git-tree-sha1 = "431b678a28ebb559d224c0b6b6d01afce87c51ba"
@@ -3029,49 +2610,56 @@ version = "1.4.1+1"
 # ╟─359428a2-1c52-4771-98b3-e72806700072
 # ╠═01a61a30-e22c-4907-9e38-c6a045e8bd06
 # ╠═52e4a0f1-6617-4072-bb54-3f7baf0dfefc
+# ╠═17fbe234-61b1-47bd-ad4d-0e7a902dccdf
 # ╠═692866e7-2a2e-4604-be0c-8348e3112044
 # ╠═39b048c3-9103-4b45-9067-8884a4deea30
+# ╠═bd4ca233-86c9-47a4-b3a1-bcb440c72e8e
 # ╠═39834ab0-a965-47cc-bdd8-b73aaac376de
 # ╠═c96d95f9-3b0b-4271-8620-276f658794a1
 # ╠═981e6fa9-f7b2-45d1-ac55-f626bfc799f8
 # ╠═7769114d-41b8-480d-8bcf-a491dfe48db6
+# ╠═283b1783-c58c-454a-b0a0-3639f2f17be3
+# ╠═b25a77e3-9a24-4d09-ae78-f74b7343170d
 # ╟─4fdefe6f-4100-4753-a94d-8f76bc5a7512
 # ╟─8b008bd5-f7c2-41c3-ae88-9a95fc23e6a6
-# ╠═0ffcd2db-1013-41ae-b63a-650af43f8bbb
-# ╟─c212455d-713a-4de6-91ea-c4ddc5baf658
-# ╟─5f7c5140-72fd-453c-a74a-c701f25d70c1
 # ╠═d23e6ce3-fbbc-459a-8701-15ea71aab820
-# ╟─e5c2911e-34be-4135-8f8e-fb9170c4e2d0
-# ╟─bce71087-2096-4547-9761-733db52c4970
-# ╠═f089ccff-96fe-4730-aa51-5c2376b0d60d
-# ╟─2d27cbaf-30fe-483f-ab5b-68e20c5aba6d
+# ╟─78dde7e2-ba95-4fa1-84b5-dbb49e015beb
+# ╟─a6c23967-24d7-4921-af8e-a64a61522c87
+# ╟─a3be7271-30ed-4e9f-86f3-073acd298521
+# ╟─75bd4938-d1bd-4be4-af75-3322c7232f57
+# ╟─51fcb396-61fb-44f3-b400-6e725a6afa1b
+# ╟─212a8e67-0469-4f2c-8465-f1f04945f512
 # ╟─8d5953fc-a9ea-467d-ada7-c3154a96f816
-# ╠═3015e363-77f8-4974-b6f3-33f2059d59f9
 # ╠═8bbc11bd-aeb3-488b-9600-0b1a64c948a9
 # ╟─9d5843f1-ab2a-4991-94ab-27caa857983c
 # ╠═caa6b443-d585-4a30-a588-b16bd0f0ea3e
-# ╟─957cc415-1acb-404f-8774-ccbb42d6e9c9
-# ╠═fdf8a1ac-a367-4442-8d21-e4a40f268f61
 # ╟─58db7524-9511-4e81-af91-479939bedd16
 # ╠═9d96e2d2-1305-4895-a797-ee7cd001a990
-# ╟─afc76958-3f88-411d-b3b1-e7f22d749e68
-# ╠═9226f38a-7653-4089-ab00-ff7255f17971
 # ╟─ae2c2fa8-9650-4270-bd2e-d78aa0ff0e79
-# ╠═8dfed8e9-ef1b-40ea-863b-21272b6b5a29
-# ╠═550a3eed-23fb-4321-be4c-2403c3c0d454
-# ╟─bc25c407-0522-409c-9f43-7babaf5f63f5
-# ╠═b8261a18-a166-4eac-96ba-2be6ab30ecd6
-# ╟─73f3c42a-f9de-462b-9c3e-c422b99a7bfd
-# ╠═31040720-a55a-4ce7-8da3-9ae9c8594f55
 # ╟─66851374-631f-40d5-9015-49336354597c
 # ╠═aa8d9da3-7a03-4057-a7ec-9e0a41255ac8
 # ╠═9a087780-1b64-4430-8347-3625c844c7a9
-# ╠═f160f7e3-71d1-4701-b093-fc925bef419d
 # ╟─923c3180-54f5-4ef3-a5d0-4ffb6aa86a9e
 # ╠═51db07d2-bbc0-4fad-9fbe-c9d2ad869d0f
 # ╟─506a80e9-e209-4596-a32c-a8eb7766496e
 # ╠═fde39536-9e0c-48dd-803b-43869c9ae7ba
+# ╟─2fb3c498-b8b5-40d8-9770-e6f8b6ea520b
+# ╠═6cfd5be6-7efd-4626-a1ab-8f63a17b3d09
+# ╟─97249b0d-e02d-4fc0-9730-de1aa1702c7d
+# ╠═7b294c9d-159d-4dec-bac8-bfbef527a7fa
+# ╠═e7ec6823-1150-424b-86b4-1d2a01184b8c
+# ╠═544581e9-cfe1-48b2-95f8-f8a6596e6867
+# ╠═05bd7f8a-310c-4aa3-9514-4ee8eb611567
+# ╠═24569e07-61fb-4883-ae0c-2396769d9b11
+# ╠═f5b4928b-1b4f-499e-b426-afaa3fcb3606
+# ╟─1c4788c1-223e-4772-a792-94bd0af66006
+# ╠═d2c844f5-3ead-438e-8e52-407000ca72b4
+# ╟─88533867-3a4e-48ad-9c55-5cf2fc6eab2b
+# ╠═1e1d4cf1-a092-4c08-b41d-8fc2828c6b56
+# ╟─441b39fc-87ea-4bdd-b795-0aa5bc4179b8
+# ╠═8124add9-049c-4d46-96a5-d5dde5ddd42f
 # ╟─690e7a77-6086-4596-a7e1-27e822efbdca
+# ╟─dabdd24f-8205-4fa5-9d97-f9186433e9ee
 # ╟─fe147f1a-fe64-44fc-ab10-ee4e0d7e392c
 # ╟─81dc7d42-d3ab-45f5-94ee-648cbb8bbbea
 # ╟─00000000-0000-0000-0000-000000000001
