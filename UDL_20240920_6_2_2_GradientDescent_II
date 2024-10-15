@@ -30,7 +30,7 @@ md"
 #### UDL\_20240920\_6\_2\_2\_Gradient\_Descent\_II
 ##### file: UDL\_20240920\_6\_2\_2\_GradientDescent\_II.jl
 ##### libraries: Julia 1.10.5/Pluto 19.46/Symbolics 6.7.0/Optim 1.9.4
-##### code by *** PCM 2024/10/14 ***
+##### code by *** PCM 2024/10/15 ***
 
 ===================================================================================
 "
@@ -757,7 +757,7 @@ Then we tried various *numerical* minimization algorithms provided by $Optim.jl$
 md"
 ---
 ##### 6. Acknowledgements
-We thank Chris Rackauckas for replying to my issue 'Where's the sum ?' in GitHub. In this issue I complained the partial failure of $Symbolics.jl$. 
+I first consulted the doc of $Symbolics.jl$. The result was the derivative of only a *scalar* component of $L_{RSS}$. So I wrote an issue message 'Where's the sum ?' in GitHub. Chris Rackauckas was so nice for replying. Unfortunately his advice was a bit enigmatic. So I asked ChatGPT how to get the gradient of the full function $L_{RSS}$. The first advice to use the function $Symbolics.differentiate(.)$ was not operable because that function was not implemented. The second trial was to use $Symbolics.gradient(.)$. This led to a (partial) success (see above). The expression is correct but too verbose. So my complaint 'Where's the sum ?' still is still active.
 
 "
 
