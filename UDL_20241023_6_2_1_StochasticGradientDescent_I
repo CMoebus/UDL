@@ -28,8 +28,8 @@ md"
 =====================================================================================
 ### UDL\_20241023\_6\_3\_1\_Stochastic\_Gradient\_Descent\_I
 ##### file: UDL\_20241023\_6\_2\_1\_StochasticGradientDescent\_I.jl
-##### libraries: Julia 1.11.1/Pluto 19.47/Optim 1.9.4
-##### code by *** PCM 2024/10/28 ***
+##### libraries: Julia 1.11.1/Pluto 0.20.0/Plots 1.40.8/Optim 1.9.4
+##### code by *** PCM 2024/10/30 ***
 
 ===================================================================================
 "
@@ -40,7 +40,7 @@ md"
 ##### 0. Introduction
 To search in the parameter space of the univariate *linear* regression problem for the *loss minimum* is rather simple because *residual sum-of-squares (RSS) or *mean square error* (MSE) loss are *convex* loss functions. But what about the search in parameter spaces with *non-linear* regression models with *non-convex* loss-functions ? Prince (2024, p.80, (6.8)) provides the  *non-linear* two-parameter Gabor model with such a *non-convex* loss function.
 
-We explore the parameter space for various parameter configurations and look systematically for the loss minimum with the *gradient-free* [Nelder-Mead](https://julianlsolvers.github.io/Optim.jl/stable/algo/nelder_mead/) algorithm.
+We explore the parameter space for various parameter configurations and look systematically for the loss minimum with the *gradient-free* [*Nelder-Mead*](https://julianlsolvers.github.io/Optim.jl/stable/algo/nelder_mead/) algorithm.
 "
 
 # ╔═╡ c056d8db-c7b3-44a3-ba6f-27cf4f535d19
@@ -138,16 +138,16 @@ drawModel(gaborModel, [-5, 25], title=L"Gabor\ 1")
 drawModel(gaborModel, [-5, 25], title=L"Gabor\ 1", drawScatter=true)
 
 # ╔═╡ fb0edbc4-9d28-41c2-a00e-4ed9bb340ada
-# ==> 16.419 --> :)
-drawModel(gaborModel, [0.6, -0.2], title=L"Gabor\ 2", drawScatter=true) 
+drawModel(gaborModel, [1.5, -0.1], title=L"Gabor\ 2", drawScatter=true)
+# ==> 31.55 --> :)
 
 # ╔═╡ a322ebd8-e6ab-433e-bae6-ece5afa67adb
 let # Initialize the parameters and draw the model
 	ϕs = zeros(Float64, 2)
 	plot3 = drawModel(gaborModel, [ 3.0, 15.0], title=L"Gabor\ 3", drawScatter=true)
 	plot4 = drawModel(gaborModel, [ 0.0, 16.0], title=L"Gabor\ 4", drawScatter=true)
-	plot5 = drawModel(gaborModel, [ 1.5,  0.0], title=L"Gabor\ 5", drawScatter=true)
-	plot6 = drawModel(gaborModel, [-1.5,  0.0], title=L"Gabor\ 6", drawScatter=true)
+	plot5 = drawModel(gaborModel, [ 1.5, -0.1], title=L"Gabor\ 5", drawScatter=true)
+	plot6 = drawModel(gaborModel, [-1.5, +0.1], title=L"Gabor\ 6", drawScatter=true)
 	plot7 = drawModel(gaborModel, [ 3.0,-15.0], title=L"Gabor\ 7", drawScatter=true)
 	plot8 = drawModel(gaborModel, [ 3.0,-15.0], title=L"Gabor\ 8", drawScatter=true)
 	plot(plot3, plot4, plot5, plot6, plot7, plot8, layout=(2, 3))
@@ -168,8 +168,8 @@ function drawContourLines(gaborModel; title="")
 		 mean(abs2, gaborModel([ϕ0, ϕ1], xs).- ys) * n, xlabel=L"\phi_0", ylabel=L"\phi_1", fill=false, title=title)
 	scatter!([ 3.0], [ 15.0], color=:red, 10, label=false)    # maximum: plot3
 	scatter!([ 0.0], [ 16.0], color=:green,  10, label=false) # minimum: plot4
-	scatter!([ 1.5], [  0.0], color=:red, 10, label=false)    # maximum: plot5
-	scatter!([-1.5], [  0.0], color=:red, 10, label=false)    # maximum: plot6
+	scatter!([ 1.5], [ -0.1], color=:red, 10, label=false)    # maximum: plot5
+	scatter!([-1.5], [ +0.1], color=:red, 10, label=false)    # maximum: plot6
 	scatter!([ 3.0], [-15.0], color=:green,  10, label=false) # minimum: plot7
 	scatter!([-3.0], [-15.0], color=:green,  10, label=false) # minimum: plot8
 end # function drawContour
@@ -183,14 +183,35 @@ function drawContourColours(gaborModel; title="")
 		 mean(abs2, gaborModel([ϕ0, ϕ1], xs).- ys) * n, xlabel=L"\phi_0", ylabel=L"\phi_1", fill=true, title=title)
 	scatter!([ 3.0], [ 15.0], color=:red, 10, label=false)    # maximum: plot3
 	scatter!([ 0.0], [ 16.0], color=:green,  10, label=false) # minimum: plot4
-	scatter!([ 1.5], [  0.0], color=:red, 10, label=false)    # maximum: plot5
-	scatter!([-1.5], [  0.0], color=:red, 10, label=false)    # maximum: plot6
+	scatter!([ 1.5], [ -0.1], color=:red, 10, label=false)    # maximum: plot5
+	scatter!([-1.5], [ +0.1], color=:red, 10, label=false)    # maximum: plot6
 	scatter!([ 3.0], [-15.0], color=:green,  10, label=false) # minimum: plot7
 	scatter!([-3.0], [-15.0], color=:green,  10, label=false) # minimum: plot8
 end # function drawContour
 
+# ╔═╡ 01750863-8c51-4cce-b20c-d9358dba2db9
+# 2nd method
+function drawContourColours(gaborModel, ϕsSource, ϕsSink; title="")
+	ϕ0Max = max(max(ϕsSink[1],  +6), max(ϕsSource[1],  +6)) 
+	ϕ1Max = max(max(ϕsSink[2], +20), max(ϕsSource[2], +20)) 
+	ϕ0Min = min(min(ϕsSink[1],  -6), min(ϕsSource[1],  -6))
+	ϕ1Min = min(min(ϕsSink[2], -20), min(ϕsSource[2], -20))
+	ϕ0s = [ϕ0 for ϕ0 in ϕ0Min:0.1:ϕ0Max]
+	ϕ1s = [ϕ1 for ϕ1 in ϕ1Min:0.1:ϕ1Max]
+    contour(ϕ0s, ϕ1s, (ϕ0, ϕ1) ->  
+		 mean(abs2, gaborModel([ϕ0, ϕ1], xs).- ys) * n, xlabel=L"\phi_0", ylabel=L"\phi_1", fill=true, title=title)
+	# sink=minimum
+	scatter!([ϕsSink[1]], [ϕsSink[2]], color=:green, 10, label=false)  
+	# source=start
+	scatter!([ϕsSource[1]], [ϕsSource[2]], color=:green, 10, label=false)
+	plot!([(ϕsSource[1], ϕsSource[2]), (ϕsSink[1], ϕsSink[2])], arrow=true, color=:green, ls=:dot)
+end # function drawContour
+
 # ╔═╡ e86608ce-5217-4f2b-b9dc-b686a7ad656e
 drawContourLines(gaborModel, title=L"Loss\ Contours\ in\ Parameter\ Space")
+
+# ╔═╡ f421eb9e-ffe5-45af-a12d-9c3b6638748d
+drawContourColours(gaborModel, title=L"Loss\ Contours\ in\ Parameter\ Space")
 
 # ╔═╡ 3d40d080-65af-4dc9-a924-5da517ffb95c
 md"
@@ -198,19 +219,6 @@ md"
 ##### 4. *Least-Squares* Parameter Search with [Optim.jl](https://julianlsolvers.github.io/Optim.jl/stable/)
 ###### 4.1 *Gradient-free* [Nelder-Mead Search](https://julianlsolvers.github.io/Optim.jl/stable/algo/nelder_mead/) in Parameter Space
 "
-
-# ╔═╡ 01750863-8c51-4cce-b20c-d9358dba2db9
-# 2nd method
-function drawContourColours(gaborModel, ϕs; title="")
-	ϕ0s = [ϕ0 for ϕ0 in -6:0.1: +6]
-	ϕ1s = [ϕ1 for ϕ1 in -20:0.1:+20]
-    contour(ϕ0s, ϕ1s, (ϕ0, ϕ1) ->  
-		 mean(abs2, gaborModel([ϕ0, ϕ1], xs).- ys) * n, xlabel=L"\phi_0", ylabel=L"\phi_1", fill=true, title=title)
-	scatter!([ϕs[1]], [ϕs[2]], color=:green, 10, label=false)    # minimum
-end # function drawContour
-
-# ╔═╡ f421eb9e-ffe5-45af-a12d-9c3b6638748d
-drawContourColours(gaborModel, title=L"Loss\ Contours\ in\ Parameter\ Space")
 
 # ╔═╡ 58cc68de-cd76-48b4-8df4-b4257fdc1cd1
 function mySearchIn2D(ϕs; searchAlgorithm=NelderMead(), title="")  
@@ -226,19 +234,20 @@ function mySearchIn2D(ϕs; searchAlgorithm=NelderMead(), title="")
 		mean(abs2, ysPredicted .- ys) * n
 	end # function ssqLoss
 	#----------------------------------------------------------------------
-	lossMinimum = optimize(ssqLoss, ϕs, searchAlgorithm)
-	ϕ0   = Optim.minimizer(lossMinimum)[1]
-	ϕ1   = Optim.minimizer(lossMinimum)[2]
-	fmin = round(Optim.minimum(lossMinimum), digits=4)
-	println("lossMinimum: intercept ϕ0 = $ϕ0, slope ϕ1 = $ϕ1, minimum = $fmin") 
-	drawContourColours(gaborModel, [ϕ0, ϕ1]; title=title)
+	solution = optimize(ssqLoss, ϕs, searchAlgorithm)
+	println(solution)
+	ϕ0   = Optim.minimizer(solution)[1]
+	ϕ1   = Optim.minimizer(solution)[2]
+	fmin = round(Optim.minimum(solution), digits=4)
+	println("solution: intercept ϕ0 = $ϕ0, slope ϕ1 = $ϕ1, minimum = $fmin") 
+	drawContourColours(gaborModel, ϕs, [ϕ0, ϕ1]; title=title)
 end # function mySearchIn2D
 
 # ╔═╡ ce165ee5-eff5-4c25-95b9-e97b2fd914e4
 mySearchIn2D([-5.0, 25.0], title=L"Plot\ 1") # ==> ssq_min = 3.356
 
 # ╔═╡ 5af826dc-a075-4cb6-9f4f-f2c4d9f9218b
-mySearchIn2D([0.6, -0.2], title=L"Plot\ 2")  # ==> ssq_min = 5.323
+mySearchIn2D([1.5, -0.1], title=L"Plot\ 2")  # ==> ssq_min = 5.323
 
 # ╔═╡ 05e2d7ec-45a7-4289-a274-e7b109b70875
 mySearchIn2D([ 3.0, 15.0], title=L"Plot\ 3")  # ==> ssq_min = 0.646
@@ -265,7 +274,7 @@ drawModel(gaborModel, [0., 16.0], title=L"Minimum\ Loss\ Model: Gabor\ 4", drawS
 md"
 ---
 ##### 5. Summary
-First we explored the 2D-parameter space of the nonlinear regression problem of predicting a training sample with a *two-parameter Gabor* model. We found five minima of interest. Then we looked systematically for the loss minimum by applying the *gradient-free* [Nelder-Mead](https://julianlsolvers.github.io/Optim.jl/stable/algo/nelder_mead/) algorithm.
+First we explored the 2D-parameter space of the nonlinear regression problem of predicting a training sample with a *two-parameter Gabor* model. We found five minima of interest. Then we looked systematically for the loss minimum by applying the *gradient-free* [Nelder-Mead](https://julianlsolvers.github.io/Optim.jl/stable/algo/nelder_mead/) algorithm. The overall result is that the search algorithm always slips into the *nearest* minimum. There is no observation that the *global* minimum is reached from far way points.
 
 "
 
@@ -1830,10 +1839,10 @@ version = "1.4.1+1"
 # ╟─45bdd8fa-f836-49f9-af49-0dce1e4d42e2
 # ╠═6dd9a002-f904-44b5-bf7b-b4fb5231f3f6
 # ╠═3b86e92a-c9e6-4125-99bd-34f8c87db53c
+# ╠═01750863-8c51-4cce-b20c-d9358dba2db9
 # ╠═e86608ce-5217-4f2b-b9dc-b686a7ad656e
 # ╠═f421eb9e-ffe5-45af-a12d-9c3b6638748d
 # ╟─3d40d080-65af-4dc9-a924-5da517ffb95c
-# ╠═01750863-8c51-4cce-b20c-d9358dba2db9
 # ╠═58cc68de-cd76-48b4-8df4-b4257fdc1cd1
 # ╠═ce165ee5-eff5-4c25-95b9-e97b2fd914e4
 # ╠═5af826dc-a075-4cb6-9f4f-f2c4d9f9218b
