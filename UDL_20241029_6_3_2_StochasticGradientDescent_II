@@ -29,7 +29,7 @@ md"
 #### UDL\_20241029\_6\_3\_2\_Stochastic\_Gradient\_Descent_II
 ##### file: UDL\_20241029\_6\_3\_2\_StochasticGradientDescent\_II
 ##### libraries: Julia 1.11.1/Pluto 0.20.0/Plots 1.40.8/Optim 1.9.4
-##### code by *** PCM 2024/10/30 ***
+##### code by *** PCM 2024/11/01 ***
 
 ===================================================================================
 "
@@ -42,6 +42,12 @@ To search in the parameter space of the univariate linear regression problem for
 
 We explore the parameter space for various parameter configurations and look systematically for the loss minimum with the *gradient-free* [*Nelder-Mead*](https://julianlsolvers.github.io/Optim.jl/stable/algo/nelder_mead/) and other algorithms.
 
+"
+
+# ╔═╡ 60263247-5e23-43fb-bc6c-e60aae1953a1
+md"
+---
+##### 1. Libraries
 "
 
 # ╔═╡ ea10d73a-f837-4cb8-b6aa-df9358bdd5d1
@@ -78,10 +84,11 @@ md"
 ---
 ##### 3. [*Gabor*](https://en.wikipedia.org/wiki/Dennis_Gabor) Model
 ###### 3.1 Prince's *Gabor-Two-Parameter* Model
-Gabor is considered as the 'father' of *holograms*. The following formula is from [Prince (2024, p.80, (6.8))](https://github.com/udlbook/udlbook/releases/download/v4.0.4a/UnderstandingDeepLearning_01_10_24_C.pdf)
+Gabor is considered as the 'father' of *holograms*. The following formula is similar to *Gabor's filter* ([*Prince*, 2012, p.331f](https://en.wikipedia.org/wiki/Gabor_filter); [*Wikipedia*](https://en.wikipedia.org/wiki/Gabor_filter)). It is obtained from [Prince (2024, p.80, (6.8))](https://github.com/udlbook/udlbook/releases/download/v4.0.4a/UnderstandingDeepLearning_01_10_24_C.pdf)
 
 $f_{Gabor}(x, ϕ) = sin(ϕ_0 + 0.06 · ϕ_1x) \cdot exp\left(− \frac{\left(ϕ_0 + 0.06 · ϕ_1x\right)^2}{32.0}\right).$
 
+$\;$
 $\;$
 $\;$
 
@@ -91,53 +98,10 @@ $\;$
 function gaborModel(ϕs, xs) 
 	sinComponents   = sin.(ϕs[1] .+ 0.06 .* ϕs[2] .* xs)
 	gaussComponents = 
-		exp.(- ((ϕs[1] .+ 0.06 .* ϕs[2] * xs).^2) ./ 32)
+		exp.(- ((ϕs[1] .+ 0.06 .* ϕs[2] * xs).^2) ./ 32.0)
 	ysPred = sinComponents .* gaussComponents
 	ysPred
 end # function gaborModel
-
-# ╔═╡ 5e6ba077-7118-4f98-ae68-fff3e489ba91
-# 1st method
-function drawContourColours(gaborModel; title="")
-	ϕ0s = [ϕ0 for ϕ0 in  -6:0.1: +6]
-	ϕ1s = [ϕ1 for ϕ1 in -20:0.1:+20]
-    contour(ϕ0s, ϕ1s, (ϕ0, ϕ1) ->  
-		 mean(abs2, gaborModel([ϕ0, ϕ1], xs).- ys) * n, xlabel=L"\phi_0", ylabel=L"\phi_1", fill=true, title=title)
-	scatter!([ 3.0], [ 15.0], color=:red, 10, label=false)    # maximum: plot3
-	scatter!([ 0.0], [ 16.0], color=:green,  10, label=false) # minimum: plot4
-	scatter!([ 1.5], [ -0.1], color=:red, 10, label=false)    # maximum: plot5
-	scatter!([-1.5], [ +0.1], color=:red, 10, label=false)    # maximum: plot6
-	scatter!([ 3.0], [-15.0], color=:green,  10, label=false) # minimum: plot7
-	scatter!([-3.0], [-15.0], color=:green,  10, label=false) # minimum: plot8
-end # function drawContour
-
-# ╔═╡ a195d185-1b6b-4e55-9819-d1b6218ea2b7
-# 2nd method
-function drawContourColours(gaborModel, ϕsSource, ϕsSink; title="")
-	ϕ0Max = max(max(ϕsSink[1],  +6), max(ϕsSource[1],  +6)) 
-	ϕ1Max = max(max(ϕsSink[2], +20), max(ϕsSource[2], +20)) 
-	ϕ0Min = min(min(ϕsSink[1],  -6), min(ϕsSource[1],  -6))
-	ϕ1Min = min(min(ϕsSink[2], -20), min(ϕsSource[2], -20))
-	ϕ0s = [ϕ0 for ϕ0 in ϕ0Min:0.1:ϕ0Max]
-	ϕ1s = [ϕ1 for ϕ1 in ϕ1Min:0.1:ϕ1Max]
-    contour(ϕ0s, ϕ1s, (ϕ0, ϕ1) ->  
-		 mean(abs2, gaborModel([ϕ0, ϕ1], xs).- ys) * n, xlabel=L"\phi_0", ylabel=L"\phi_1", fill=true, title=title)
-	# sink=minimum
-	scatter!([ϕsSink[1]], [ϕsSink[2]], color=:green, 10, label=false)  
-	# source=start
-	scatter!([ϕsSource[1]], [ϕsSource[2]], color=:green, 10, label=false)
-	plot!([(ϕsSource[1], ϕsSource[2]), (ϕsSink[1], ϕsSink[2])], arrow=true, color=:green, ls=:dot)
-end # function drawContour
-
-# ╔═╡ 01f5f6ea-eb1c-4846-ae4a-ad8be10d5fab
-drawContourColours(gaborModel, title=L"Loss\ Contours\ in\ Parameter\ Space")
-
-# ╔═╡ e971d153-ef7a-497c-837b-be4c5ee7ed8a
-md"
----
-##### 4. *Least-Squares* Parameter Search with [Optim.jl](https://julianlsolvers.github.io/Optim.jl/stable/)
-
-"
 
 # ╔═╡ 547f6cba-71e7-48cf-8258-0a399ebeaeec
 function drawModel(gaborModel, ϕs; title="", drawScatter=false)
@@ -159,6 +123,57 @@ function drawModel(gaborModel, ϕs; title="", drawScatter=false)
 		plot(plot2)
 	end # if
 end # function drawModel
+
+# ╔═╡ 5e6ba077-7118-4f98-ae68-fff3e489ba91
+# 1st method
+function drawContourColours(gaborModel; title="")
+	ϕ0s = [ϕ0 for ϕ0 in  -6:0.1: +6]
+	ϕ1s = [ϕ1 for ϕ1 in -20:0.1:+20]
+    contour(ϕ0s, ϕ1s, (ϕ0, ϕ1) ->  
+		 mean(abs2, gaborModel([ϕ0, ϕ1], xs).- ys) * n, xlabel=L"\phi_0", ylabel=L"\phi_1", fill=true, title=title)
+	scatter!([ 3.0], [ 15.0], color=:red, 10, label=false)    # maximum: plot3
+	scatter!([ 0.0], [ 16.0], color=:green,  10, label=false) # minimum: plot4
+	scatter!([ 1.5], [ -0.1], color=:red, 10, label=false)    # maximum: plot5
+	scatter!([-1.5], [ +0.1], color=:red, 10, label=false)    # maximum: plot6
+	scatter!([ 3.0], [-15.0], color=:green,  10, label=false) # minimum: plot7
+	scatter!([-3.0], [-15.0], color=:green,  10, label=false) # minimum: plot8
+end # function drawContour
+
+# ╔═╡ a195d185-1b6b-4e55-9819-d1b6218ea2b7
+# 2nd method
+function drawContourColours(gaborModel, ϕsSource, ϕsSink; title="")
+	#--------------------------------------------------------------------------
+	function ssqLoss(ϕs)
+		ysPredicted = gaborModel(ϕs, xs)
+		mean(abs2, ysPredicted .- ys) * n
+	end # function ssqLoss
+	#--------------------------------------------------------------------------
+	ϕ0Max = max(max(ϕsSink[1],  +6), max(ϕsSource[1],  +6)) 
+	ϕ1Max = max(max(ϕsSink[2], +20), max(ϕsSource[2], +20)) 
+	ϕ0Min = min(min(ϕsSink[1],  -6), min(ϕsSource[1],  -6))
+	ϕ1Min = min(min(ϕsSink[2], -20), min(ϕsSource[2], -20))
+	ϕ0s = [ϕ0 for ϕ0 in ϕ0Min:0.1:ϕ0Max]
+	ϕ1s = [ϕ1 for ϕ1 in ϕ1Min:0.1:ϕ1Max]
+	#--------------------------------------------------------------------------
+    contour(ϕ0s, ϕ1s, (ϕ0, ϕ1) -> ssqLoss([ϕ0, ϕ1]), 
+		xlabel=L"\phi_0", ylabel=L"\phi_1", fill=true, title=title)
+	#--------------------------------------------------------------------------
+	# sink=minimum
+	scatter!([ϕsSink[1]], [ϕsSink[2]], color=:green, 10, label=false)  
+	# source=start
+	scatter!([ϕsSource[1]], [ϕsSource[2]], color=:green, 10, label=false)
+	plot!([(ϕsSource[1], ϕsSource[2]), (ϕsSink[1], ϕsSink[2])], arrow=true, color=:green, ls=:dot)
+end # function drawContour
+
+# ╔═╡ 01f5f6ea-eb1c-4846-ae4a-ad8be10d5fab
+drawContourColours(gaborModel, title=L"Loss\ Contours\ in\ Parameter\ Space")
+
+# ╔═╡ e971d153-ef7a-497c-837b-be4c5ee7ed8a
+md"
+---
+##### 4. *Least-Squares* Parameter Search with [Optim.jl](https://julianlsolvers.github.io/Optim.jl/stable/)
+
+"
 
 # ╔═╡ a7a97488-9095-40cd-92c3-191b41296665
 function mySearchIn2D(ϕs; searchAlgorithm=NelderMead(), title="")  
@@ -248,9 +263,13 @@ md"
 ---
 ##### References
 
+- **Prince, S.J.D.**; [*Computer Vision: Models, Learning and Inference*](https://en.wikipedia.org/wiki/Gabor_filter); last visit 2024/10/31
+
 - **Prince, S.J.D.**; [*Understanding Deep Learning*](https://github.com/udlbook/udlbook/releases/download/v4.0.4a/UnderstandingDeepLearning_01_10_24_C.pdf); MIT Press, 2024, last visit: 2024/10/29
 
 - **Prince, S.J.D.**; [*Notebook 6.3 Stochastic Gradient Descent*](https://github.com/udlbook/udlbook/releases/download/v4.0.4a/UnderstandingDeepLearning_01_10_24_C.pdf); last visit: 2024/10/29
+
+- **Wikipedia**; [*Gabor Filter*](https://en.wikipedia.org/wiki/Gabor_filter); last visit 2024/10/31
 
 "
 
@@ -1788,16 +1807,17 @@ version = "1.4.1+1"
 # ╔═╡ Cell order:
 # ╟─8168fed0-95f6-11ef-0e9d-875041845267
 # ╟─23be9e05-6a00-47bb-87cb-734c5e1638c9
+# ╟─60263247-5e23-43fb-bc6c-e60aae1953a1
 # ╠═b19c7832-b910-41e4-8a40-44778a55ac85
 # ╟─ea10d73a-f837-4cb8-b6aa-df9358bdd5d1
 # ╠═31393e44-b493-45a6-9ee4-f80c319d07dd
 # ╟─05d4294f-cd88-4d54-96e2-0ce038afc96d
 # ╠═f20ebf22-2a9b-4b6b-b69e-5555e97136af
+# ╠═547f6cba-71e7-48cf-8258-0a399ebeaeec
 # ╠═5e6ba077-7118-4f98-ae68-fff3e489ba91
 # ╠═a195d185-1b6b-4e55-9819-d1b6218ea2b7
 # ╠═01f5f6ea-eb1c-4846-ae4a-ad8be10d5fab
 # ╟─e971d153-ef7a-497c-837b-be4c5ee7ed8a
-# ╠═547f6cba-71e7-48cf-8258-0a399ebeaeec
 # ╠═a7a97488-9095-40cd-92c3-191b41296665
 # ╟─1bdeb8f3-f620-4286-ad90-637b6a818b25
 # ╠═0a165a53-ca12-453e-a17d-b67fa070001e
