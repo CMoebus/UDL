@@ -9,18 +9,12 @@ begin
 	using Pluto
 	using Plots
 	#-----------------------------------------------------------------------
-	# using Lux, Random
-	# using ComponentArrays
 	using Optim
-	# using Zygote
 	using Statistics,Distributions
 	using LaTeXStrings, Latexify
 	println("pkgversion(Pluto)           = ", pkgversion(Pluto))
 	println("pkgversion(Plots)           = ", pkgversion(Plots))
 	println("pkgversion(Optim)           = ", pkgversion(Optim))
-	# println("pkgversion(Zygote)          = ", pkgversion(Zygote))
-	# println("pkgversion(Lux)             = ", pkgversion(Lux))
-	# println("pkgversion(ComponentArrays) = ", pkgversion(ComponentArrays))
 end # begin
 
 # ╔═╡ ef58f120-9141-11ef-0ccf-bd328dcd1f16
@@ -29,7 +23,7 @@ md"
 ### UDL\_20241023\_6\_3\_1\_Stochastic\_Gradient\_Descent\_I
 ##### file: UDL\_20241023\_6\_3\_1\_StochasticGradientDescent\_I.jl
 ##### libraries: Julia 1.11.1/Pluto 0.20.0/Plots 1.40.8/Optim 1.9.4
-##### code by *** PCM 2024/11/04 ***
+##### code by *** PCM 2024/11/05 ***
 
 ===================================================================================
 "
@@ -38,7 +32,7 @@ md"
 # ╔═╡ 7be318f3-dd9b-462d-a15e-544427ec3364
 md"
 ##### 0. Introduction
-To search in the parameter space of the univariate *linear* regression problem for the *loss minimum* is rather simple because *residual sum-of-squares (RSS)* or *mean square error* (MSE) loss are *convex* loss functions. But what about the search in parameter spaces with *non-linear* regression models with *non-convex* loss-functions ? Prince (2024, p.80, (6.8)) provides the  *non-linear* two-parameter Gabor model with such a *non-convex* loss function.
+To search in the parameter space of the univariate *linear* regression problem for the *loss minimum* is rather simple because *residual sum-of-squares (RSS)* or *mean square error* (MSE) loss are *convex* loss functions. But what about the search in parameter spaces with *non-linear* regression models with *non-convex* loss-functions ? [Prince (2024, p.80, (6.8))](https://udlbook.github.io/udlbook/) provides the  *non-linear* two-parameter *Gabor* model with such a *non-convex* loss function.
 
 We explore the parameter space for various parameter configurations and look systematically for the loss minimum with the *gradient-free* [*Nelder-Mead*](https://julianlsolvers.github.io/Optim.jl/stable/algo/nelder_mead/) algorithm.
 "
@@ -59,8 +53,6 @@ obtained from Prince's [Notebook 6.3 Stochastic Gradient Descent](https://github
 
 # ╔═╡ 5f9a24c4-6705-44e0-80f9-c37f2f5fc208
 begin
-	# Let's create our training data of 30 pairs {x_i, y_i}
-	# We'll try to fit the Gabor model to these data
 	princeData = [[-1.920e+00,-1.422e+01,1.490e+00,-1.940e+00,-2.389e+00,-5.090e+00,
                  -8.861e+00,3.578e+00,-6.010e+00,-6.995e+00,3.634e+00,8.743e-01,
                  -1.096e+01,4.073e-01,-9.467e+00,8.560e+00,1.062e+01,-1.729e-01,
@@ -96,45 +88,15 @@ $\;$
 
 "
 
-# ╔═╡ c6c5f495-a281-4609-9d0c-bec3eae98185
+# ╔═╡ c7a613ea-beb3-4da6-9c5a-6c604caef1e5
 function gaborModel(ϕs::Vector{Float64}, xss::Vector{Float64})
-	sinComponents   = sin.(ϕs[1] .+ 0.06 .* ϕs[2] .* xss)
-	gaussComponents = 
-		exp.(- ((ϕs[1] .+ 0.06 .* ϕs[2] .* xss).^2) ./ 32.0)
+	xssWeighted = @. ϕs[1] + 0.06 * ϕs[2] * xss # this is equivalent to ...
+	# ... the long form: xssWeighted = ϕs[1] .+ 0.06 .* ϕs[2] .* xss
+	sinComponents   = sin.(xssWeighted)
+	gaussComponents = exp.(- xssWeighted.^2 ./ 32.0)
 	ysPredicted = sinComponents .* gaussComponents
 	sinComponents, gaussComponents, ysPredicted
 end # function gaborModel
-
-# ╔═╡ 97be9f01-faf2-44e6-af95-3044bad8da9f
-function ssqLoss(ϕ0, ϕ1)  
-	mean(abs2, gaborModel([ϕ0, ϕ1], xs::Vector{Float64})[3].- ys) * n
-end # function ssqLoss
-
-# ╔═╡ 9ce009bc-7644-4897-b049-c9ae2e21b6f5
-typeof(xs)
-
-# ╔═╡ 1114aeee-02a5-4e45-b9d5-b6d03bd0c93b
-ssqLoss(0.0, 16.0)
-
-# ╔═╡ be5b48f5-9c34-4266-a79e-f11105da7162
-let ϕ0 =  0.0
-	ϕ1 = 16.0
-	xsGrid = [x for x in -15:0.1:15]
-	sortedXs = sort(xs)
-	ysSortPredicted = gaborModel([ϕ0, ϕ1], sortedXs)[3]
-	ysGridPredicted = gaborModel([ϕ0, ϕ1], xsGrid)[3]
-	scatter(xs, ys, label=L"data: (x,y)", title=L"Data\ &\ Model\ Predictions\ of\ Gabor\ Model\ 4")
-	scatter!(sortedXs, ysSortPredicted, lw=1, label=L"data: prediction")
-	plot!(xsGrid, ysGridPredicted, lw=1, color=:red, label=L"model: prediction")
-	annotate!(9.0, -0.65, "ϕ0 = $ϕ0", 8)
-	annotate!(9.0, -0.85, "ϕ1 = $ϕ1", 8)
-end # let
-
-# ╔═╡ 93f53b7e-9881-4f8b-a9ea-1193184fb582
-md"
----
-###### 3.2 *Loss* of Gabor-Model with Training Data
-"
 
 # ╔═╡ 62227410-2e0f-491c-ba89-fded44ac08a2
 function drawModelComponents(ϕs; title="")
@@ -154,31 +116,57 @@ end # function drawModel()
 # ╔═╡ fcfeca67-997b-43c2-a710-367645790e71
 drawModelComponents([0.0, 16.0], title=L"Components\ of\ Gabor\ Model\ 4")
 
+# ╔═╡ 93f53b7e-9881-4f8b-a9ea-1193184fb582
+md"
+---
+###### 3.2 *Loss* of Gabor-Model with Training Data
+"
+
+# ╔═╡ 97be9f01-faf2-44e6-af95-3044bad8da9f
+# 1st method
+#-------------------------------------------------------------------------------
+function ssqLoss(ϕ0::Float64, ϕ1::Float64)  
+	mean(abs2, gaborModel([ϕ0, ϕ1], xs::Vector{Float64})[3].- ys) * n
+end # function ssqLoss
+
+# ╔═╡ db423300-ce2a-40ca-a0c1-bc5da36be983
+# 2nd method
+#-------------------------------------------------------------------------------
+function ssqLoss(ϕs::Vector{Float64})  
+	mean(abs2, gaborModel(ϕs::Vector{Float64}, xs::Vector{Float64})[3].- ys) * n
+end # function ssqLoss
+
+# ╔═╡ 1114aeee-02a5-4e45-b9d5-b6d03bd0c93b
+ssqLoss(0.0, 16.0)
+
 # ╔═╡ 21a8e1e4-b45a-45d4-a773-b126a0dc4571
 function drawModel(myModel, ϕs; title="", drawDataScatter=false)
-	ϕ0 = ϕs[1]
-	ϕ1 = ϕs[2]
+	ϕ0 = ϕs[1]; ϕ1 = ϕs[2]
 	xsGrid = [x for x in -15:0.1:+15]
 	ysGrid = myModel(ϕs, xsGrid)[3]
-	ysPredicted = myModel(ϕs, xs)[3]
 	plot1 = 
-		plot(xsGrid, ysGrid, ylimits=(-1.5, +1.5), color=:red, lw=2, 
-			label=L"\phi_0 + \phi_1 \cdot x", title=title)
-	annotate!(9.0, -0.65, "ϕ0 = $ϕ0 ", 8)
-	annotate!(9.0, -0.85, "ϕ1 = $ϕ1", 8)
+		plot(xsGrid, ysGrid, ylimits=(-1.5, +1.5), color=:red, 
+			label=L"model: \phi_0 + \phi_1 \cdot x", title=title)
+	annotate!(9.0, -1.00, "ϕ0 = $ϕ0 ", 8)
+	annotate!(9.0, -1.25, "ϕ1 = $ϕ1", 8)
 	if drawDataScatter == false
 		plot(plot1)
 	else
-		ssqLoss = sum(residual -> residual^2, (ysPredicted .- ys), init = 0.0)
-		ssqLossRounded = round(ssqLoss, digits=3)
-		plot2 = scatter!(xs, ys, color=:cornflowerblue, xlabel=L"xs", ylabel=L"ys", label=L"data:(x, y)")
-		annotate!(-9, -0.85, "ssq=$ssqLossRounded", 8)
+		scatter!(xs, ys, color=:cornflowerblue, xlabel=L"xs", ylabel=L"ys", label=L"data:(x, y)")
+		sortedXs = sort(xs)
+		ysSortPredicted = gaborModel([ϕ0, ϕ1], sortedXs)[3]
+		plot2 = 
+			scatter!(sortedXs, ysSortPredicted, lw=1, color=:red, label=L"data: prediction")
+		ysGridPredicted = gaborModel([ϕ0, ϕ1], xsGrid)[3]
+		ssq = ssqLoss(ϕ0, ϕ1)
+		ssqLossRounded = round(ssq, digits=3)
+		annotate!(-9, -1.25, "ssq=$ssqLossRounded", 8)
 		plot(plot2)
 	end # if
 end # function drawModel
 
-# ╔═╡ 765cd51c-065b-4192-8a9a-b7b7e3e79d0d
-drawModel(gaborModel, [0.0, 16.0], title=L"Gabor\ Model\ 4", drawDataScatter=true)
+# ╔═╡ 079aff34-604f-462c-9d33-a9cc7b455800
+drawModel(gaborModel, [0.0, 16.0], title=L"Data\ &\ Model\ Predictions\ of\ Gabor\ Model\ 4", drawDataScatter=true)
 
 # ╔═╡ d3ef538f-8a14-4ca3-9e02-11541e03bb4e
 drawModel(gaborModel, [-5.0, 25.0], title=L"Gabor\  Model\ 1", drawDataScatter=true)
@@ -275,7 +263,7 @@ function drawContourColours(ϕsSource, ϕsSink; title="")
 end # function drawContour
 
 # ╔═╡ f421eb9e-ffe5-45af-a12d-9c3b6638748d
-drawContourColours(title=L"Loss\ Contours\ in\ Parameter\ Space")
+drawContourColours(title=L"Loss\ Contours, Maxima\ &\ Minima\ in\ Parameter\ Space")
 
 # ╔═╡ 3d40d080-65af-4dc9-a924-5da517ffb95c
 md"
@@ -286,11 +274,6 @@ md"
 
 # ╔═╡ 58cc68de-cd76-48b4-8df4-b4257fdc1cd1
 function mySearchIn2D(ϕs, xs; searchAlgorithm=NelderMead(), title="")  
-	function ssqLoss(ϕs)  
-		ysPredicted = gaborModel(ϕs, xs)[3]
-		residuals   = ysPredicted - ys
-		sum(x -> x^2, residuals, init = 0.0)
-	end # function ssqLoss
 	#----------------------------------------------------------------------
 	solution = optimize(ssqLoss, ϕs, searchAlgorithm)
 	println(solution)
@@ -332,7 +315,7 @@ drawModel(gaborModel, [0.0, 16.0], title=L"Minimum\ Loss : Gabor\ Model\ 4", dra
 md"
 ---
 ##### 5. Summary
-First we explored the 2D-parameter space of the nonlinear regression problem of predicting a training sample with a *two-parameter Gabor* model. We found five minima of interest. Then we looked systematically for the loss minimum by applying the *gradient-free* [Nelder-Mead](https://julianlsolvers.github.io/Optim.jl/stable/algo/nelder_mead/) algorithm. The overall result is that the search algorithm always slips into the *nearest* minimum. There is no observation that the *global* minimum is reached from far way points.
+First we explored the 2D-parameter space of the nonlinear regression problem of predicting a training sample with a *two-parameter Gabor* model. We found five minima of interest. Then we looked systematically for the loss minimum by applying the *gradient-free* [Nelder-Mead](https://julianlsolvers.github.io/Optim.jl/stable/algo/nelder_mead/) algorithm. The overall result is that the search algorithm always slips into the *nearest* minimum. There is *no* observation that the *global* minimum is reached from *far away* points.
 
 "
 
@@ -1891,16 +1874,15 @@ version = "1.4.1+1"
 # ╠═5f9a24c4-6705-44e0-80f9-c37f2f5fc208
 # ╠═3cc9cb6d-9505-485f-a1dd-0c598c9a0b1f
 # ╟─aba3b8af-98f8-4f28-9aca-bc20b3656820
-# ╠═c6c5f495-a281-4609-9d0c-bec3eae98185
-# ╠═97be9f01-faf2-44e6-af95-3044bad8da9f
-# ╠═9ce009bc-7644-4897-b049-c9ae2e21b6f5
-# ╠═1114aeee-02a5-4e45-b9d5-b6d03bd0c93b
-# ╠═be5b48f5-9c34-4266-a79e-f11105da7162
-# ╟─93f53b7e-9881-4f8b-a9ea-1193184fb582
+# ╠═c7a613ea-beb3-4da6-9c5a-6c604caef1e5
 # ╠═62227410-2e0f-491c-ba89-fded44ac08a2
 # ╠═fcfeca67-997b-43c2-a710-367645790e71
+# ╟─93f53b7e-9881-4f8b-a9ea-1193184fb582
+# ╠═97be9f01-faf2-44e6-af95-3044bad8da9f
+# ╠═db423300-ce2a-40ca-a0c1-bc5da36be983
+# ╠═1114aeee-02a5-4e45-b9d5-b6d03bd0c93b
 # ╠═21a8e1e4-b45a-45d4-a773-b126a0dc4571
-# ╠═765cd51c-065b-4192-8a9a-b7b7e3e79d0d
+# ╠═079aff34-604f-462c-9d33-a9cc7b455800
 # ╠═d3ef538f-8a14-4ca3-9e02-11541e03bb4e
 # ╠═fb0edbc4-9d28-41c2-a00e-4ed9bb340ada
 # ╠═ab9d12ef-7a94-47ae-86cb-c55c82cc3511

@@ -9,18 +9,12 @@ begin
 	using Pluto
 	using Plots
 	#-----------------------------------------------------------------------
-	# using Lux, Random
-	# using ComponentArrays
 	using Optim
-	# using Zygote
 	using Statistics,Distributions
 	using LaTeXStrings, Latexify
 	println("pkgversion(Pluto)           = ", pkgversion(Pluto))
 	println("pkgversion(Plots)           = ", pkgversion(Plots))
 	println("pkgversion(Optim)           = ", pkgversion(Optim))
-	# println("pkgversion(Zygote)          = ", pkgversion(Zygote))
-	# println("pkgversion(Lux)             = ", pkgversion(Lux))
-	# println("pkgversion(ComponentArrays) = ", pkgversion(ComponentArrays))
 end # begin
 
 # ╔═╡ 8168fed0-95f6-11ef-0e9d-875041845267
@@ -29,7 +23,7 @@ md"
 #### UDL\_20241029\_6\_3\_2\_Stochastic\_Gradient\_Descent_II
 ##### file: UDL\_20241029\_6\_3\_2\_StochasticGradientDescent\_II
 ##### libraries: Julia 1.11.1/Pluto 0.20.0/Plots 1.40.8/Optim 1.9.4
-##### code by *** PCM 2024/11/01 ***
+##### code by *** PCM 2024/11/05 ***
 
 ===================================================================================
 "
@@ -60,8 +54,6 @@ obtained from Prince's [*notebook 6.3 Stochastic Gradient Descent*](https://gith
 
 # ╔═╡ 31393e44-b493-45a6-9ee4-f80c319d07dd
 begin
-	# Let's create our training data of 30 pairs {x_i, y_i}
-	# We'll try to fit the Gabor model to these data
 	princeData = [[-1.920e+00,-1.422e+01,1.490e+00,-1.940e+00,-2.389e+00,-5.090e+00,
                  -8.861e+00,3.578e+00,-6.010e+00,-6.995e+00,3.634e+00,8.743e-01,
                  -1.096e+01,4.073e-01,-9.467e+00,8.560e+00,1.062e+01,-1.729e-01,
@@ -79,6 +71,9 @@ begin
 	n, xs, ys
 end # begin
 
+# ╔═╡ ee22c62b-68c0-4857-9f24-3b74da54c6ec
+scatter(xs, ys, title=L"Data\ for\ Gabor\ Model", ylimits=(-1.0, +1.0))
+
 # ╔═╡ 05d4294f-cd88-4d54-96e2-0ce038afc96d
 md"
 ---
@@ -95,58 +90,120 @@ $\;$
 "
 
 # ╔═╡ f20ebf22-2a9b-4b6b-b69e-5555e97136af
-function gaborModel(ϕs, xs) 
-	sinComponents   = sin.(ϕs[1] .+ 0.06 .* ϕs[2] .* xs)
-	gaussComponents = 
-		exp.(- ((ϕs[1] .+ 0.06 .* ϕs[2] * xs).^2) ./ 32.0)
-	ysPred = sinComponents .* gaussComponents
-	ysPred
+function gaborModel(ϕs::Vector{Float64}, xss::Vector{Float64})
+	xssWeighted = @. ϕs[1] + 0.06 * ϕs[2] * xss # this is equivalent to ...
+	# ... the long form: xssWeighted = ϕs[1] .+ 0.06 .* ϕs[2] .* xss
+	sinComponents   = sin.(xssWeighted)
+	gaussComponents = exp.(- xssWeighted.^2 ./ 32.0)
+	ysPredicted = sinComponents .* gaussComponents
+	sinComponents, gaussComponents, ysPredicted
 end # function gaborModel
 
+# ╔═╡ 49bf91de-09c2-413f-a8f7-975996281c43
+md"
+---
+###### 3.2 *Loss* of Gabor-Model with Training Data
+"
+
+# ╔═╡ 90712a0e-1c1d-4767-8bc1-66786f972137
+# 1st method
+#------------------------------------------------------------------------------
+function ssqLoss(ϕ0::Float64, ϕ1::Float64)  
+	mean(abs2, gaborModel([ϕ0, ϕ1], xs::Vector{Float64})[3].- ys) * n
+end # function ssqLoss
+
+# ╔═╡ 2c01060b-b9ba-481c-ac88-1759a43882f2
+# 2nd method
+#-------------------------------------------------------------------------------
+function ssqLoss(ϕs::Vector{Float64})  
+	mean(abs2, gaborModel(ϕs::Vector{Float64}, xs::Vector{Float64})[3].- ys) * n
+end # function ssqLoss
+
+# ╔═╡ 166772d6-8509-401f-854d-14a4370b087a
+ssqLoss(0.0, 16.0)
+
 # ╔═╡ 547f6cba-71e7-48cf-8258-0a399ebeaeec
-function drawModel(gaborModel, ϕs; title="", drawScatter=false)
-	ϕ0 = ϕs[1]
-	ϕ1 = ϕs[2]
-	xsModel = [x for x in -15:0.1:+15]
-	ysModel = gaborModel(ϕs, xsModel)
-	ysPredicted = gaborModel(ϕs, xs)
-	plot1 = plot(xsModel, ysModel, ylimits=(-1.5, +1.5), color=:red, lw=2, label=L"\phi_0 + \phi_1 \cdot x", title=title)
-	annotate!(9.0, -0.65, "ϕ0 = $ϕ0 ", 8)
-	annotate!(9.0, -0.85, "ϕ1 = $ϕ1", 8)
-	if drawScatter == false
+function drawModel(myModel, ϕs; title="", drawDataScatter=false)
+	ϕ0 = ϕs[1]; ϕ1 = ϕs[2]
+	xsGrid = [x for x in -15:0.1:+15]
+	ysGrid = myModel(ϕs, xsGrid)[3]
+	plot1 = 
+		plot(xsGrid, ysGrid, ylimits=(-1.5, +1.5), color=:red, 
+			label=L"model: \phi_0 + \phi_1 \cdot x", title=title)
+	annotate!(9.0, -1.00, "ϕ0 = $ϕ0 ", 8)
+	annotate!(9.0, -1.25, "ϕ1 = $ϕ1", 8)
+	if drawDataScatter == false
 		plot(plot1)
 	else
-		mseLoss = mean(abs2, ysPredicted .- ys)
-		ssqLoss = round(mseLoss * n, digits=3)
-		plot2 = scatter!(xs, ys, color=:cornflowerblue, xlabel=L"xs", ylabel=L"ys", label=L"data:(x, y)")
-		annotate!(-9, -0.85, "ssq=$ssqLoss", 8)
+		scatter!(xs, ys, color=:cornflowerblue, xlabel=L"xs", ylabel=L"ys", label=L"data:(x, y)")
+		sortedXs = sort(xs)
+		ysSortPredicted = gaborModel([ϕ0, ϕ1], sortedXs)[3]
+		plot2 = 
+			scatter!(sortedXs, ysSortPredicted, lw=1, color=:red, label=L"data: prediction")
+		ysGridPredicted = gaborModel([ϕ0, ϕ1], xsGrid)[3]
+		ssq = ssqLoss(ϕ0, ϕ1)
+		ssqLossRounded = round(ssq, digits=3)
+		annotate!(-9, -1.25, "ssq=$ssqLossRounded", 8)
 		plot(plot2)
 	end # if
 end # function drawModel
 
+# ╔═╡ f3165e88-d2fa-451c-bab8-5904ba7ec5f0
+drawModel(gaborModel, [0.0, 16.0], title=L"Data\ &\ Model\ Predictions\ of\ Gabor\ Model\ 4", drawDataScatter=true)
+
+# ╔═╡ 1349bfd2-dee3-40e1-b1c0-a3482f8257ae
+md"
+---
+###### 3.3 *Loss Contours* in 2D-Parameter Space of *Gabor* Model
+
+We draw the 2D-parameter space as a *loss contour graph*. We tried to identify *maxima (red dots)* and *minima (green dots)* by visual inspection. The coordinates of the extrema were copied and transferred as input arguments in the calls of the $drawModel$-function in 3.2 above.
+"
+
+# ╔═╡ c3c6bdf7-bab6-4070-9770-646ca443605f
+function drawContourLines(; title="")
+	#-------------------------------------------------------------------------
+	ϕ0Min =  -6.0; ϕ0Max =  +6.0
+	ϕ1Min = -20.0; ϕ1Max = +20.0
+	ϕ0s = [ϕ0 for ϕ0 in ϕ0Min:0.1:ϕ0Max]
+	ϕ1s = [ϕ1 for ϕ1 in ϕ1Min:0.1:ϕ1Max]
+	#-------------------------------------------------------------------------
+    contour(ϕ0s, ϕ1s, ssqLoss, xlabel=L"\phi_0", ylabel=L"\phi_1", 
+		fill=false, title=title)
+	#--------------------------------------------------------------------------
+	scatter!([ 3.0], [ 15.0], color=:red,   10, label=false)  # maximum: plot3
+	scatter!([ 0.0], [ 16.0], color=:green, 10, label=false)  # minimum: plot4
+	scatter!([ 1.5], [ -0.1], color=:red,   10, label=false)  # maximum: plot5
+	scatter!([-1.5], [ +0.1], color=:red,   10, label=false)  # maximum: plot6
+	scatter!([ 3.0], [-15.0], color=:green, 10, label=false)  # minimum: plot7
+	scatter!([-3.0], [-15.0], color=:green, 10, label=false)  # minimum: plot8
+end # function drawContourLines
+
+# ╔═╡ 2fbdfe48-815c-4fc2-ae9c-eada382ce01e
+drawContourLines(title=L"Loss\ Contours\ in\ Parameter\ Space")
+
 # ╔═╡ 5e6ba077-7118-4f98-ae68-fff3e489ba91
 # 1st method
-function drawContourColours(gaborModel; title="")
-	ϕ0s = [ϕ0 for ϕ0 in  -6:0.1: +6]
-	ϕ1s = [ϕ1 for ϕ1 in -20:0.1:+20]
-    contour(ϕ0s, ϕ1s, (ϕ0, ϕ1) ->  
-		 mean(abs2, gaborModel([ϕ0, ϕ1], xs).- ys) * n, xlabel=L"\phi_0", ylabel=L"\phi_1", fill=true, title=title)
-	scatter!([ 3.0], [ 15.0], color=:red, 10, label=false)    # maximum: plot3
-	scatter!([ 0.0], [ 16.0], color=:green,  10, label=false) # minimum: plot4
-	scatter!([ 1.5], [ -0.1], color=:red, 10, label=false)    # maximum: plot5
-	scatter!([-1.5], [ +0.1], color=:red, 10, label=false)    # maximum: plot6
-	scatter!([ 3.0], [-15.0], color=:green,  10, label=false) # minimum: plot7
-	scatter!([-3.0], [-15.0], color=:green,  10, label=false) # minimum: plot8
+function drawContourColours(; title="")
+	#-------------------------------------------------------------------------
+	ϕ0Min =  -6.0; ϕ0Max =  +6.0
+	ϕ1Min = -20.0; ϕ1Max = +20.0
+	ϕ0s = [ϕ0 for ϕ0 in ϕ0Min:0.1:ϕ0Max]
+	ϕ1s = [ϕ1 for ϕ1 in ϕ1Min:0.1:ϕ1Max]
+	#-------------------------------------------------------------------------
+    contour(ϕ0s, ϕ1s, ssqLoss, xlabel=L"\phi_0", ylabel=L"\phi_1", 
+		fill=true, title=title)
+	#--------------------------------------------------------------------------
+	scatter!([ 3.0], [ 15.0], color=:red,   10, label=false)  # maximum: plot3
+	scatter!([ 0.0], [ 16.0], color=:green, 10, label=false)  # minimum: plot4
+	scatter!([ 1.5], [ -0.1], color=:red,   10, label=false)  # maximum: plot5
+	scatter!([-1.5], [ +0.1], color=:red,   10, label=false)  # maximum: plot6
+	scatter!([ 3.0], [-15.0], color=:green, 10, label=false)  # minimum: plot7
+	scatter!([-3.0], [-15.0], color=:green, 10, label=false)  # minimum: plot8
 end # function drawContour
 
 # ╔═╡ a195d185-1b6b-4e55-9819-d1b6218ea2b7
 # 2nd method
-function drawContourColours(gaborModel, ϕsSource, ϕsSink; title="")
-	#--------------------------------------------------------------------------
-	function ssqLoss(ϕs)
-		ysPredicted = gaborModel(ϕs, xs)
-		mean(abs2, ysPredicted .- ys) * n
-	end # function ssqLoss
+function drawContourColours(ϕsSource, ϕsSink; title="")
 	#--------------------------------------------------------------------------
 	ϕ0Max = max(max(ϕsSink[1],  +6), max(ϕsSource[1],  +6)) 
 	ϕ1Max = max(max(ϕsSink[2], +20), max(ϕsSource[2], +20)) 
@@ -155,7 +212,7 @@ function drawContourColours(gaborModel, ϕsSource, ϕsSink; title="")
 	ϕ0s = [ϕ0 for ϕ0 in ϕ0Min:0.1:ϕ0Max]
 	ϕ1s = [ϕ1 for ϕ1 in ϕ1Min:0.1:ϕ1Max]
 	#--------------------------------------------------------------------------
-    contour(ϕ0s, ϕ1s, (ϕ0, ϕ1) -> ssqLoss([ϕ0, ϕ1]), 
+    contour(ϕ0s, ϕ1s, ssqLoss, 
 		xlabel=L"\phi_0", ylabel=L"\phi_1", fill=true, title=title)
 	#--------------------------------------------------------------------------
 	# sink=minimum
@@ -165,8 +222,8 @@ function drawContourColours(gaborModel, ϕsSource, ϕsSink; title="")
 	plot!([(ϕsSource[1], ϕsSource[2]), (ϕsSink[1], ϕsSink[2])], arrow=true, color=:green, ls=:dot)
 end # function drawContour
 
-# ╔═╡ 01f5f6ea-eb1c-4846-ae4a-ad8be10d5fab
-drawContourColours(gaborModel, title=L"Loss\ Contours\ in\ Parameter\ Space")
+# ╔═╡ 96e92be5-a492-46f3-a50d-f2219c93fdd9
+drawContourColours(title=L"Loss\ Contours, Maxima\ &\ Minima\ in\ Parameter\ Space")
 
 # ╔═╡ e971d153-ef7a-497c-837b-be4c5ee7ed8a
 md"
@@ -175,19 +232,8 @@ md"
 
 "
 
-# ╔═╡ a7a97488-9095-40cd-92c3-191b41296665
-function mySearchIn2D(ϕs; searchAlgorithm=NelderMead(), title="")  
-	function gaborModel(ϕs, xs) 
-		sinComponents   = sin.(ϕs[1] .+ 0.06 .* ϕs[2] .* xs)
-		gaussComponents = 
-			exp.(- ((ϕs[1] .+ 0.06 .* ϕs[2] * xs).^2) ./ 32)
-		ysPredicted = sinComponents .* gaussComponents
-		ysPredicted
-	end # function gaborModel#----------------------------------------------------------------------
-	function ssqLoss(ϕs)
-		ysPredicted = gaborModel(ϕs, xs)
-		mean(abs2, ysPredicted .- ys) * n
-	end # function ssqLoss
+# ╔═╡ 9ffab216-42b3-49fd-972a-d5d054316ccb
+function mySearchIn2D(ϕs; searchAlgorithm=NelderMead(), title="") 
 	#----------------------------------------------------------------------
 	solution = optimize(ssqLoss, ϕs, searchAlgorithm)
 	println(solution)
@@ -195,7 +241,7 @@ function mySearchIn2D(ϕs; searchAlgorithm=NelderMead(), title="")
 	ϕ1   = Optim.minimizer(solution)[2]
 	fmin = round(Optim.minimum(solution), digits=4)
 	println("solution: intercept ϕ0 = $ϕ0, slope ϕ1 = $ϕ1, minimum = $fmin") 
-	drawContourColours(gaborModel, ϕs, [ϕ0, ϕ1]; title=title)
+	drawContourColours(ϕs, [ϕ0, ϕ1]; title=title)
 end # function mySearchIn2D
 
 # ╔═╡ 1bdeb8f3-f620-4286-ad90-637b6a818b25
@@ -204,14 +250,17 @@ md"
 ###### 4.1 *Gradient-free* [Nelder-Mead Search](https://julianlsolvers.github.io/Optim.jl/stable/algo/nelder_mead/) in Parameter Space
 "
 
+# ╔═╡ a8b63065-0480-4d1e-a458-d05bc48b4e76
+mySearchIn2D([-5.0, 25.0], title=L"Plot\ 1") # ==> ssq_min = 3.356
+
 # ╔═╡ 0a165a53-ca12-453e-a17d-b67fa070001e
 mySearchIn2D([ 3.0, 15.0], searchAlgorithm=NelderMead(), title=L"Plot\ 3")  # ==> ssq_min = 0.646
 
 # ╔═╡ e45b90db-e88f-4ada-a20b-922e4aad144d
 mySearchIn2D([ 0.0, 16.0], searchAlgorithm=NelderMead(), title=L"Plot\ 4")  # ==> ssq_min = 0.646
 
-# ╔═╡ 5ec03ffe-b9ad-4960-9baa-4eb4a383001b
-drawModel(gaborModel, [0., 16.0], title=L"Minimum\ Loss\ Model: Gabor\ 4", drawScatter=true) 
+# ╔═╡ da880b74-aba2-4fb0-be28-bb649bc4507b
+drawModel(gaborModel, [0.0, 16.0], title=L"Data\ &\ Model\ Predictions\ of\ Gabor\ Model\ 4", drawDataScatter=true)
 
 # ╔═╡ 1838e33f-d496-42a7-9157-1b900ccb9e09
 mySearchIn2D([ 1.5, -0.1], searchAlgorithm=NelderMead(), title=L"Plot\ 5")  # ==> ssq_min = 5.319
@@ -255,7 +304,7 @@ md"
 ---
 ##### 5. Summary 
 
-We looked systematically for the loss minimum by applying the algorithm without *explicitly coded* gradients such as *BFGS* and *L-BFGS*. The overall result is that the search algorithms always slipped into minimuma in the near. There is no observation that the global minimum is reached from far way points.
+We looked systematically for the loss minimum by applying the algorithm without *explicitly coded* gradients such as *BFGS* and *L-BFGS*. The overall result is that the search algorithms always slipped into minimuma in the near. There is *no* observation that the global minimum is reached from *far away* points.
 "
 
 # ╔═╡ 4824eb74-a14a-4640-8ee1-7379828c9bc0
@@ -1811,18 +1860,28 @@ version = "1.4.1+1"
 # ╠═b19c7832-b910-41e4-8a40-44778a55ac85
 # ╟─ea10d73a-f837-4cb8-b6aa-df9358bdd5d1
 # ╠═31393e44-b493-45a6-9ee4-f80c319d07dd
+# ╠═ee22c62b-68c0-4857-9f24-3b74da54c6ec
 # ╟─05d4294f-cd88-4d54-96e2-0ce038afc96d
 # ╠═f20ebf22-2a9b-4b6b-b69e-5555e97136af
+# ╟─49bf91de-09c2-413f-a8f7-975996281c43
+# ╠═90712a0e-1c1d-4767-8bc1-66786f972137
+# ╠═2c01060b-b9ba-481c-ac88-1759a43882f2
+# ╠═166772d6-8509-401f-854d-14a4370b087a
 # ╠═547f6cba-71e7-48cf-8258-0a399ebeaeec
+# ╠═f3165e88-d2fa-451c-bab8-5904ba7ec5f0
+# ╟─1349bfd2-dee3-40e1-b1c0-a3482f8257ae
+# ╠═c3c6bdf7-bab6-4070-9770-646ca443605f
+# ╠═2fbdfe48-815c-4fc2-ae9c-eada382ce01e
 # ╠═5e6ba077-7118-4f98-ae68-fff3e489ba91
 # ╠═a195d185-1b6b-4e55-9819-d1b6218ea2b7
-# ╠═01f5f6ea-eb1c-4846-ae4a-ad8be10d5fab
+# ╠═96e92be5-a492-46f3-a50d-f2219c93fdd9
 # ╟─e971d153-ef7a-497c-837b-be4c5ee7ed8a
-# ╠═a7a97488-9095-40cd-92c3-191b41296665
+# ╠═9ffab216-42b3-49fd-972a-d5d054316ccb
 # ╟─1bdeb8f3-f620-4286-ad90-637b6a818b25
+# ╠═a8b63065-0480-4d1e-a458-d05bc48b4e76
 # ╠═0a165a53-ca12-453e-a17d-b67fa070001e
 # ╠═e45b90db-e88f-4ada-a20b-922e4aad144d
-# ╠═5ec03ffe-b9ad-4960-9baa-4eb4a383001b
+# ╠═da880b74-aba2-4fb0-be28-bb649bc4507b
 # ╠═1838e33f-d496-42a7-9157-1b900ccb9e09
 # ╠═da124648-cb38-49bc-a0d6-607322a27ec8
 # ╟─80fc15ed-81c4-4824-99d2-6d78e343026e
