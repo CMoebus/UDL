@@ -23,7 +23,7 @@ md"
 ### UDL\_20241023\_6\_3\_1\_Stochastic\_Gradient\_Descent\_I
 ##### file: UDL\_20241023\_6\_3\_1\_StochasticGradientDescent\_I.jl
 ##### libraries: Julia 1.11.1/Pluto 0.20.0/Plots 1.40.8/Optim 1.9.4
-##### code by *** PCM 2024/11/05 ***
+##### code by *** PCM 2024/11/12 ***
 
 ===================================================================================
 "
@@ -32,9 +32,10 @@ md"
 # ╔═╡ 7be318f3-dd9b-462d-a15e-544427ec3364
 md"
 ##### 0. Introduction
-To search in the parameter space of the univariate *linear* regression problem for the *loss minimum* is rather simple because *residual sum-of-squares (RSS)* or *mean square error* (MSE) loss are *convex* loss functions. But what about the search in parameter spaces with *non-linear* regression models with *non-convex* loss-functions ? [Prince (2024, p.80, (6.8))](https://udlbook.github.io/udlbook/) provides the  *non-linear* two-parameter *Gabor* model with such a *non-convex* loss function.
+Search for the *loss minimum* in the parameter space of the univariate *linear* regression problem is rather simple because *residual sum-of-squares (RSS)* or *mean square error* (MSE) loss are *convex* loss functions. But what about the search in parameter spaces with *non-linear* regression models with *non-convex* loss-functions ? [Prince (2024, p.80, (6.8))](https://udlbook.github.io/udlbook/) provides the  *non-linear* two-parameter *Gabor* model with such a *non-convex* loss function.
 
-We explore the parameter space for various parameter configurations and look systematically for the loss minimum with the *gradient-free* [*Nelder-Mead*](https://julianlsolvers.github.io/Optim.jl/stable/algo/nelder_mead/) algorithm.
+We explore the parameter space for various parameter configurations and look systematically for the loss minimum with 
+- the *gradient-free* [*Nelder-Mead*](https://julianlsolvers.github.io/Optim.jl/stable/algo/nelder_mead/) algorithm.
 "
 
 # ╔═╡ c056d8db-c7b3-44a3-ba6f-27cf4f535d19
@@ -78,7 +79,7 @@ md"
 ---
 ##### 3. [*Gabor*](https://en.wikipedia.org/wiki/Dennis_Gabor) Model
 ###### 3.1 Prince's *Gabor-Two-Parameter* Model
-Gabor is considered as the 'father' of *holograms*. The following formula is similar to *Gabor's filter* ([*Prince*, 2012, p.331f](https://en.wikipedia.org/wiki/Gabor_filter); [*Wikipedia*](https://en.wikipedia.org/wiki/Gabor_filter)). It is obtained from [Prince (2024, p.80, (6.8))](https://github.com/udlbook/udlbook/releases/download/v4.0.4a/UnderstandingDeepLearning_01_10_24_C.pdf)
+Gabor is considered as the 'father' of *holograms*. The following formula is similar to *Gabor's filter* ([*Prince*, 2012, p.331f](https://en.wikipedia.org/wiki/Gabor_filter); [*Wikipedia*](https://en.wikipedia.org/wiki/Gabor_filter)). It is proposed by [Prince (2024, p.80, (6.8))](https://github.com/udlbook/udlbook/releases/download/v4.0.4a/UnderstandingDeepLearning_01_10_24_C.pdf) as an example for a *nonlinear statistical* model:
 
 $f_{Gabor}(x, ϕ) = sin(ϕ_0 + 0.06 · ϕ_1x) \cdot exp\left(− \frac{\left(ϕ_0 + 0.06 · ϕ_1x\right)^2}{32.0}\right).$
 
@@ -120,6 +121,12 @@ drawModelComponents([0.0, 16.0], title=L"Components\ of\ Gabor\ Model\ 4")
 md"
 ---
 ###### 3.2 *Loss* of Gabor-Model with Training Data
+
+$L_{ssq_{Gabor}} = \sum_{i=1}^n\left(y_i - f_{Gabor}(x, ϕ)\right)^2$
+
+$\;$
+$\;$
+$\;$
 "
 
 # ╔═╡ 97be9f01-faf2-44e6-af95-3044bad8da9f
@@ -165,14 +172,14 @@ function drawModel(myModel, ϕs; title="", drawDataScatter=false)
 	end # if
 end # function drawModel
 
-# ╔═╡ 079aff34-604f-462c-9d33-a9cc7b455800
-drawModel(gaborModel, [0.0, 16.0], title=L"Data\ &\ Model\ Predictions\ of\ Gabor\ Model\ 4", drawDataScatter=true)
-
 # ╔═╡ d3ef538f-8a14-4ca3-9e02-11541e03bb4e
 drawModel(gaborModel, [-5.0, 25.0], title=L"Gabor\  Model\ 1", drawDataScatter=true)
 
 # ╔═╡ fb0edbc4-9d28-41c2-a00e-4ed9bb340ada
-drawModel(gaborModel, [1.5, -0.1], title=L"Data\ &\ Gabor\ Model\ 2", drawDataScatter=true)                                              # ==> 31.55 --> :)
+drawModel(gaborModel, [1.5, -0.1], title=L"Data\ &\ Gabor\ Model\ 5", drawDataScatter=true)                                             
+
+# ╔═╡ 079aff34-604f-462c-9d33-a9cc7b455800
+drawModel(gaborModel, [0.0, 16.0], title=L"Data\ &\ Model\ Predictions\ of\ Gabor\ Model\ 4", drawDataScatter=true)
 
 # ╔═╡ ab9d12ef-7a94-47ae-86cb-c55c82cc3511
 let # Initialize the parameters and draw the model
@@ -285,28 +292,31 @@ function mySearchIn2D(ϕs, xs; searchAlgorithm=NelderMead(), title="")
 end # function mySearchIn2D
 
 # ╔═╡ ce165ee5-eff5-4c25-95b9-e97b2fd914e4
-mySearchIn2D([-5.0, 25.0], xs, title=L"Plot\ 1") # ==> ssq_min = 3.356
-
-# ╔═╡ 5af826dc-a075-4cb6-9f4f-f2c4d9f9218b
-mySearchIn2D([1.5, -0.1], xs, title=L"Plot\ 2")  # ==> ssq_min = 5.323
+mySearchIn2D([-5.0, 25.0], xs, searchAlgorithm=NelderMead(), title=L"Plot\ 1") 
+# ==> ssq_min = 3.356
 
 # ╔═╡ 05e2d7ec-45a7-4289-a274-e7b109b70875
-mySearchIn2D([ 3.0, 15.0], xs, title=L"Plot\ 3")  # ==> ssq_min = 0.646
+mySearchIn2D([ 3.0, 15.0], xs, searchAlgorithm=NelderMead(), title=L"Plot\ 3")  
+# ==> ssq_min = 0.646
 
 # ╔═╡ fb8a42be-3da2-4cf7-b84b-16e41b5ee30a
 mySearchIn2D([ 0.0, 16.0], xs, title=L"Plot\ 4")  # ==> ssq_min = 0.646
 
-# ╔═╡ 9b8a2c95-d4c3-4e38-a7b3-c5e157810758
-mySearchIn2D([ 1.5,  0.0], xs, title=L"Plot\ 5")  # ==> ssq_min = 5.320
+# ╔═╡ 5af826dc-a075-4cb6-9f4f-f2c4d9f9218b
+mySearchIn2D([1.5, -0.1], xs, searchAlgorithm=NelderMead(), title=L"Plot\ 5")  
+# ==> ssq_min = 5.319
 
 # ╔═╡ 4ff8eb39-b44f-4c4c-b33d-0654103728e7
-mySearchIn2D([-1.5,  0.0], xs, title=L"Plot\ 6")  # ==> ssq_min = 5.326
+mySearchIn2D([-1.5,  0.1], xs, searchAlgorithm=NelderMead(), title=L"Plot\ 6")  
+# ==> ssq_min = 5.3264
 
 # ╔═╡ d4e93cea-9a01-4f92-86f1-041343b64530
-mySearchIn2D([ 3.0, -15.0], xs, title=L"Plot\ 7")  # ==> ssq_min = 1.360
+mySearchIn2D([ 3.0, -15.0], xs, searchAlgorithm=NelderMead(), title=L"Plot\ 7")  
+# ==> ssq_min = 1.360
 
 # ╔═╡ 358cf888-fda9-49a1-ab8b-0c963dcca8cb
-mySearchIn2D([-3.0, -15.0], xs, title=L"Plot\ 8")   # ==> ssq_min = 1.420
+mySearchIn2D([-3.0, -15.0], xs, searchAlgorithm=NelderMead(), title=L"Plot\ 8")   
+# ==> ssq_min = 1.420
 
 # ╔═╡ 64730dab-3888-4fe9-a820-f870c276030c
 drawModel(gaborModel, [0.0, 16.0], title=L"Minimum\ Loss : Gabor\ Model\ 4", drawDataScatter=true) 
@@ -315,7 +325,7 @@ drawModel(gaborModel, [0.0, 16.0], title=L"Minimum\ Loss : Gabor\ Model\ 4", dra
 md"
 ---
 ##### 5. Summary
-First we explored the 2D-parameter space of the nonlinear regression problem of predicting a training sample with a *two-parameter Gabor* model. We found five minima of interest. Then we looked systematically for the loss minimum by applying the *gradient-free* [Nelder-Mead](https://julianlsolvers.github.io/Optim.jl/stable/algo/nelder_mead/) algorithm. The overall result is that the search algorithm always slips into the *nearest* minimum. There is *no* observation that the *global* minimum is reached from *far away* points.
+First we explored the 2D-parameter space of the nonlinear regression problem of predicting a training sample with a *two-parameter Gabor* model. We found six extrema of interest: 3 minima and three maxima. Then we looked systematically for the loss minimum by applying the *gradient-free* [Nelder-Mead](https://julianlsolvers.github.io/Optim.jl/stable/algo/nelder_mead/) algorithm. The overall result is that the search algorithm always slips into the *nearest* minimum. There was one *global minimum* in $[0.0, 16.0]$ with $ssqLoss(min) = 0.6457$. This minimum could be found from two different start points $[3.0, 15.0], [0.0, 16.0]$. We did *not* observe that the *global* minimum is reached from *far away* points.
 
 "
 
@@ -1882,9 +1892,9 @@ version = "1.4.1+1"
 # ╠═db423300-ce2a-40ca-a0c1-bc5da36be983
 # ╠═1114aeee-02a5-4e45-b9d5-b6d03bd0c93b
 # ╠═21a8e1e4-b45a-45d4-a773-b126a0dc4571
-# ╠═079aff34-604f-462c-9d33-a9cc7b455800
 # ╠═d3ef538f-8a14-4ca3-9e02-11541e03bb4e
 # ╠═fb0edbc4-9d28-41c2-a00e-4ed9bb340ada
+# ╠═079aff34-604f-462c-9d33-a9cc7b455800
 # ╠═ab9d12ef-7a94-47ae-86cb-c55c82cc3511
 # ╟─45bdd8fa-f836-49f9-af49-0dce1e4d42e2
 # ╠═9b78525b-e73a-4738-9ec5-edf8b9f6a778
@@ -1895,10 +1905,9 @@ version = "1.4.1+1"
 # ╟─3d40d080-65af-4dc9-a924-5da517ffb95c
 # ╠═58cc68de-cd76-48b4-8df4-b4257fdc1cd1
 # ╠═ce165ee5-eff5-4c25-95b9-e97b2fd914e4
-# ╠═5af826dc-a075-4cb6-9f4f-f2c4d9f9218b
 # ╠═05e2d7ec-45a7-4289-a274-e7b109b70875
 # ╠═fb8a42be-3da2-4cf7-b84b-16e41b5ee30a
-# ╠═9b8a2c95-d4c3-4e38-a7b3-c5e157810758
+# ╠═5af826dc-a075-4cb6-9f4f-f2c4d9f9218b
 # ╠═4ff8eb39-b44f-4c4c-b33d-0654103728e7
 # ╠═d4e93cea-9a01-4f92-86f1-041343b64530
 # ╠═358cf888-fda9-49a1-ab8b-0c963dcca8cb
