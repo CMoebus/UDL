@@ -201,7 +201,29 @@ let # Initialize the parameters and draw the model
 	plot8 = 
 		drawModel(gaborModel, [-3.3, -17.0], title=L"Gabor\ Model\ 8", drawDataScatter=true)                        # minimum: plot8
 	#------------------------------------------------------------------
-	plot(plot3, plot4, plot5, plot6, plot7, plot8, layout=(2, 3))
+	plot(plot2, plot3, plot4, plot5, layout=(2, 2))
+end # let
+
+# ╔═╡ c916cf09-efe5-44f0-a5e8-85a92e548101
+let # Initialize the parameters and draw the model
+	ϕs = zeros(Float64, 2)
+	#------------------------------------------------------------------
+	plot2 = 
+		drawModel(gaborModel, [-0.6, -17.0], title=L"Gabor\ Model\ 2", drawDataScatter=true)                         # maximum: plot2
+	plot3 = 
+		drawModel(gaborModel, [ 3.4,  15.3], title=L"Gabor\ Model\ 3", drawDataScatter=true)                         # maximum: plot3
+	plot4 = 
+		drawModel(gaborModel, [ 0.0,  16.0], title=L"Gabor\ Model\ 4", drawDataScatter=true)                         # minimum: plot4
+	plot5 = 
+		drawModel(gaborModel, [ 1.5,  -0.1], title=L"Gabor\ Model\ 5", drawDataScatter=true)                         # maximum: plot5
+	plot6 = 
+		drawModel(gaborModel, [-1.5,  +0.1], title=L"Gabor\ Model\ 6", drawDataScatter=true)                         # maximum: plot6
+	plot7 = 
+		drawModel(gaborModel, [ 3.0, -15.0], title=L"Gabor\ Model\ 7", drawDataScatter=true)                         # minimum: plot7
+	plot8 = 
+		drawModel(gaborModel, [-3.3, -17.0], title=L"Gabor\ Model\ 8", drawDataScatter=true)                        # minimum: plot8
+	#------------------------------------------------------------------
+	plot(plot5, plot6, plot7, plot8, layout=(2, 2))
 end # let
 
 # ╔═╡ 45bdd8fa-f836-49f9-af49-0dce1e4d42e2
@@ -222,16 +244,16 @@ function drawContourLines(; title="")
     contour(ϕ0s, ϕ1s, ssqLoss, xlabel=L"\phi_0", ylabel=L"\phi_1", 
 		fill=false, title=title)
 	#--------------------------------------------------------------------------
-	scatter!([-0.6], [-17.0], color=:red,   10, label=false)  # maximum: plot2
-	scatter!([ 3.4], [ 15.3], color=:red,   10, label=false)  # maximum: plot3
-	scatter!([ 0.0], [ 16.0], color=:green, 10, label=false)  # minimum: plot4
-	scatter!([ 1.5], [ -0.1], color=:red,   10, label=false)  # maximum: plot5
-	scatter!([-1.5], [  0.1], color=:red,   10, label=false)  # maximum: plot6
-	scatter!([ 3.0], [-15.0], color=:green, 10, label=false)  # minimum: plot7
-	scatter!([-3.3], [-17.0], color=:green, 10, label=false)  # minimum: plot8
+	scatter!([-0.6], [-17.0], color=:red,   label=false)  # maximum: plot2
+	scatter!([ 3.4], [ 15.3], color=:red,   label=false)  # maximum: plot3
+	scatter!([ 0.0], [ 16.0], color=:green, ms=8, label=false)  # minimum: plot4
+	scatter!([ 1.5], [ -0.1], color=:red,   label=false)  # maximum: plot5
+	scatter!([-1.5], [  0.1], color=:red,   label=false)  # maximum: plot6
+	scatter!([ 3.0], [-15.0], color=:green, label=false)  # minimum: plot7
+	scatter!([-3.3], [-17.0], color=:green, label=false)  # minimum: plot8
 	annotate!([-0.9], [-17.0], ("2", :red,   10))
 	annotate!([ 3.7], [ 15.3], ("3", :red,   10))
-	annotate!([ 0.3], [ 16.0], ("4", :green, 10))
+	annotate!([ 0.4], [ 16.0], ("4", :green, 10))
 	annotate!([ 1.8], [ -0.0], ("5", :red,   10))
 	annotate!([-1.8], [  0.1], ("6", :red,   10))
 	annotate!([ 3.3], [-15.0], ("7", :green, 10))
@@ -253,16 +275,16 @@ function drawContourColours(; title="")
     contour(ϕ0s, ϕ1s, ssqLoss, xlabel=L"\phi_0", ylabel=L"\phi_1", 
 		fill=true, title=title)
 	#--------------------------------------------------------------------------
-	scatter!([-0.6], [-17.0], color=:red,   10, label=false)  # maximum: plot2
-	scatter!([ 3.4], [ 15.3], color=:red,   10, label=false)  # maximum: plot3
-	scatter!([ 0.0], [ 16.0], color=:green, 10, label=false)  # minimum: plot4
-	scatter!([ 1.5], [ -0.1], color=:red,   10, label=false)  # maximum: plot5
-	scatter!([-1.5], [ +0.1], color=:red,   10, label=false)  # maximum: plot6
-	scatter!([ 3.0], [-15.0], color=:green, 10, label=false)  # minimum: plot7
-	scatter!([-3.3], [-17.0], color=:green, 10, label=false)  # minimum: plot8
+	scatter!([-0.6], [-17.0], color=:red,   label=false)  # maximum: plot2
+	scatter!([ 3.4], [ 15.3], color=:red,   label=false)  # maximum: plot3
+	scatter!([ 0.0], [ 16.0], color=:green, ms=8, label=false)  # minimum: plot4
+	scatter!([ 1.5], [ -0.1], color=:red,   label=false)  # maximum: plot5
+	scatter!([-1.5], [  0.1], color=:red,   label=false)  # maximum: plot6
+	scatter!([ 3.0], [-15.0], color=:green, label=false)  # minimum: plot7
+	scatter!([-3.3], [-17.0], color=:green, label=false)  # minimum: plot8
 	annotate!([-0.9], [-17.0], ("2", :red,   10))
 	annotate!([ 3.7], [ 15.3], ("3", :red,   10))
-	annotate!([ 0.3], [ 16.0], ("4", :green, 10))
+	annotate!([ 0.4], [ 16.0], ("4", :green, 10))
 	annotate!([ 1.8], [ -0.0], ("5", :red,   10))
 	annotate!([-1.8], [  0.1], ("6", :red,   10))
 	annotate!([ 3.3], [-15.0], ("7", :green, 10))
@@ -289,16 +311,16 @@ function drawContourColours(ϕsSource, ϕsSink; title="")
 	scatter!([ϕsSource[1]], [ϕsSource[2]], color=:green, 10, label=false)
 	plot!([(ϕsSource[1], ϕsSource[2]), (ϕsSink[1], ϕsSink[2])], arrow=true, color=:green, ls=:dot)
 	#--------------------------------------------------------------------------
-	scatter!([-0.6], [-17.0], color=:red,   10, label=false)  # maximum: plot2
-	scatter!([ 3.4], [ 15.3], color=:red,   10, label=false)  # maximum: plot3
-	scatter!([ 0.0], [ 16.0], color=:green, 10, label=false)  # minimum: plot4
-	scatter!([ 1.5], [ -0.1], color=:red,   10, label=false)  # maximum: plot5
-	scatter!([-1.5], [ +0.1], color=:red,   10, label=false)  # maximum: plot6
-	scatter!([ 3.0], [-15.0], color=:green, 10, label=false)  # minimum: plot7
-	scatter!([-3.3], [-17.0], color=:green, 10, label=false)  # minimum: plot8
+	scatter!([-0.6], [-17.0], color=:red,   label=false)  # maximum: plot2
+	scatter!([ 3.4], [ 15.3], color=:red,   label=false)  # maximum: plot3
+	scatter!([ 0.0], [ 16.0], color=:green, ms=8, label=false)  # minimum: plot4
+	scatter!([ 1.5], [ -0.1], color=:red,   label=false)  # maximum: plot5
+	scatter!([-1.5], [  0.1], color=:red,   label=false)  # maximum: plot6
+	scatter!([ 3.0], [-15.0], color=:green, label=false)  # minimum: plot7
+	scatter!([-3.3], [-17.0], color=:green, label=false)  # minimum: plot8
 	annotate!([-0.9], [-17.0], ("2", :red,   10))
 	annotate!([ 3.7], [ 15.3], ("3", :red,   10))
-	annotate!([ 0.3], [ 16.0], ("4", :green, 10))
+	annotate!([ 0.4], [ 16.0], ("4", :green, 10))
 	annotate!([ 1.8], [ -0.0], ("5", :red,   10))
 	annotate!([-1.8], [  0.1], ("6", :red,   10))
 	annotate!([ 3.3], [-15.0], ("7", :green, 10))
@@ -398,11 +420,11 @@ mySearchIn2D([-3.0, -15.0], xs, searchAlgorithm=SimulatedAnnealing(), maxIterati
 md"
 ---
 ##### 5. Summary
-First we explored the 2D-parameter space of the nonlinear regression problem of predicting a training sample with a *two-parameter Gabor* model. We found six extrema of interest: 3 minima and three maxima. 
+First we explored the 2D-parameter space of the nonlinear regression problem of predicting a training sample with a *two-parameter Gabor* model. We found seven extrema of interest: three minima and four maxima. 
 
 Then we looked systematically for the loss minimum by applying the *gradient-free* [Nelder-Mead](https://julianlsolvers.github.io/Optim.jl/stable/algo/nelder_mead/) and [Simulated Annealing](https://julianlsolvers.github.io/Optim.jl/stable/algo/simulated_annealing/) algorithms. 
 
-The overall result is that the search algorithm always slips into the *nearest* minimum. There was one *global minimum* in $[0.0, 16.0]$ with $ssqLoss(min) = 0.6457$. This minimum could be found from two different start points $[3.0, 15.0], [0.0, 16.0]$. Both algorithms were on par with respect to this result. The only difference was that Nelder-Mead used only a minor number of function calls whereas Simulated-Annealing always hit the $maxIterations$-limit of $1.000.000$ !
+The overall result is that the search algorithm always slips into the *nearest* minimum. There was one *global minimum* in $[0.0, 16.0]$ with $ssqLoss(min) = 0.6457$. This minimum could only be found by Nelder-Mead from the start point $[3.0, 15.0]$. The main difference between both algorithms was that Nelde-Mead used only a minor number of function calls whereas Simulated-Annealing always hit the $maxIterations$-limit of $1.000.000$ !
 
 "
 
@@ -1973,6 +1995,7 @@ version = "1.4.1+1"
 # ╠═fb0edbc4-9d28-41c2-a00e-4ed9bb340ada
 # ╠═079aff34-604f-462c-9d33-a9cc7b455800
 # ╠═ab9d12ef-7a94-47ae-86cb-c55c82cc3511
+# ╠═c916cf09-efe5-44f0-a5e8-85a92e548101
 # ╟─45bdd8fa-f836-49f9-af49-0dce1e4d42e2
 # ╠═9b78525b-e73a-4738-9ec5-edf8b9f6a778
 # ╠═e86608ce-5217-4f2b-b9dc-b686a7ad656e
