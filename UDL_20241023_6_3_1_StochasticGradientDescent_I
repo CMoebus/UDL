@@ -23,7 +23,7 @@ md"
 ### UDL\_20241023\_6\_3\_1\_Stochastic\_Gradient\_Descent\_I
 ##### file: UDL\_20241023\_6\_3\_1\_StochasticGradientDescent\_I.jl
 ##### libraries: Julia 1.11.1/Pluto 0.20.0/Plots 1.40.8/Optim 1.9.4
-##### code by *** PCM 2024/11/13 ***
+##### code by *** PCM 2024/11/15 ***
 
 ===================================================================================
 "
@@ -32,11 +32,17 @@ md"
 # ╔═╡ 7be318f3-dd9b-462d-a15e-544427ec3364
 md"
 ##### 0. Introduction
+*Stochastic* algorithms introduce random elements in various ways. Here we deal only with *full batch* methods ([Prince, 2024, p.85](https://udlbook.github.io/udlbook/)) which analyze the *full* set of data. The hope is that results are more stable and that the probability of finding *global* minima is higher than in their *deterministic* counterparts.
+
 Search for the *loss minimum* in the parameter space of the univariate *linear* regression problem is rather simple because *residual sum-of-squares (RSS)* or *mean square error* (MSE) loss are *convex* loss functions. But what about the search in parameter spaces with *non-linear* regression models with *non-convex* loss-functions ? [Prince (2024, p.80, (6.8))](https://udlbook.github.io/udlbook/) provides the  *non-linear* two-parameter *Gabor* model with such a *non-convex* loss function.
 
-We explore the parameter space for various parameter configurations and look systematically for the loss minimum with 
-- *gradient-free* [*Nelder-Mead*](https://julianlsolvers.github.io/Optim.jl/stable/algo/nelder_mead/) algorithm.
-- *gradient-free* [*Simulated Annealing*](https://julianlsolvers.github.io/Optim.jl/stable/algo/simulated_annealing/) search
+We explore the parameter space for various parameter configurations and look systematically for the loss minimum with the
+
+- *gradient-free* [*Nelder-Mead*](https://julianlsolvers.github.io/Optim.jl/stable/algo/nelder_mead/) and
+- *stochastic gradient-free* [*Simulated Annealing (SA)*](https://julianlsolvers.github.io/Optim.jl/stable/algo/simulated_annealing/)
+- *stochastic gradient-free* [*Particle Swarm (PS)*](https://julianlsolvers.github.io/Optim.jl/stable/algo/particle_swarm/)
+
+algorithm.
 "
 
 # ╔═╡ c056d8db-c7b3-44a3-ba6f-27cf4f535d19
@@ -50,7 +56,7 @@ md"
 md"
 ---
 ##### 2. Training Data
-obtained from Prince's [Notebook 6.3 Stochastic Gradient Descent](https://github.com/udlbook/udlbook/blob/main/Notebooks/Chap06/6_3_Stochastic_Gradient_Descent.ipynb).
+obtained from Prince's Python [Notebook 6.3 Stochastic Gradient Descent](https://github.com/udlbook/udlbook/blob/main/Notebooks/Chap06/6_3_Stochastic_Gradient_Descent.ipynb).
 "
 
 # ╔═╡ 5f9a24c4-6705-44e0-80f9-c37f2f5fc208
@@ -148,7 +154,7 @@ end # function ssqLoss
 ssqLoss(0.0, 16.0)
 
 # ╔═╡ 21a8e1e4-b45a-45d4-a773-b126a0dc4571
-function drawModel(myModel, ϕs; title="", drawDataScatter=false)
+function drawModelPredictions(myModel, ϕs; title="", drawDataScatter=false)
 	ϕ0 = ϕs[1]; ϕ1 = ϕs[2]
 	xsGrid = [x for x in -15:0.1:+15]
 	ysGrid = myModel(ϕs, xsGrid)[3]
@@ -171,57 +177,47 @@ function drawModel(myModel, ϕs; title="", drawDataScatter=false)
 		annotate!(-9, -1.25, "ssq=$ssqLossRounded", 8)
 		plot(plot2)
 	end # if
-end # function drawModel
+end # function drawModelPredictions
 
 # ╔═╡ d3ef538f-8a14-4ca3-9e02-11541e03bb4e
-drawModel(gaborModel, [-5.0, 25.0], title=L"Gabor\  Model\ 1", drawDataScatter=true)
+drawModelPredictions(gaborModel, [-2.3, 17.0], title=L"Gabor\  Model\ 1", drawDataScatter=true)
 
 # ╔═╡ fb0edbc4-9d28-41c2-a00e-4ed9bb340ada
-drawModel(gaborModel, [1.5, -0.1], title=L"Data\ &\ Gabor\ Model\ 5", drawDataScatter=true)                                             
+drawModelPredictions(gaborModel, [1.5, -0.1], title=L"Data\ &\ Gabor\ Model\ 5", drawDataScatter=true)                                             
 
 # ╔═╡ 079aff34-604f-462c-9d33-a9cc7b455800
-drawModel(gaborModel, [0.0, 16.0], title=L"Data\ &\ Model\ Predictions\ of\ Gabor\ Model\ 4", drawDataScatter=true)
+drawModelPredictions(gaborModel, [0.0, 16.0], title=L"Data\ &\ Model\ Predictions\ of\ Gabor\ Model\ 4", drawDataScatter=true)
 
 # ╔═╡ ab9d12ef-7a94-47ae-86cb-c55c82cc3511
 let # Initialize the parameters and draw the model
 	ϕs = zeros(Float64, 2)
-	#------------------------------------------------------------------
+	#----------------------------------------------------------------------------
+	plot1 = 
+		drawModelPredictions(gaborModel, [-2.3,  17.0], title=L"Gabor\ Model\ 1", drawDataScatter=true)                         # maximum: plot1
 	plot2 = 
-		drawModel(gaborModel, [-0.6, -17.0], title=L"Gabor\ Model\ 2", drawDataScatter=true)                         # maximum: plot2
+		drawModelPredictions(gaborModel, [-0.6, -17.0], title=L"Gabor\ Model\ 2", drawDataScatter=true)                         # maximum: plot2
 	plot3 = 
-		drawModel(gaborModel, [ 3.4,  15.3], title=L"Gabor\ Model\ 3", drawDataScatter=true)                         # maximum: plot3
+		drawModelPredictions(gaborModel, [ 3.4,  15.3], title=L"Gabor\ Model\ 3", drawDataScatter=true)                         # maximum: plot3
 	plot4 = 
-		drawModel(gaborModel, [ 0.0,  16.0], title=L"Gabor\ Model\ 4", drawDataScatter=true)                         # minimum: plot4
+		drawModelPredictions(gaborModel, [ 0.0,  16.0], title=L"Gabor\ Model\ 4", drawDataScatter=true)                         # minimum: plot4
 	plot5 = 
-		drawModel(gaborModel, [ 1.5,  -0.1], title=L"Gabor\ Model\ 5", drawDataScatter=true)                         # maximum: plot5
-	plot6 = 
-		drawModel(gaborModel, [-1.5,  +0.1], title=L"Gabor\ Model\ 6", drawDataScatter=true)                         # maximum: plot6
-	plot7 = 
-		drawModel(gaborModel, [ 3.0, -15.0], title=L"Gabor\ Model\ 7", drawDataScatter=true)                         # minimum: plot7
-	plot8 = 
-		drawModel(gaborModel, [-3.3, -17.0], title=L"Gabor\ Model\ 8", drawDataScatter=true)                        # minimum: plot8
-	#------------------------------------------------------------------
-	plot(plot2, plot3, plot4, plot5, layout=(2, 2))
+		drawModelPredictions(gaborModel, [ 1.5,  -0.1], title=L"Gabor\ Model\ 5", drawDataScatter=true)                         # maximum: plot5
+	#----------------------------------------------------------------------------
+	plot(plot1, plot2, plot3, plot4, layout=(2, 2))
 end # let
 
 # ╔═╡ c916cf09-efe5-44f0-a5e8-85a92e548101
 let # Initialize the parameters and draw the model
 	ϕs = zeros(Float64, 2)
 	#------------------------------------------------------------------
-	plot2 = 
-		drawModel(gaborModel, [-0.6, -17.0], title=L"Gabor\ Model\ 2", drawDataScatter=true)                         # maximum: plot2
-	plot3 = 
-		drawModel(gaborModel, [ 3.4,  15.3], title=L"Gabor\ Model\ 3", drawDataScatter=true)                         # maximum: plot3
-	plot4 = 
-		drawModel(gaborModel, [ 0.0,  16.0], title=L"Gabor\ Model\ 4", drawDataScatter=true)                         # minimum: plot4
 	plot5 = 
-		drawModel(gaborModel, [ 1.5,  -0.1], title=L"Gabor\ Model\ 5", drawDataScatter=true)                         # maximum: plot5
+		drawModelPredictions(gaborModel, [ 1.5,  -0.1], title=L"Gabor\ Model\ 5", drawDataScatter=true)                         # maximum: plot5
 	plot6 = 
-		drawModel(gaborModel, [-1.5,  +0.1], title=L"Gabor\ Model\ 6", drawDataScatter=true)                         # maximum: plot6
+		drawModelPredictions(gaborModel, [-1.5,  +0.1], title=L"Gabor\ Model\ 6", drawDataScatter=true)                         # maximum: plot6
 	plot7 = 
-		drawModel(gaborModel, [ 3.0, -15.0], title=L"Gabor\ Model\ 7", drawDataScatter=true)                         # minimum: plot7
+		drawModelPredictions(gaborModel, [ 3.0, -15.0], title=L"Gabor\ Model\ 7", drawDataScatter=true)                         # minimum: plot7
 	plot8 = 
-		drawModel(gaborModel, [-3.3, -17.0], title=L"Gabor\ Model\ 8", drawDataScatter=true)                        # minimum: plot8
+		drawModelPredictions(gaborModel, [-3.3, -17.0], title=L"Gabor\ Model\ 8", drawDataScatter=true)                        # minimum: plot8
 	#------------------------------------------------------------------
 	plot(plot5, plot6, plot7, plot8, layout=(2, 2))
 end # let
@@ -244,6 +240,7 @@ function drawContourLines(; title="")
     contour(ϕ0s, ϕ1s, ssqLoss, xlabel=L"\phi_0", ylabel=L"\phi_1", 
 		fill=false, title=title)
 	#--------------------------------------------------------------------------
+	scatter!([-2.3], [ 17.0], color=:red,   label=false)  # maximum: plot1
 	scatter!([-0.6], [-17.0], color=:red,   label=false)  # maximum: plot2
 	scatter!([ 3.4], [ 15.3], color=:red,   label=false)  # maximum: plot3
 	scatter!([ 0.0], [ 16.0], color=:green, ms=8, label=false)  # minimum: plot4
@@ -251,6 +248,7 @@ function drawContourLines(; title="")
 	scatter!([-1.5], [  0.1], color=:red,   label=false)  # maximum: plot6
 	scatter!([ 3.0], [-15.0], color=:green, label=false)  # minimum: plot7
 	scatter!([-3.3], [-17.0], color=:green, label=false)  # minimum: plot8
+	annotate!([-2.6], [ 17.0], ("1", :red,   10))
 	annotate!([-0.9], [-17.0], ("2", :red,   10))
 	annotate!([ 3.7], [ 15.3], ("3", :red,   10))
 	annotate!([ 0.4], [ 16.0], ("4", :green, 10))
@@ -275,6 +273,7 @@ function drawContourColours(; title="")
     contour(ϕ0s, ϕ1s, ssqLoss, xlabel=L"\phi_0", ylabel=L"\phi_1", 
 		fill=true, title=title)
 	#--------------------------------------------------------------------------
+	scatter!([-2.3], [ 17.0], color=:red,   label=false)  # maximum: plot1
 	scatter!([-0.6], [-17.0], color=:red,   label=false)  # maximum: plot2
 	scatter!([ 3.4], [ 15.3], color=:red,   label=false)  # maximum: plot3
 	scatter!([ 0.0], [ 16.0], color=:green, ms=8, label=false)  # minimum: plot4
@@ -282,6 +281,7 @@ function drawContourColours(; title="")
 	scatter!([-1.5], [  0.1], color=:red,   label=false)  # maximum: plot6
 	scatter!([ 3.0], [-15.0], color=:green, label=false)  # minimum: plot7
 	scatter!([-3.3], [-17.0], color=:green, label=false)  # minimum: plot8
+	annotate!([-2.6], [ 17.0], ("1", :red,   10))
 	annotate!([-0.9], [-17.0], ("2", :red,   10))
 	annotate!([ 3.7], [ 15.3], ("3", :red,   10))
 	annotate!([ 0.4], [ 16.0], ("4", :green, 10))
@@ -311,6 +311,7 @@ function drawContourColours(ϕsSource, ϕsSink; title="")
 	scatter!([ϕsSource[1]], [ϕsSource[2]], color=:green, 10, label=false)
 	plot!([(ϕsSource[1], ϕsSource[2]), (ϕsSink[1], ϕsSink[2])], arrow=true, color=:green, ls=:dot)
 	#--------------------------------------------------------------------------
+	scatter!([-2.3], [ 17.0], color=:red,   label=false)  # maximum: plot1
 	scatter!([-0.6], [-17.0], color=:red,   label=false)  # maximum: plot2
 	scatter!([ 3.4], [ 15.3], color=:red,   label=false)  # maximum: plot3
 	scatter!([ 0.0], [ 16.0], color=:green, ms=8, label=false)  # minimum: plot4
@@ -318,6 +319,7 @@ function drawContourColours(ϕsSource, ϕsSink; title="")
 	scatter!([-1.5], [  0.1], color=:red,   label=false)  # maximum: plot6
 	scatter!([ 3.0], [-15.0], color=:green, label=false)  # minimum: plot7
 	scatter!([-3.3], [-17.0], color=:green, label=false)  # minimum: plot8
+	annotate!([-2.6], [ 17.0], ("1", :red,   10))
 	annotate!([-0.9], [-17.0], ("2", :red,   10))
 	annotate!([ 3.7], [ 15.3], ("3", :red,   10))
 	annotate!([ 0.4], [ 16.0], ("4", :green, 10))
@@ -352,79 +354,130 @@ function mySearchIn2D(ϕs, xs; searchAlgorithm=NelderMead(), maxIterations=10^3,
 end # function mySearchIn2D
 
 # ╔═╡ ce165ee5-eff5-4c25-95b9-e97b2fd914e4
-mySearchIn2D([-5.0, 25.0], xs, searchAlgorithm=NelderMead(), title=L"Plot\ 1") 
-# ==> ssq_min = 3.356
+@time mySearchIn2D([-2.3, 17.0], xs, searchAlgorithm=NelderMead(), title=L"Plot\ 1") 
+# ==> ssq_min = 4.8903
+
+# ╔═╡ 4519f838-e980-43ed-a175-83df4a20cb16
+@time mySearchIn2D([-0.6, -17.0], xs, searchAlgorithm=NelderMead(), title=L"Plot\ 2") 
+# ==> ssq_min = 3.6529
 
 # ╔═╡ 05e2d7ec-45a7-4289-a274-e7b109b70875
-mySearchIn2D([ 3.0, 15.0], xs, searchAlgorithm=NelderMead(), title=L"Plot\ 3")  
-# ==> ssq_min = 0.646
+@time mySearchIn2D([3.4, 15.3], xs, searchAlgorithm=NelderMead(), title=L"Plot\ 3")  
+# ==> ssq_min = 3.6705
 
 # ╔═╡ fb8a42be-3da2-4cf7-b84b-16e41b5ee30a
-mySearchIn2D([ 0.0, 16.0], xs, searchAlgorithm=NelderMead(), title=L"Plot\ 4")  
+@time mySearchIn2D([ 0.0, 16.0], xs, searchAlgorithm=NelderMead(), title=L"Plot\ 4") 
 # ==> ssq_min = 0.646
 
 # ╔═╡ 5af826dc-a075-4cb6-9f4f-f2c4d9f9218b
-mySearchIn2D([1.5, -0.1], xs, searchAlgorithm=NelderMead(), title=L"Plot\ 5")  
+@time mySearchIn2D([1.5, -0.1], xs, searchAlgorithm=NelderMead(), title=L"Plot\ 5")  
 # ==> ssq_min = 5.319
 
 # ╔═╡ 4ff8eb39-b44f-4c4c-b33d-0654103728e7
-mySearchIn2D([-1.5,  0.1], xs, searchAlgorithm=NelderMead(), title=L"Plot\ 6")  
+@time mySearchIn2D([-1.5,  0.1], xs, searchAlgorithm=NelderMead(), title=L"Plot\ 6") 
 # ==> ssq_min = 5.3264
 
-# ╔═╡ d4e93cea-9a01-4f92-86f1-041343b64530
-mySearchIn2D([ 3.0, -15.0], xs, searchAlgorithm=NelderMead(), title=L"Plot\ 7")  
-# ==> ssq_min = 1.360
-
-# ╔═╡ 358cf888-fda9-49a1-ab8b-0c963dcca8cb
-mySearchIn2D([-3.0, -15.0], xs, searchAlgorithm=NelderMead(), title=L"Plot\ 8")   
-# ==> ssq_min = 1.420
-
 # ╔═╡ 64730dab-3888-4fe9-a820-f870c276030c
-drawModel(gaborModel, [0.0, 16.0], title=L"Minimum\ Loss : Gabor\ Model\ 4", drawDataScatter=true) 
+drawModelPredictions(gaborModel, [0.0, 16.0], title=L"Minimum\ Loss : Gabor\ Model\ 4", drawDataScatter=true) 
 
 # ╔═╡ 92f10574-cc76-4879-af6e-319875007163
 md"
 ---
-###### 4.2 *Gradient-free* [Simulated-Annealing](https://julianlsolvers.github.io/Optim.jl/stable/algo/simulated_annealing/) Search in Parameter Space
+###### 4.2 *Stochastic Gradient-free* [Simulated-Annealing (SA)](https://julianlsolvers.github.io/Optim.jl/stable/algo/simulated_annealing/) Search in Parameter Space
 "
 
 # ╔═╡ c26bd948-7280-4952-8d9d-45fe202d00a2
-mySearchIn2D([-5.0, 25.0], xs, searchAlgorithm=SimulatedAnnealing(), maxIterations=10^6, title=L"Plot\ 1") 
-# ==> ssq_min = 3.3574
-
-# ╔═╡ 110527a5-dcb4-4bd8-9d3a-67bb400f333c
-mySearchIn2D([ 3.0, 15.0], xs, searchAlgorithm=SimulatedAnnealing(), maxIterations=10^6, title=L"Plot\ 3")  
+@time mySearchIn2D([-2.3, 17.0], xs, searchAlgorithm=SimulatedAnnealing(), maxIterations=2*10^6, title=L"Plot\ 1") 
 # ==> ssq_min = 0.6457
 
+# ╔═╡ d14e3342-c2e2-4854-9127-3830d46895c5
+@time mySearchIn2D([-0.6, -17.0], xs, searchAlgorithm=SimulatedAnnealing(), maxIterations=2*10^6, title=L"Plot\ 2") 
+# ==> ssq_min = 1.3601
+
+# ╔═╡ 110527a5-dcb4-4bd8-9d3a-67bb400f333c
+@time mySearchIn2D([3.4, 15.3], xs, searchAlgorithm=SimulatedAnnealing(), maxIterations=2*10^6, title=L"Plot\ 3")  
+# ==> ssq_min = 3.6705
+
 # ╔═╡ 51bdf299-af9f-4483-a87d-0d2f2f838908
-mySearchIn2D([ 0.0, 16.0], xs, searchAlgorithm=SimulatedAnnealing(), maxIterations=10^6, title=L"Plot\ 4")  
+@time mySearchIn2D([ 0.0, 16.0], xs, searchAlgorithm=SimulatedAnnealing(), maxIterations=2*10^6, title=L"Plot\ 4")  
 # ==> ssq_min = 0.646
 
 # ╔═╡ 98aa120e-2abc-4974-8825-bb64daa51993
-mySearchIn2D([1.5, -0.1], xs, searchAlgorithm=SimulatedAnnealing(), maxIterations=10^6, title=L"Plot\ 5")  
-# ==> ssq_min = 5.2103
+@time mySearchIn2D([1.5, -0.1], xs, searchAlgorithm=SimulatedAnnealing(), maxIterations=2*10^6, title=L"Plot\ 5")  
+# ==> ssq_min = 5.0398
 
 # ╔═╡ bec5eac9-b76d-4a17-b49b-b1aeabda85f5
-mySearchIn2D([-1.5,  0.1], xs, searchAlgorithm=SimulatedAnnealing(), maxIterations=10^6, title=L"Plot\ 6")  
+@time mySearchIn2D([-1.5,  0.1], xs, searchAlgorithm=SimulatedAnnealing(), maxIterations=2*10^6, title=L"Plot\ 6")  
 # ==> ssq_min = 5.0417
 
-# ╔═╡ 7d982489-e4e7-46ea-8bc1-37c327aaa665
-mySearchIn2D([ 3.0, -15.0], xs, searchAlgorithm=SimulatedAnnealing(), maxIterations=10^6, title=L"Plot\ 7")  
-# ==> ssq_min = 1.360
+# ╔═╡ 03d18d2c-69d7-4044-bf9c-ceeaa8173aaa
+md"
+---
+###### 4.3 *Stochastic Gradient-free* [Particle Swarm](https://julianlsolvers.github.io/Optim.jl/stable/algo/particle_swarm/) Search in Parameter Space
+"
 
-# ╔═╡ ce9afe85-b7b1-43e2-a1a6-f591c215966a
-mySearchIn2D([-3.0, -15.0], xs, searchAlgorithm=SimulatedAnnealing(), maxIterations=10^6, title=L"Plot\ 8")   
-# ==> ssq_min = 1.420
+# ╔═╡ be88b582-e2e4-4e2b-82c6-12c03c431152
+@time mySearchIn2D([-2.3, 17.0], xs, searchAlgorithm=ParticleSwarm(n_particles = 50), maxIterations=1*10^6, title=L"Plot\ 1") 
+# ==> ssq_min = 0.6457
+
+# ╔═╡ d94d8b0d-50ab-4aae-8f74-a035c3df7dc6
+@time mySearchIn2D([-0.6, -17.0], xs, searchAlgorithm=ParticleSwarm(n_particles = 50), maxIterations=1*10^6, title=L"Plot\ 2") 
+# ==> ssq_min = 0.6457
+
+# ╔═╡ 7c7ceaf4-5225-4aac-bddf-36ef9f3d9e17
+@time mySearchIn2D([3.4, 15.3], xs, searchAlgorithm=ParticleSwarm(n_particles = 50), maxIterations=1*10^6, title=L"Plot\ 3")  
+# ==> ssq_min = 3.6705
+
+# ╔═╡ f9a35aa6-9d10-498a-8a40-98e1763022a1
+@time mySearchIn2D([ 0.0, 16.0], xs, searchAlgorithm=ParticleSwarm(n_particles = 50), maxIterations=1*10^6, title=L"Plot\ 4")  
+# ==> ssq_min = 0.646
+
+# ╔═╡ 9308cdf3-086a-4d07-be97-852570c486eb
+@time mySearchIn2D([1.5, -0.1], xs, searchAlgorithm=ParticleSwarm(n_particles = 50), maxIterations=1*10^6, title=L"Plot\ 5")  
+# ==> ssq_min = 0.646
+
+# ╔═╡ 376d5074-eb1c-46e0-a34f-d646ae5d59e4
+@time mySearchIn2D([-1.5,  0.1], xs, searchAlgorithm=ParticleSwarm(n_particles = 50), maxIterations=1*10^6, title=L"Plot\ 6")  
+# ==> ssq_min = 5.0417
 
 # ╔═╡ c482e066-7c02-488a-9fe2-d21e603e52b9
 md"
 ---
 ##### 5. Summary
-First we explored the 2D-parameter space of the nonlinear regression problem of predicting a training sample with a *two-parameter Gabor* model. We found seven extrema of interest: three minima and four maxima. 
+First we explored the 2D-parameter space of the nonlinear regression problem of predicting a training sample with a *two-parameter Gabor* model. We found eight extrema of interest: three minima and five maxima. 
 
-Then we looked systematically for the loss minimum by applying the *gradient-free* [Nelder-Mead](https://julianlsolvers.github.io/Optim.jl/stable/algo/nelder_mead/) and [Simulated Annealing](https://julianlsolvers.github.io/Optim.jl/stable/algo/simulated_annealing/) algorithms. 
+Then we looked systematically for the loss minimum by applying the *gradient-free* [Nelder-Mead](https://julianlsolvers.github.io/Optim.jl/stable/algo/nelder_mead/), *stochastic gradient-free* [Simulated Annealing](https://julianlsolvers.github.io/Optim.jl/stable/algo/simulated_annealing/), and [Particle Swarm](https://julianlsolvers.github.io/Optim.jl/stable/algo/particle_swarm/) algorithms. 
 
-The overall result is that the search algorithm always slips into the *nearest* minimum. There was one *global minimum* in $[0.0, 16.0]$ with $ssqLoss(min) = 0.6457$. This minimum could only be found by Nelder-Mead from the start point $[3.0, 15.0]$. The main difference between both algorithms was that Nelde-Mead used only a minor number of function calls whereas Simulated-Annealing always hit the $maxIterations$-limit of $1.000.000$ !
+The overall result is that Nelder Mead always slipped into the *nearest* minimum. There was one *global minimum* in $[0.0, 16.0]$ with $ssqLoss(min) = 0.6457$. The *global minimum* could only be found by a *nontrivial* search by *simulated-annealing* one time and by *particle swarm* two times (see table below). Success in Plot 4 is considered *trivial* because the starting point is already the global minimum $[0.0, 16.0]$. 
+
+The higher quality of *SA* or *PS* is not astonishing when one considers the increased number of function calls and computation time necessary when substituting *Nelder&Mead* by *SA* or *PS*. But beware, *SA* and *PS* behave truely stochastic. When repeating search runs with identical parameters you can get *different* (!) results.
+
+
+"
+
+# ╔═╡ 677a518e-a1b6-4efd-9abd-7bd0f1bc8cad
+md"
+$\begin{array}{c|ccc}
+f_{min} & \text{Nelder Mead} & \text{Simulated Annealing} & \text{Particle Swarm} \\
+\hline
+\text{Plot 1} & 4.8903          & \mathbf{0.6457} & \mathbf{0.6457} \\
+\text{Plot 2} & 3.6529          & 1.4190          & 1.3601          \\
+\text{Plot 3} & 3.6705          & 3.6705          & \mathbf{0.6457} \\
+\text{Plot 4} & \mathbf{0.6457} & \mathbf{0.6457} & \mathbf{0.6457} \\
+\text{Plot 5} & 5.3190          & 5.1976          & 1.3601          \\
+\text{Plot 6} & 5.3264          & 5.1681          & 5.3228          \\
+\hline
+\end{array}$
+
+$\;$
+$\;$
+$\;$
+$\;$
+$\;$
+$\;$
+$\;$
+$\;$
+$\;$
 
 "
 
@@ -441,6 +494,11 @@ md"
 
 - **Wikipedia**; [*Gabor Filter*](https://en.wikipedia.org/wiki/Gabor_filter); last visit 2024/10/31
 
+- **Wikipedia**; [*Nelder-Mead*](https://en.wikipedia.org/wiki/Nelder%E2%80%93Mead_method) Optimization; last visit 2024/11/14
+
+- **Wikipedia**; [*Particle-Swarm*](https://en.wikipedia.org/wiki/Particle_swarm_optimization) Optimization; last visit 2024/11/14
+
+- **Wikipedia**; [*Simulated Annealing*](https://en.wikipedia.org/wiki/Simulated_annealing) Optimization; last visit 2024/11/14
 "
 
 # ╔═╡ c72b437f-efc6-4b12-af78-8bc499101e7d
@@ -2005,22 +2063,28 @@ version = "1.4.1+1"
 # ╟─3d40d080-65af-4dc9-a924-5da517ffb95c
 # ╠═58cc68de-cd76-48b4-8df4-b4257fdc1cd1
 # ╠═ce165ee5-eff5-4c25-95b9-e97b2fd914e4
+# ╠═4519f838-e980-43ed-a175-83df4a20cb16
 # ╠═05e2d7ec-45a7-4289-a274-e7b109b70875
 # ╠═fb8a42be-3da2-4cf7-b84b-16e41b5ee30a
 # ╠═5af826dc-a075-4cb6-9f4f-f2c4d9f9218b
 # ╠═4ff8eb39-b44f-4c4c-b33d-0654103728e7
-# ╠═d4e93cea-9a01-4f92-86f1-041343b64530
-# ╠═358cf888-fda9-49a1-ab8b-0c963dcca8cb
 # ╠═64730dab-3888-4fe9-a820-f870c276030c
 # ╟─92f10574-cc76-4879-af6e-319875007163
 # ╠═c26bd948-7280-4952-8d9d-45fe202d00a2
+# ╠═d14e3342-c2e2-4854-9127-3830d46895c5
 # ╠═110527a5-dcb4-4bd8-9d3a-67bb400f333c
 # ╠═51bdf299-af9f-4483-a87d-0d2f2f838908
 # ╠═98aa120e-2abc-4974-8825-bb64daa51993
 # ╠═bec5eac9-b76d-4a17-b49b-b1aeabda85f5
-# ╠═7d982489-e4e7-46ea-8bc1-37c327aaa665
-# ╠═ce9afe85-b7b1-43e2-a1a6-f591c215966a
+# ╟─03d18d2c-69d7-4044-bf9c-ceeaa8173aaa
+# ╠═be88b582-e2e4-4e2b-82c6-12c03c431152
+# ╠═d94d8b0d-50ab-4aae-8f74-a035c3df7dc6
+# ╠═7c7ceaf4-5225-4aac-bddf-36ef9f3d9e17
+# ╠═f9a35aa6-9d10-498a-8a40-98e1763022a1
+# ╠═9308cdf3-086a-4d07-be97-852570c486eb
+# ╠═376d5074-eb1c-46e0-a34f-d646ae5d59e4
 # ╟─c482e066-7c02-488a-9fe2-d21e603e52b9
+# ╟─677a518e-a1b6-4efd-9abd-7bd0f1bc8cad
 # ╟─b556ba65-e6c4-4fbd-a845-72557b2a8319
 # ╟─c72b437f-efc6-4b12-af78-8bc499101e7d
 # ╟─00000000-0000-0000-0000-000000000001
